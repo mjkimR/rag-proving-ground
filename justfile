@@ -35,7 +35,7 @@ up +profiles="":
 up-gpu +profiles="":
     #!/usr/bin/env bash
     if [ -z "{{ profiles }}" ]; then
-        docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.gpu.yml up --profile basic -d
+        docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.gpu.yml --profile basic up -d
     else
         profile_args=()
         for p in {{ profiles }}; do
