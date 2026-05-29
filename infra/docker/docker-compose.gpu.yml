@@ -1,0 +1,11 @@
+services:
+  docling:
+    image: quay.io/docling-project/docling-serve-cu128:latest
+    container_name: docling-serve-gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]

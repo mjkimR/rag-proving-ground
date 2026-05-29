@@ -1,0 +1,25 @@
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm-proxy
+    ports:
+      - "4000:4000"
+    volumes:
+      - ../../models.yaml:/app/config.yaml
+    env_file:
+      - ../../.env
+    command: [ "--config", "/app/config.yaml", "--port", "4000" ]
+    restart: unless-stopped
+
+  docling:
+    image: quay.io/docling-project/docling-serve-cpu:latest
+    container_name: docling-serve-cpu
+    ports:
+      - "5001:5001"
+    environment:
+      - DOCLING_SERVE_ENABLE_UI=true
+    restart: unless-stopped
+    profiles:
+      - docling
+      - parser
+      - basic
