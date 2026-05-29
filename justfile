@@ -22,7 +22,7 @@ test +paths="":
 up +profiles="":
     #!/usr/bin/env bash
     if [ -z "{{ profiles }}" ]; then
-        docker compose -f infra/docker/docker-compose.yml up -d
+        docker compose -f infra/docker/docker-compose.yml --profile basic up -d
     else
         profile_args=()
         for p in {{ profiles }}; do

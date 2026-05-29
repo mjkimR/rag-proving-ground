@@ -11,6 +11,20 @@ services:
     command: [ "--config", "/app/config.yaml", "--port", "4000" ]
     restart: unless-stopped
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
   docling:
     image: quay.io/docling-project/docling-serve-cpu:latest
     container_name: docling-serve-cpu
@@ -23,3 +37,6 @@ services:
       - docling
       - parser
       - basic
+
+volumes:
+  minio_data:

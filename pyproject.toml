@@ -5,6 +5,7 @@ description = "Modular RAG experimentation and serving scaffold"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiobotocore>=3.7.0",
     "rag-core",
     "rag-graphs",
 ]
