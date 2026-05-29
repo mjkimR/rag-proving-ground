@@ -1,0 +1,38 @@
+model_list:
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: "os.environ/OPENAI_API_KEY"
+
+  - model_name: text-embedding-3-small
+    litellm_params:
+      model: openai/text-embedding-3-small
+      api_key: "os.environ/OPENAI_API_KEY"
+
+  - model_name: gpt-oss-20b
+    litellm_params:
+      model: openai/openai/gpt-oss-20b
+      api_base:
+      api_key: "os.environ/VLLM_API_KEY"
+
+  - model_name: gpt-oss-120b
+    litellm_params:
+      model: openai/openai/gpt-oss-120b
+      api_base:
+      api_key: "os.environ/VLLM_API_KEY"
+
+  - model_name: vllm-embedding
+    litellm_params:
+      model: hosted_vllm/ko-embedding
+      api_base:
+      api_key: "os.environ/VLLM_API_KEY"
+
+  - model_name: vllm-reranker
+    litellm_params:
+      model: huggingface/ko-reranker
+      api_base:
+      api_key: "os.environ/VLLM_API_KEY"
+
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 3

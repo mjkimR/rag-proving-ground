@@ -1,0 +1,76 @@
+[project]
+name = "rag-experiment"
+version = "0.1.0"
+description = "Modular RAG experimentation and serving scaffold"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "rag-core",
+    "rag-graphs",
+]
+
+[dependency-groups]
+dev = [
+    "aegra-cli>=0.9.17",
+    "ruff>=0.15.14",
+    "autorag>=0.3.2",
+    "litellm[proxy]>=1.55.0",
+    "pyright>=1.1.409",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "pytest-mock>=3.15.0",
+    "testcontainers[postgres]>=4.14.2",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "apps/api",
+    "packages/graphs",
+    "packages/rag-core",
+]
+
+[tool.uv.sources]
+rag-core = { workspace = true }
+rag-graphs = { workspace = true }
+
+[tool.ruff]
+exclude = [".git", ".venv", "migrations"]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**/*.py" = ["F403", "E402"]
+"__init__.py" = ["F403"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+extraPaths = [
+    "./packages/graphs/src",
+    "./packages/rag-core/src",
+]
+
+[tool.pytest.ini_options]
+log_level = "INFO"
+pythonpath = [
+    "packages/graphs/src",
+    "packages/rag-core/src",
+]
+testpaths = [
+    "packages/rag-core/src/tests",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
