@@ -182,6 +182,36 @@ export type KnowledgeDocumentResponse = {
 };
 
 /**
+ * KnowledgeFileEntry
+ */
+export type KnowledgeFileEntry = {
+    /**
+     * Md5 Hash
+     */
+    md5_hash: string;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Original File Path
+     */
+    original_file_path: string;
+    /**
+     * Parsed Data Path
+     */
+    parsed_data_path: string;
+    /**
+     * Element Count
+     */
+    element_count: number;
+    /**
+     * Size Bytes
+     */
+    size_bytes: number;
+};
+
+/**
  * ParsedDocument
  *
  * Provider-neutral parsed document.
@@ -455,6 +485,90 @@ export type DocumentParseApiV1DocParseParsePostResponses = {
 };
 
 export type DocumentParseApiV1DocParseParsePostResponse = DocumentParseApiV1DocParseParsePostResponses[keyof DocumentParseApiV1DocParseParsePostResponses];
+
+export type ListKnowledgeBasesApiV1KnowledgeGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge';
+};
+
+export type ListKnowledgeBasesApiV1KnowledgeGetResponses = {
+    /**
+     * Response List Knowledge Bases Api V1 Knowledge Get
+     *
+     * Successful Response
+     */
+    200: Array<string>;
+};
+
+export type ListKnowledgeBasesApiV1KnowledgeGetResponse = ListKnowledgeBasesApiV1KnowledgeGetResponses[keyof ListKnowledgeBasesApiV1KnowledgeGetResponses];
+
+export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Name
+         */
+        knowledge_name: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/{knowledge_name}/files';
+};
+
+export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetError = ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors[keyof ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors];
+
+export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses = {
+    /**
+     * Response List Knowledge Files Api V1 Knowledge  Knowledge Name  Files Get
+     *
+     * Successful Response
+     */
+    200: Array<KnowledgeFileEntry>;
+};
+
+export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponse = ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses[keyof ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses];
+
+export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Name
+         */
+        knowledge_name: string;
+        /**
+         * File Md5
+         */
+        file_md5: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge/{knowledge_name}/files/{file_md5}/parsed';
+};
+
+export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetError = GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors[keyof GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors];
+
+export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ParsedDocument;
+};
+
+export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponse = GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses[keyof GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses];
 
 export type UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostData = {
     body: BodyUploadDocumentApiV1KnowledgeKnowledgeNameUploadPost;

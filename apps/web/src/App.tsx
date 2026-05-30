@@ -1,40 +1,92 @@
+import React from 'react';
+import { ConfigProvider, theme, App as AntdApp } from 'antd';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { client } from './generated/api/client.gen';
+import { useThemeStore } from './stores/themeStore';
+import { Layout } from './components/Layout';
+import { Dashboard } from './views/Dashboard';
+import { Knowledge } from './views/Knowledge';
+import { DocumentWorkbench } from './components/DocumentWorkbench';
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
-import { DocumentWorkbench } from "./components/DocumentWorkbench";
+
+// Set up the generated OpenAPI Client Base URL
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389';
+client.setConfig({
+  baseUrl: apiBaseUrl,
+});
+
+// Configure React Query Client with sensible caching settings
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const copilotRuntimeUrl = import.meta.env.VITE_COPILOT_RUNTIME_URL as string | undefined;
 
-export function App() {
-  const content = (
-    <main className="app-shell">
-      <section className="app-header">
-        <div>
-          <p className="eyebrow">RAG Experiment</p>
-          <h1>Document preview workspace</h1>
-        </div>
-        <div className="status-pill">{copilotRuntimeUrl ? "Copilot connected" : "Copilot runtime not set"}</div>
-      </section>
+const ContentSwitcher: React.FC = () => {
+  const { activeTab } = useThemeStore();
 
-      <DocumentWorkbench copilotEnabled={Boolean(copilotRuntimeUrl)} />
-    </main>
+  switch (activeTab) {
+    case 'knowledge':
+      return <Knowledge />;
+    case 'workbench':
+      return <DocumentWorkbench copilotEnabled={Boolean(copilotRuntimeUrl)} />;
+    case 'dashboard':
+    default:
+      return <Dashboard />;
+  }
+};
+
+export function App() {
+  const { isDarkMode } = useThemeStore();
+
+  const mainContent = (
+    <Layout>
+      <ContentSwitcher />
+    </Layout>
   );
 
-  if (!copilotRuntimeUrl) {
-    return content;
-  }
+  const themeConfig = {
+    token: {
+      colorPrimary: isDarkMode ? '#00f2fe' : '#4f46e5',
+      borderRadius: 14,
+      fontFamily: 'Outfit, Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+      colorBgContainer: isDarkMode ? '#111827' : '#ffffff',
+      colorBgLayout: isDarkMode ? '#0b0f17' : '#f6f7f9',
+    },
+    algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+  };
+
+  const copilotWrapper = (content: React.ReactNode) => {
+    if (!copilotRuntimeUrl) return content;
+    return (
+      <CopilotKit runtimeUrl={copilotRuntimeUrl}>
+        <CopilotSidebar
+          defaultOpen={false}
+          instructions="Help inspect uploaded documents, summarize previews, and trigger available frontend tools when useful."
+          labels={{
+            title: "Document Copilot",
+            initial: "문서를 선택하면 preview와 변환 흐름을 도와줄 수 있습니다.",
+          }}
+        >
+          {content}
+        </CopilotSidebar>
+      </CopilotKit>
+    );
+  };
 
   return (
-    <CopilotKit runtimeUrl={copilotRuntimeUrl}>
-      <CopilotSidebar
-        defaultOpen={false}
-        instructions="Help inspect uploaded documents, summarize previews, and trigger available frontend tools when useful."
-        labels={{
-          title: "Document Copilot",
-          initial: "문서를 선택하면 preview와 변환 흐름을 도와줄 수 있습니다.",
-        }}
-      >
-        {content}
-      </CopilotSidebar>
-    </CopilotKit>
+    <QueryClientProvider client={queryClient}>
+      <ConfigProvider theme={themeConfig}>
+        <AntdApp>
+          {copilotWrapper(mainContent)}
+        </AntdApp>
+      </ConfigProvider>
+    </QueryClientProvider>
   );
 }

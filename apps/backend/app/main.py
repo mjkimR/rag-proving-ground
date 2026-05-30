@@ -1,4 +1,20 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+
+    env_in_cwd = Path(".env")
+    env_in_workspace = Path(__file__).resolve().parents[3] / ".env"
+
+    if env_in_cwd.exists():
+        load_dotenv(dotenv_path=env_in_cwd)
+    elif env_in_workspace.exists():
+        load_dotenv(dotenv_path=env_in_workspace)
+    else:
+        load_dotenv()
+except ImportError:
+    pass
 
 from app.router import router
 from app_file_storage import lifespan_file_storage

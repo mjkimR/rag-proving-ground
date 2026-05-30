@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteData, DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteErrors, DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteResponses, DocumentParseApiV1DocParseParsePostData, DocumentParseApiV1DocParseParsePostErrors, DocumentParseApiV1DocParseParsePostResponses, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetData, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetErrors, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetResponses, HealthApiHealthGetData, HealthApiHealthGetResponses, RootGetData, RootGetResponses, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostData, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostErrors, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostResponses } from './types.gen';
+import type { DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteData, DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteErrors, DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteResponses, DocumentParseApiV1DocParseParsePostData, DocumentParseApiV1DocParseParsePostErrors, DocumentParseApiV1DocParseParsePostResponses, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetData, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetErrors, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetResponses, GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetData, GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors, GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses, HealthApiHealthGetData, HealthApiHealthGetResponses, ListKnowledgeBasesApiV1KnowledgeGetData, ListKnowledgeBasesApiV1KnowledgeGetResponses, ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetData, ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors, ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses, RootGetData, RootGetResponses, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostData, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostErrors, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -42,6 +42,27 @@ export const documentParseApiV1DocParseParsePost = <ThrowOnError extends boolean
         ...options.headers
     }
 });
+
+/**
+ * List Knowledge Bases
+ *
+ * List all unique active knowledge base names from S3/MinIO storage.
+ */
+export const listKnowledgeBasesApiV1KnowledgeGet = <ThrowOnError extends boolean = false>(options?: Options<ListKnowledgeBasesApiV1KnowledgeGetData, ThrowOnError>) => (options?.client ?? client).get<ListKnowledgeBasesApiV1KnowledgeGetResponses, unknown, ThrowOnError>({ url: '/api/v1/knowledge', ...options });
+
+/**
+ * List Knowledge Files
+ *
+ * List all uploaded document assets and parsed element counts inside a knowledge base.
+ */
+export const listKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGet = <ThrowOnError extends boolean = false>(options: Options<ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetData, ThrowOnError>) => (options.client ?? client).get<ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses, ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors, ThrowOnError>({ url: '/api/v1/knowledge/{knowledge_name}/files', ...options });
+
+/**
+ * Get Parsed Document
+ *
+ * Get the parsed elements document structure (parsed_data.json) for a document.
+ */
+export const getParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGet = <ThrowOnError extends boolean = false>(options: Options<GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetData, ThrowOnError>) => (options.client ?? client).get<GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses, GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors, ThrowOnError>({ url: '/api/v1/knowledge/{knowledge_name}/files/{file_md5}/parsed', ...options });
 
 /**
  * Upload Document
