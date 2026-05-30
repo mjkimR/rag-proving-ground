@@ -40,9 +40,6 @@ class ParserCache:
             json.dumps(meta, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8"),
         )
 
-        file_key = f"{self._prefix}/{md5_hash}/{self._filename(parser_input.filename)}"
-        await self._client.upload_file(file_key, parser_input.content)
-
         return md5_hash
 
     async def get_result(

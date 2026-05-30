@@ -64,6 +64,7 @@ typeCheckingMode = "basic"
 extraPaths = [
     "./packages/graphs/src",
     "./packages/rag-core/src",
+    "./apps/backend",
 ]
 
 [tool.pytest.ini_options]

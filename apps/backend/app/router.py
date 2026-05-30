@@ -1,4 +1,5 @@
 from app.features.doc_parse.api.v1 import router as v1_doc_parse_router
+from app.features.knowledge.api.v1 import router as v1_knowledge_router
 from fastapi import APIRouter, status
 
 router = APIRouter(prefix="/api")
@@ -12,4 +13,5 @@ async def health():
 
 # Feature routers
 v1_router.include_router(v1_doc_parse_router)
+v1_router.include_router(v1_knowledge_router)
 router.include_router(v1_router)

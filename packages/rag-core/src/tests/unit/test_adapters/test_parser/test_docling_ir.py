@@ -125,8 +125,7 @@ async def test_parser_cache_stores_original_file_and_meta_under_hash() -> None:
 
     md5_hash = await cache.store_file(parser_input)
 
-    file_data = await storage.download_file(f"parser_cache/{md5_hash}/sample.pdf")
-    assert file_data == b"example"
+    assert not await storage.file_exists(f"parser_cache/{md5_hash}/sample.pdf")
     meta = json.loads(await storage.download_file(f"parser_cache/{md5_hash}/meta.json"))
     assert meta == {
         "content_type": "application/pdf",
