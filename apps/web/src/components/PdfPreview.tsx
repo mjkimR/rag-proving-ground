@@ -55,28 +55,20 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
 
     const { bbox } = activeElement;
 
+    // Backend normalizes all bbox to TOPLEFT origin, so no Y-axis inversion needed
     const leftPercent = (bbox.left / pdfPageWidthPoints) * 100;
-    let topPercent = (bbox.top / pdfPageHeightPoints) * 100;
-    
-    const isBottomLeftOrigin = bbox.coord_origin === "BottomLeft";
-    if (isBottomLeftOrigin) {
-      topPercent = ((pdfPageHeightPoints - bbox.top) / pdfPageHeightPoints) * 100;
-    }
-    
+    const topPercent = (bbox.top / pdfPageHeightPoints) * 100;
     const widthPercent = ((bbox.right - bbox.left) / pdfPageWidthPoints) * 100;
     const heightPercent = ((bbox.bottom - bbox.top) / pdfPageHeightPoints) * 100;
-    const absHeightPercent = Math.abs(heightPercent);
-
-    const finalTopPercent = isBottomLeftOrigin ? topPercent - absHeightPercent : topPercent;
 
     return (
       <div
         style={{
           position: "absolute",
           left: `${leftPercent}%`,
-          top: `${finalTopPercent}%`,
+          top: `${topPercent}%`,
           width: `${widthPercent}%`,
-          height: `${absHeightPercent}%`,
+          height: `${heightPercent}%`,
           background: "rgba(255, 99, 71, 0.25)",
           border: "2px solid tomato",
           borderRadius: "4px",
@@ -106,14 +98,16 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
 
       const { bbox } = activeElement;
 
+      // Backend normalizes all bbox to TOPLEFT origin
       const leftPercent = (bbox.left / pdfPageWidthPoints) * 100;
-      let topPercent = (bbox.top / pdfPageHeightPoints) * 100;
-      
-      const isBottomLeftOrigin = bbox.coord_origin === "BottomLeft";
-      if (isBottomLeftOrigin) {
-        topPercent = ((pdfPageHeightPoints - bbox.top) / pdfPageHeightPoints) * 100;
-      }
-      const finalTopPercent = isBottomLeftOrigin ? topPercent - Math.abs(((bbox.bottom - bbox.top) / pdfPageHeightPoints) * 100) : topPercent;
+      const bboxTopPercent = (bbox.top / pdfPageHeightPoints) * 100;
+      const bboxHeightPercent = ((bbox.bottom - bbox.top) / pdfPageHeightPoints) * 100;
+
+      // jumpToHighlightArea scrolls so that `top` sits at the very top of the viewport.
+      // To center the bbox vertically, subtract ~35% (roughly half a viewport at 90% zoom).
+      // Clamp to 0 so we never scroll above the page top.
+      const viewportOffsetPercent = 35;
+      const scrollTopPercent = Math.max(0, bboxTopPercent - viewportOffsetPercent);
 
       // Small delay ensures viewer layout is settled before jumping
       const timer = setTimeout(() => {
@@ -121,9 +115,9 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
           jumpToHighlightArea({
             pageIndex: targetIndex,
             left: leftPercent,
-            top: finalTopPercent,
+            top: scrollTopPercent,
             width: ((bbox.right - bbox.left) / pdfPageWidthPoints) * 100,
-            height: Math.abs(((bbox.bottom - bbox.top) / pdfPageHeightPoints) * 100),
+            height: bboxHeightPercent,
           });
         } catch (e) {
           console.warn("Failed to jump to highlight area", e);

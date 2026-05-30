@@ -28,7 +28,8 @@ def normalize_docling_document(
     doc_id = _doc_id(document_data, parser_input)
     pages = _pages(document_data, doc_id)
     page_id_by_no = {page.page_no: page.page_id for page in pages}
-    elements = _elements(document_data, page_id_by_no)
+    page_height_by_no = {page.page_no: page.height for page in pages if page.height}
+    elements = _elements(document_data, page_id_by_no, page_height_by_no)
     origin = _dict(document_data.get("origin"))
 
     return ParsedDocument(
@@ -92,7 +93,9 @@ def _pages(document_data: dict[str, Any], doc_id: str) -> list[ParsedPage]:
     return pages
 
 
-def _elements(document_data: dict[str, Any], page_id_by_no: dict[int, str]) -> list[ParsedElement]:
+def _elements(
+    document_data: dict[str, Any], page_id_by_no: dict[int, str], page_height_by_no: dict[int, float]
+) -> list[ParsedElement]:
     indexes: dict[str, list[Any]] = {
         "texts": _list(document_data.get("texts")),
         "tables": _list(document_data.get("tables")),
@@ -108,7 +111,7 @@ def _elements(document_data: dict[str, Any], page_id_by_no: dict[int, str]) -> l
         item = _resolve_ref(ref, indexes)
         if not isinstance(item, dict):
             continue
-        elements.extend(_element_from_item(item, ref, len(elements), indexes, page_id_by_no))
+        elements.extend(_element_from_item(item, ref, len(elements), indexes, page_id_by_no, page_height_by_no))
 
     return elements
 
@@ -119,6 +122,7 @@ def _element_from_item(
     order: int,
     indexes: dict[str, list[Any]],
     page_id_by_no: dict[int, str],
+    page_height_by_no: dict[int, float],
 ) -> list[ParsedElement]:
     if ref and ref.startswith("#/groups/"):
         children = _list(item.get("children"))
@@ -135,9 +139,9 @@ def _element_from_item(
             if child_ref:
                 child_ids.append(child_ref)
 
-        provenance = _provenance(item, ref)
+        provenance = _provenance(item, ref, page_height_by_no)
         if not provenance:
-            provenance = _first_child_provenance(children, indexes)
+            provenance = _first_child_provenance(children, indexes, page_height_by_no)
         page_no = _first_page_no(provenance)
         return [
             ParsedElement(
@@ -155,7 +159,7 @@ def _element_from_item(
         ]
 
     label = _string(item.get("label")) or "unknown"
-    provenance = _provenance(item, ref)
+    provenance = _provenance(item, ref, page_height_by_no)
     page_no = _first_page_no(provenance)
     common = {
         "element_id": ref or f"element_{order}",
@@ -283,17 +287,20 @@ def _table_data(item: dict[str, Any]) -> dict[str, Any]:
     return _dict(item.get("data"))
 
 
-def _provenance(item: dict[str, Any], source_ref: str | None) -> list[Provenance]:
+def _provenance(item: dict[str, Any], source_ref: str | None, page_height_by_no: dict[int, float]) -> list[Provenance]:
     prov_items = _list(item.get("prov"))
     result: list[Provenance] = []
     for prov in prov_items:
         if not isinstance(prov, dict):
             continue
+        page_no = _int(prov.get("page_no"))
         charspan = prov.get("charspan")
         result.append(
             Provenance(
-                page_no=_int(prov.get("page_no")),
-                bbox=_bbox(prov.get("bbox") if isinstance(prov.get("bbox"), dict) else None),
+                page_no=page_no,
+                bbox=_bbox(
+                    prov.get("bbox") if isinstance(prov.get("bbox"), dict) else None, page_no, page_height_by_no
+                ),
                 charspan=(int(charspan[0]), int(charspan[1]))
                 if isinstance(charspan, list) and len(charspan) == 2
                 else None,
@@ -303,19 +310,21 @@ def _provenance(item: dict[str, Any], source_ref: str | None) -> list[Provenance
     return result
 
 
-def _first_child_provenance(children: list[Any], indexes: dict[str, list[Any]]) -> list[Provenance]:
+def _first_child_provenance(
+    children: list[Any], indexes: dict[str, list[Any]], page_height_by_no: dict[int, float]
+) -> list[Provenance]:
     for child in children:
         child_ref = _ref(child)
         child_item = _resolve_ref(child_ref, indexes)
         if not isinstance(child_item, dict):
             continue
-        provenance = _provenance(child_item, child_ref)
+        provenance = _provenance(child_item, child_ref, page_height_by_no)
         if provenance:
             return provenance
     return []
 
 
-def _bbox(data: dict[str, Any] | None) -> BoundingBox | None:
+def _bbox(data: dict[str, Any] | None, page_no: int | None, page_height_by_no: dict[int, float]) -> BoundingBox | None:
     if data is None:
         return None
     left = _float(data.get("l"))
@@ -324,12 +333,29 @@ def _bbox(data: dict[str, Any] | None) -> BoundingBox | None:
     bottom = _float(data.get("b"))
     if left is None or top is None or right is None or bottom is None:
         return None
+
+    coord_origin = _string(data.get("coord_origin"))
+
+    if coord_origin == "BOTTOMLEFT":
+        if page_no is not None and page_no in page_height_by_no:
+            # Full Y-axis flip using actual page height
+            page_height = page_height_by_no[page_no]
+            new_top = page_height - top
+            new_bottom = page_height - bottom
+            top = min(new_top, new_bottom)
+            bottom = max(new_top, new_bottom)
+        else:
+            # Page height unknown: in BOTTOMLEFT, Docling stores the visual top
+            # with a LARGER Y value ("t" key). So we just ensure top < bottom.
+            top, bottom = min(top, bottom), max(top, bottom)
+        coord_origin = "TOPLEFT"
+
     return BoundingBox(
         left=left,
         top=top,
         right=right,
         bottom=bottom,
-        coord_origin=_string(data.get("coord_origin")),
+        coord_origin=coord_origin,
     )
 
 
