@@ -30,7 +30,7 @@ override-dependencies = [
 
 [tool.uv.workspace]
 members = [
-    "apps/api",
+    "apps/backend",
     "packages/graphs",
     "packages/rag-core",
 ]

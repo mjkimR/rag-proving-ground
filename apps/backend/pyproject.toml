@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "FastAPI app for parsing and chunking APIs"
 requires-python = ">=3.13"
 dependencies = [
+    "app-layer-base",
     "fastapi>=0.115.0",
     "pydantic>=2.9.0",
     "pydantic-settings>=2.6.0",
@@ -17,3 +18,4 @@ package = false
 
 [tool.uv.sources]
 rag-core = { workspace = true }
+app-layer-base = { git = "https://github.com/mjkimR/app-common.git", subdirectory = "app-layer-base", rev = "main" }

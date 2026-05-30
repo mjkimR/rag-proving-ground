@@ -44,12 +44,13 @@ wheels = [
 
 [[package]]
 name = "aegra-api"
-version = "0.9.17"
+version = "0.9.18"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "alembic" },
     { name = "asgi-correlation-id" },
     { name = "asyncpg" },
+    { name = "croniter" },
     { name = "fastapi" },
     { name = "greenlet" },
     { name = "langgraph" },
@@ -69,14 +70,14 @@ dependencies = [
     { name = "structlog" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/1b/2c46fec154fbc3f7fb33d440e452a5fe07a39efbeac2ca9839d4874a3cf3/aegra_api-0.9.17.tar.gz", hash = "sha256:2886cff6792ba98d37db7bf246912d5538e646a8f68b390f2f142d8184d1536f", size = 337885, upload-time = "2026-05-20T12:37:53.211Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/80/fc7f1d72ea75f9964585c424eb431ec5e8d57443cc005ef9f641708f04df/aegra_api-0.9.18.tar.gz", hash = "sha256:c1053e7a6901494968c0b7ce66a1e378f588e7f7f23170c1b6fe6f83794634b6", size = 371829, upload-time = "2026-05-30T11:29:36.871Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/16/e5318b6bee553b06a59b5f1c76b976c9fad2de2fb57b32e98d648311ba41/aegra_api-0.9.17-py3-none-any.whl", hash = "sha256:7dbcc28d5d8040128aa48abff9806e2bb9fee98f1b49f6fab0be84724ef82f7f", size = 173286, upload-time = "2026-05-20T12:37:51.905Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/ce/a9dd5293f77c505089a057777e4f266e373199bccaaf1eb500c1946181ad/aegra_api-0.9.18-py3-none-any.whl", hash = "sha256:cf0045cd5cef988728c930ca0af2ad510b56555dcc24d57b5f6880a308b1ac5f", size = 191960, upload-time = "2026-05-30T11:29:35.588Z" },
 ]
 
 [[package]]
 name = "aegra-cli"
-version = "0.9.17"
+version = "0.9.18"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aegra-api" },
@@ -85,9 +86,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/55/51/6980c5e2925e847911e4e64c4f6f42b42afefe1ce1f12c7ca45790bd2c06/aegra_cli-0.9.17.tar.gz", hash = "sha256:4ebec5d1b6190d14789d36a100cf91126eb6426b512808cb2287668de3ff5ae9", size = 36582, upload-time = "2026-05-20T12:39:29.615Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/06/7c/2f1c83656e8375d89dcee193f8e084906d401691589589cb87fc395a8263/aegra_cli-0.9.18.tar.gz", hash = "sha256:2dcb41f53645d9c10fdd7f305cbaf6484537c2bee53244f2158464d15ab69538", size = 36988, upload-time = "2026-05-30T11:30:50.521Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/52/a7/017b336c1c243bcfdd2983f26239b4534d9ea15f606889d3a4c05c8ee99f/aegra_cli-0.9.17-py3-none-any.whl", hash = "sha256:38e0dd723d099965f8960a799b8d939beb6bd071af2b3fd097bc45e55e53a6d0", size = 32961, upload-time = "2026-05-20T12:39:28.67Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/13/0788e422a2c92ac918d30c2812f6c1b8ee120aecf4a7ee0ef69dea1b7896/aegra_cli-0.9.18-py3-none-any.whl", hash = "sha256:d77493909b0c0caefc8c5961025179a564877f59180aa820c293ac9bdb346a1a", size = 33383, upload-time = "2026-05-30T11:30:49.559Z" },
 ]
 
 [[package]]
@@ -307,6 +308,21 @@ dependencies = [
     { name = "loguru" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+]
+
+[[package]]
+name = "app-layer-base"
+version = "0.1.0"
+source = { git = "https://github.com/mjkimR/app-common.git?subdirectory=app-layer-base&rev=main#4826f55afb3f40203794cb8cba0e4ff71e9e540c" }
+dependencies = [
+    { name = "dotenv" },
+    { name = "fastapi" },
+    { name = "greenlet" },
+    { name = "loguru" },
+    { name = "orjson" },
+    { name = "pydantic", extra = ["email"] },
+    { name = "pydantic-settings" },
+    { name = "sqlalchemy" },
 ]
 
 [[package]]
@@ -5487,8 +5503,9 @@ dev = [
 [[package]]
 name = "rag-experiment-api"
 version = "0.1.0"
-source = { virtual = "apps/api" }
+source = { virtual = "apps/backend" }
 dependencies = [
+    { name = "app-layer-base" },
     { name = "fastapi" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -5499,6 +5516,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "app-layer-base", git = "https://github.com/mjkimR/app-common.git?subdirectory=app-layer-base&rev=main" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "pydantic", specifier = ">=2.9.0" },
     { name = "pydantic-settings", specifier = ">=2.6.0" },
