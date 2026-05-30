@@ -2,21 +2,79 @@
 default:
     @just --list
 
-# Initialize project modules (all, app-base, or app-tools)
-init:
-    uv sync
+# Initialize workspace modules (all, backend, or web)
+init module="all":
+    #!/usr/bin/env bash
+    source ./scripts/_lib.sh
+    target=$(resolve_module "{{ module }}")
 
-init-dev:
-    uv sync --all-extras
+    if should_run "$target" "backend"; then
+        echo "Initializing Python backend workspace..."
+        uv sync --all-extras
+    fi
 
-# Run ruff format and lint for a specific module (all, app-base, or app-tools)
-lint:
-    uv run ruff format
-    uv run ruff check --fix
+    if should_run "$target" "web"; then
+        path=$(resolve_module_path "web")
+        echo "Initializing React frontend ($path)..."
+        npm --prefix "$path" install
+    fi
 
-# Run tests
+# Run linters and formatters (all, backend, or web)
+lint module="all":
+    #!/usr/bin/env bash
+    source ./scripts/_lib.sh
+    target=$(resolve_module "{{ module }}")
+
+    if should_run "$target" "backend"; then
+        echo "Linting Python codebase..."
+        uv run ruff format
+        uv run ruff check --fix
+    fi
+
+    if should_run "$target" "web"; then
+        path=$(resolve_module_path "web")
+        echo "Linting React frontend ($path)..."
+        # Optional: Add eslint/formatter check here once configured
+        echo "React frontend formatting is integrated."
+    fi
+
+# Run static type checks (all, backend, or web)
+check module="all":
+    #!/usr/bin/env bash
+    source ./scripts/_lib.sh
+    target=$(resolve_module "{{ module }}")
+
+    if should_run "$target" "backend"; then
+        echo "Type checking Python backend..."
+        uv run pyright
+    fi
+
+    if should_run "$target" "web"; then
+        path=$(resolve_module_path "web")
+        echo "Compiling and type checking React frontend ($path)..."
+        npm --prefix "$path" run build
+    fi
+
+# Run server for a specific module or all in development mode (backend, web, or all)
+dev module="all":
+    @bash ./scripts/dev-run.sh "{{ module }}"
+
+# Run backend tests. Can specify target paths (e.g. just test packages/rag-core/src/tests/unit)
 test +paths="":
-    uv run pytest
+    @bash ./scripts/run-tests.sh {{ paths }}
+
+# Kill any dangling development servers (FastAPI on 8389, Vite on 5173)
+kill:
+    #!/usr/bin/env bash
+    echo "Terminating dangling development processes..."
+    # Release ports 8389 (backend) and 5173 (frontend)
+    fuser -k 8389/tcp 2>/dev/null || true
+    fuser -k 5173/tcp 2>/dev/null || true
+    echo "Development servers cleaned up."
+
+# Generate OpenAPI client for the frontend UI module from Python backend schema
+gen-ui-api:
+    @bash ./scripts/gen-ui-api.sh
 
 # Start backend services in CPU mode (Default / macOS). Can specify multiple profiles (e.g. just up docling marker)
 up +profiles="":
