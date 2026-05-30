@@ -12,7 +12,7 @@ export function PdfPreview({ fileName, fileUrl }: PdfPreviewProps) {
     return (
       <div className="empty-state">
         <h2>PDF original viewer</h2>
-        <p>왼쪽에서 PDF 파일을 선택하면 원본 viewer가 열립니다.</p>
+        <p>Select a PDF file from the left to open the original viewer.</p>
       </div>
     );
   }

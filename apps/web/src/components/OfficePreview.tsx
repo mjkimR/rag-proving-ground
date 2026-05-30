@@ -34,7 +34,7 @@ export function OfficePreview({ onPdfReady }: OfficePreviewProps) {
   return (
     <div className="office-panel">
       <h2>Office to PDF</h2>
-      <p>Office 문서는 Gotenberg 변환을 먼저 거친 뒤 PDF viewer에서 확인합니다.</p>
+      <p>Office documents will be converted using Gotenberg and displayed in the PDF viewer.</p>
       <label className="office-upload" htmlFor="office-file">
         Select Office file
       </label>

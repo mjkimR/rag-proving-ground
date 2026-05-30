@@ -6,7 +6,7 @@ import { useThemeStore } from './stores/themeStore';
 import { Layout } from './components/Layout';
 import { Dashboard } from './views/Dashboard';
 import { Knowledge } from './views/Knowledge';
-import { DocumentWorkbench } from './components/DocumentWorkbench';
+import { DocumentWorkbench } from './views/DocumentWorkbench';
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 
@@ -71,7 +71,7 @@ export function App() {
           instructions="Help inspect uploaded documents, summarize previews, and trigger available frontend tools when useful."
           labels={{
             title: "Document Copilot",
-            initial: "문서를 선택하면 preview와 변환 흐름을 도와줄 수 있습니다.",
+            initial: "Select a document to preview and assist with the conversion flow.",
           }}
         >
           {content}

@@ -124,6 +124,14 @@ textarea {
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   margin: 0 auto;
   max-width: 1320px;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s ease;
+  height: calc(100vh - 170px);
+  min-height: 560px;
+}
+
+.workspace.collapsed-settings {
+  grid-template-columns: 0px 1fr;
+  gap: 0;
 }
 
 .control-panel,
@@ -135,19 +143,37 @@ textarea {
 }
 
 .control-panel {
-  align-self: start;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  height: 100%;
+  overflow-y: auto;
+}
+
+.control-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-20px);
+  pointer-events: none;
+  overflow: hidden;
 }
 
 .mode-tabs {
   background: #eef1f5;
   border-radius: 8px;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 4px;
 }
 
@@ -158,6 +184,11 @@ textarea {
   color: #546173;
   cursor: pointer;
   min-height: 36px;
+  flex: 1 1 calc(50% - 4px);
+  padding: 6px 4px;
+  font-size: 11px;
+  text-align: center;
+  transition: all 0.15s ease;
 }
 
 .mode-tab[aria-pressed="true"] {
@@ -193,7 +224,7 @@ textarea {
 }
 
 .preview-panel {
-  min-height: 720px;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -203,7 +234,8 @@ textarea {
   flex-direction: column;
   gap: 12px;
   justify-content: center;
-  min-height: 720px;
+  height: 100%;
+  min-height: 560px;
   padding: 48px;
 }
 
@@ -225,7 +257,7 @@ textarea {
 .pdf-frame {
   display: grid;
   grid-template-rows: auto 1fr;
-  height: 720px;
+  height: 100%;
 }
 
 .preview-toolbar {
@@ -240,7 +272,7 @@ textarea {
 .markdown-preview {
   color: #1d2634;
   line-height: 1.65;
-  min-height: 720px;
+  height: 100%;
   overflow: auto;
   padding: 32px 40px;
 }
@@ -259,7 +291,7 @@ textarea {
 
 .html-preview {
   border: 0;
-  height: 720px;
+  height: 100%;
   width: 100%;
 }
 
@@ -383,7 +415,7 @@ textarea {
 /* Multi-View Dashboard Grid */
 .multi-view-container {
   background: #f8fafc;
-  height: 720px;
+  height: 100%;
   overflow-y: auto;
 }
 
@@ -402,7 +434,7 @@ textarea {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  height: 480px;
+  height: 100%;
   overflow: hidden;
 }
 

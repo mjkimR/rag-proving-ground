@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Layout as AntdLayout, Menu, Button, Space, Badge, Tooltip } from 'antd';
 import { useThemeStore } from '../stores/themeStore';
 import {
@@ -9,6 +9,7 @@ import {
   Server,
   RefreshCw,
   FileText,
+  Menu as MenuIcon,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { healthApiHealthGet } from '../generated/api/sdk.gen';
@@ -21,6 +22,7 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isDarkMode, activeTab, toggleDarkMode, setActiveTab } = useThemeStore();
+  const [collapsed, setCollapsed] = useState(false);
 
   // Poll backend health status every 5 seconds
   const { data: healthData, isError, refetch, isFetching } = useQuery({
@@ -64,18 +66,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <AntdLayout style={{ minHeight: '100vh', background: 'var(--bg-app, #f6f7f9)' }}>
       {/* Sidebar Panel */}
       <Sider
-        breakpoint="lg"
-        collapsedWidth="0"
         width={260}
+        collapsedWidth={0}
+        collapsed={collapsed}
+        trigger={null}
         style={{
           position: 'fixed',
-          left: 0,
+          left: collapsed ? -260 : 0,
           top: 0,
           bottom: 0,
           height: '100vh',
           zIndex: 10,
-          borderRight: '1px solid var(--border-color, #dde3ea)',
+          borderRight: collapsed ? 'none' : '1px solid var(--border-color, #dde3ea)',
           background: isDarkMode ? '#111827' : '#ffffff',
+          overflow: 'hidden',
+          transition: 'all 0.2s ease-in-out',
         }}
       >
         {/* Brand Logo */}
@@ -160,7 +165,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </Sider>
 
       {/* Main Container */}
-      <AntdLayout style={{ marginLeft: 260, minHeight: '100vh', background: 'transparent' }}>
+      <AntdLayout style={{ 
+        marginLeft: collapsed ? 0 : 260, 
+        minHeight: '100vh', 
+        background: 'transparent',
+        transition: 'margin-left 0.2s ease-in-out'
+      }}>
         {/* Header Section */}
         <Header
           style={{
@@ -177,9 +187,30 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             borderBottom: '1px solid var(--border-color, #dde3ea)',
           }}
         >
-          <h2 className="font-outfit" style={{ margin: 0, fontSize: '20px', fontWeight: 700, textTransform: 'capitalize' }}>
-            {activeTab === 'knowledge' ? 'Knowledge Base Management' : 'Dashboard Overview'}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Button
+              type="text"
+              icon={<MenuIcon size={20} />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid var(--border-color, #dde3ea)',
+                background: isDarkMode ? '#1f2937' : '#ffffff',
+              }}
+              title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            />
+            <h2 className="font-outfit" style={{ margin: 0, fontSize: '20px', fontWeight: 700, textTransform: 'capitalize' }}>
+              {activeTab === 'knowledge' 
+                ? 'Knowledge Base Management' 
+                : activeTab === 'workbench' 
+                  ? 'Showcase Workbench' 
+                  : 'Dashboard Overview'}
+            </h2>
+          </div>
 
           <Space size="middle">
             {/* Theme Toggle Button */}
