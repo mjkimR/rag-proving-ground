@@ -1,89 +1,146 @@
-## LiteLLM proxy
+# rag-proving-ground
 
-Create a local `.env` from the example and fill in the API keys referenced by
-`models.yaml`.
+A **Modular RAG Experimentation and Serving Scaffold** — a monorepo for building, evaluating, and serving
+Retrieval-Augmented Generation (RAG) pipelines.
+
+## Stack
+
+| Layer                  | Technology                                                        |
+|------------------------|-------------------------------------------------------------------|
+| API                    | Python 3.13, FastAPI, uvicorn                                     |
+| Core library           | `rag-core` — parsers, chunkers, embeddings, LLM/reranker wrappers |
+| Graph pipelines        | `rag-graphs` — LangGraph-based RAG pipeline definitions           |
+| Frontend               | React 19, Vite, TypeScript, CopilotKit                            |
+| LLM gateway            | LiteLLM proxy (`models.yaml`)                                     |
+| Object storage         | MinIO (S3-compatible)                                             |
+| Document parsing       | Docling Serve                                                     |
+| Task runner            | [just](https://github.com/casey/just)                             |
+| Python package manager | [uv](https://github.com/astral-sh/uv)                             |
+
+---
+
+## Getting Started
+
+### 1. Prerequisites
+
+- [just](https://github.com/casey/just) — install via `scripts/install-just.sh` (Linux) or `scripts/install-just.bat` (
+  Windows)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) — Python package manager
+- [Docker](https://docs.docker.com/get-docker/) — for infrastructure services
+- Node.js `>=24.0.0` / npm `>=11.0.0` — for the frontend
+
+### 2. Install Dependencies
+
+```bash
+just init       # production deps only
+just init-dev   # includes dev extras (ruff, pyright, pytest, autorag, etc.)
+```
+
+### 3. Configure Environment
 
 ```bash
 cp .env.example .env
-vi .env
+# Edit .env and fill in the required API keys
 ```
 
-Start or restart the proxy:
+Key variables in `.env`:
+
+| Variable                          | Default                    | Description                   |
+|-----------------------------------|----------------------------|-------------------------------|
+| `LITELLM_BASE_URL`                | `http://localhost:4000/v1` | LiteLLM proxy endpoint        |
+| `LITELLM_API_KEY`                 | `sk-local`                 | API key for the proxy         |
+| `LITELLM_DEFAULT_LLM_MODEL`       | `gpt-oss-20b`              | Default chat model alias      |
+| `LITELLM_DEFAULT_EMBEDDING_MODEL` | `vllm-embedding`           | Default embedding model alias |
+| `LITELLM_DEFAULT_RERANKER_MODEL`  | `vllm-reranker`            | Default reranker model alias  |
+| `PARSER_PROVIDER`                 | `docling`                  | Active parser adapter         |
+| `MINIO_ROOT_USER`                 | `minioadmin`               | MinIO admin user              |
+| `MINIO_ROOT_PASSWORD`             | `minioadmin`               | MinIO admin password          |
+
+### 4. Configure Model Routing
 
 ```bash
-scripts/litellm_proxy.sh
+cp models.example.yaml models.yaml
+# Edit models.yaml to point to your LLM/embedding/reranker endpoints
 ```
 
-The script loads `.env`, stops the previous process for the same port, and runs:
+`models.yaml` is loaded by the LiteLLM proxy and maps logical model aliases (e.g. `gpt-oss-20b`,
+`vllm-embedding`) to actual backend endpoints.
+
+### 5. Start Infrastructure
 
 ```bash
-litellm --config models.yaml --port 4000
+just up                    # CPU mode — starts Docling + LiteLLM + MinIO
+just up-gpu                # GPU mode (WSL / Linux)
+just up docling marker     # Start with additional optional profiles
+just down                  # Stop all services
 ```
 
-Logs and the pid file are written under `.integrations/litellm/`.
+Services started by `just up`:
 
-Stop the proxy started for the same port:
+| Service       | Port            | Description                                      |
+|---------------|-----------------|--------------------------------------------------|
+| LiteLLM proxy | `4000`          | OpenAI-compatible gateway to LLM backends        |
+| MinIO         | `9000` / `9001` | S3-compatible object storage (console at `9001`) |
+| Docling       | `5001`          | Document parsing server (`/docs` · `/ui`)        |
+
+---
+
+## Development
+
+### Python (API, rag-core, graphs)
 
 ```bash
-scripts/litellm_proxy_kill.sh
+just lint    # ruff format + ruff check --fix
+just test    # run all pytest tests
+
+uv run pyright                                      # type checking
+uv run pytest packages/rag-core/src/tests/unit      # unit tests only
 ```
 
-If port `4000` is occupied by a process that was not started from this script,
-the script exits instead of killing it. To force-stop the port owner:
+### Frontend (`apps/web`)
 
 ```bash
-FORCE_PORT_KILL=1 scripts/litellm_proxy.sh
+cd apps/web
+npm install
+npm run dev    # dev server at http://127.0.0.1:<port>
+npm run build  # tsc --noEmit + vite build
 ```
 
-The same force-stop option is available for the kill script:
+---
 
-```bash
-FORCE_PORT_KILL=1 scripts/litellm_proxy_kill.sh
+## Repository Layout
+
 ```
-
-## Docling Serve
-
-Docling is kept in a separate uv project under `services/docling/` so parser
-dependencies do not have to live in the main RAG API environment.
-
-Start or restart the local Docling API:
-
-```bash
-scripts/docling_serve.sh
-```
-
-The first run creates `services/docling/.venv`, installs `docling-serve[ui]`,
-and may download Docling model artifacts into Docling's default cache. Logs and
-pid files are written under `.integrations/docling/`.
-
-Default endpoints:
-
-```text
-API:  http://127.0.0.1:5001
-Docs: http://127.0.0.1:5001/docs
-UI:   http://127.0.0.1:5001/ui
-```
-
-Stop the service:
-
-```bash
-scripts/docling_serve_kill.sh
-```
-
-Useful overrides:
-
-```bash
-DOCLING_SERVE_PORT=5011 scripts/docling_serve.sh
-DOCLING_SERVE_LOAD_MODELS_AT_BOOT=1 scripts/docling_serve.sh
-DOCLING_SERVE_MAX_SYNC_WAIT=300 scripts/docling_serve.sh
-DOCLING_SERVE_ARTIFACTS_PATH=/path/to/preloaded/models scripts/docling_serve.sh
-```
-
-Smoke test after the server is up:
-
-```bash
-curl -X POST 'http://127.0.0.1:5001/v1/convert/source' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{"sources":[{"kind":"http","url":"https://arxiv.org/pdf/2501.17887"}]}'
+rag-proving-ground/
+├── apps/
+│   ├── api/                      # FastAPI application (parsing/chunking endpoints)
+│   │   └── app/main.py
+│   └── web/                      # React 19 + Vite frontend
+│       └── src/
+├── packages/
+│   ├── rag-core/                 # Shared library: parsers, chunkers, embeddings, AI, config
+│   │   └── src/rag_core/
+│   │       ├── adapters/         # Provider adapters (e.g., Docling parser adapter)
+│   │       ├── ai/               # LLM / reranker wrappers
+│   │       ├── chunkers/         # Recursive and semantic chunking strategies
+│   │       ├── embeddings/       # Embedding model wrappers
+│   │       ├── parsers/          # Document parser interfaces and schemas
+│   │       ├── vector_db/        # Vector store utilities
+│   │       └── config.py         # Pydantic settings (LiteLLM, Parser, HTTP)
+│   └── graphs/                   # LangGraph RAG pipeline definitions
+│       └── src/rag_graphs/
+├── infra/
+│   └── docker/
+│       ├── docker-compose.yml
+│       └── docker-compose.gpu.yml
+├── experiments/
+│   ├── autorag/                  # AutoRAG evaluation configs and results
+│   ├── baselines/                # Baseline pipeline scripts
+│   └── notebooks/                # Jupyter notebooks
+├── scripts/                      # Shell helper scripts
+├── models.yaml                   # LiteLLM model routing config (gitignored)
+├── models.example.yaml           # Model routing template
+├── .env.example                  # Environment variable template
+├── justfile                      # Task runner (single source of truth)
+└── pyproject.toml                # uv workspace root (ruff, pyright, pytest config)
 ```
