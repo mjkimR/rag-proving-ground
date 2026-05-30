@@ -87,14 +87,33 @@ Services started by `just up`:
 
 ## Development
 
-### Python (API, rag-core, graphs)
+### Monorepo Task Runner (`just`)
+
+This repository uses `just` as the single source of truth for automating workspace development tasks:
 
 ```bash
-just lint    # ruff format + ruff check --fix
-just test    # run all pytest tests
+just         # List all available commands
 
-uv run pyright                                      # type checking
-uv run pytest packages/rag-core/src/tests/unit      # unit tests only
+# Lints & Formatting
+just lint    # Format and lint Python backend code
+
+# Type Checking
+just check          # Run type check for both Python (pyright) and React (tsc)
+just check backend  # Run type check for Python backend only
+just check web      # Run type check for React web frontend only
+
+# Running Tests
+just test                                                   # Run all pytest tests
+just test packages/rag-core/src/tests/unit/test_adapters/  # Run specific test files or directories
+
+# Running Dev Servers
+just dev-backend  # Start FastAPI backend in reloading mode (port 8389)
+just dev-web      # Start React Vite frontend (port 5173)
+
+# Other Utilities
+just kill        # Release ports and kill dangling dev server processes
+just gen-ui-api  # Export OpenAPI schema and compile type-safe React SDK
+just down        # Stop and clean up all Docker backend services
 ```
 
 ### Frontend (`apps/web`)
@@ -102,8 +121,8 @@ uv run pytest packages/rag-core/src/tests/unit      # unit tests only
 ```bash
 cd apps/web
 npm install
-npm run dev    # dev server at http://127.0.0.1:<port>
-npm run build  # tsc --noEmit + vite build
+just gen-ui-api  # Generate type-safe API client from Python backend
+just dev-web     # Start React Vite frontend (port 5173)
 ```
 
 ---

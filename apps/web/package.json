@@ -11,21 +11,36 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "clean:api": "node --input-type=module -e \"import {rmSync} from 'fs'; rmSync('src/generated/api', {recursive:true, force:true})\"",
+    "gen:api": "node scripts/gen_api.js"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.2.3",
     "@copilotkit/react-core": "^1.9.3",
     "@copilotkit/react-ui": "^1.9.3",
+    "@hey-api/client-fetch": "^0.13.1",
+    "@hookform/resolvers": "^5.4.0",
     "@react-pdf-viewer/core": "^3.12.0",
+    "@tanstack/react-query": "^5.100.13",
+    "antd": "^6.4.3",
     "dompurify": "^3.2.6",
+    "lucide-react": "^1.16.0",
     "pdfjs-dist": "^3.11.174",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-hook-form": "^7.76.0",
     "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.15.1",
     "rehype-sanitize": "^6.0.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.97.2",
+    "@tanstack/react-query-devtools": "^5.100.13",
+    "@types/node": "^25.9.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^6.0.2",
