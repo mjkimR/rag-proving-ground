@@ -12,9 +12,13 @@ wheels/
 # Settings
 .env
 models.yaml
-.integrations
 
 # JavaScript frontend
 node_modules/
 apps/web/dist/
 *.tsbuildinfo
+
+# Etc
+.integrations
+**/logs
+

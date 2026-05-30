@@ -1,11 +1,57 @@
 import json
+from collections.abc import AsyncIterator
 from pathlib import Path
+from typing import Any
 
+import pytest
+from app_file_storage import FileStorageClient
 from rag_core.adapters.parser.cache import ParserCache
 from rag_core.adapters.parser.interface import ParserInput
 from rag_core.adapters.parser.normalizers import normalize_docling_document
 from rag_core.adapters.parser.providers.docling import DoclingParser
 from rag_core.parsers.schemas import ElementType, ParsedDocument
+
+
+class _InMemoryStorage(FileStorageClient):
+    """Simple in-memory FileStorageClient for unit tests."""
+
+    def __init__(self) -> None:
+        self._store: dict[str, bytes] = {}
+
+    @classmethod
+    async def from_env(cls) -> "_InMemoryStorage":
+        return cls()
+
+    async def close(self) -> None:
+        pass
+
+    async def upload_file(self, file_path: str, data: bytes) -> None:
+        self._store[file_path] = data
+
+    async def download_file(self, file_path: str) -> bytes:
+        if file_path not in self._store:
+            raise FileNotFoundError(file_path)
+        return self._store[file_path]
+
+    async def download_file_stream(self, file_path: str) -> AsyncIterator[bytes]:
+        yield await self.download_file(file_path)
+
+    async def delete_file(self, file_path: str) -> None:
+        self._store.pop(file_path, None)
+
+    async def list_files(self, prefix: str) -> AsyncIterator[str]:
+        for key in list(self._store):
+            if key.startswith(prefix):
+                yield key
+
+    async def file_exists(self, file_path: str) -> bool:
+        return file_path in self._store
+
+    async def get_file_metadata(self, file_path: str) -> dict[str, Any]:
+        if file_path not in self._store:
+            raise FileNotFoundError(file_path)
+        return {"size": len(self._store[file_path]), "path": file_path}
+
 
 EXAMPLE_PATH = Path(__file__).parent / "example" / "docling.json"
 
@@ -57,16 +103,19 @@ def test_docling_cache_round_trip_restores_parsed_document() -> None:
     assert restored.schema_version == "1.0"
 
 
-def test_parser_cache_uses_schema_version_in_result_path(tmp_path: Path) -> None:
-    cache = ParserCache(tmp_path)
+@pytest.mark.asyncio
+async def test_parser_cache_uses_schema_version_in_result_key() -> None:
+    cache = ParserCache(_InMemoryStorage(), prefix="parser_cache")
 
-    result_path = cache._result_path("abc", "docling", schema_version="1.0")
+    key = cache._result_key("abc", "docling", schema_version="1.0")
 
-    assert result_path == tmp_path / "abc" / "docling-1.0.json"
+    assert key == "parser_cache/abc/docling-1.0.json"
 
 
-def test_parser_cache_stores_original_file_and_meta_under_hash(tmp_path: Path) -> None:
-    cache = ParserCache(tmp_path)
+@pytest.mark.asyncio
+async def test_parser_cache_stores_original_file_and_meta_under_hash() -> None:
+    storage = _InMemoryStorage()
+    cache = ParserCache(storage, prefix="parser_cache")
     parser_input = ParserInput(
         content=b"example",
         filename="sample.pdf",
@@ -74,11 +123,12 @@ def test_parser_cache_stores_original_file_and_meta_under_hash(tmp_path: Path) -
         metadata={"source": "unit"},
     )
 
-    md5_hash = cache.store_file(parser_input)
+    md5_hash = await cache.store_file(parser_input)
 
-    cache_dir = tmp_path / md5_hash
-    assert (cache_dir / "sample.pdf").read_bytes() == b"example"
-    assert json.loads((cache_dir / "meta.json").read_text(encoding="utf-8")) == {
+    file_data = await storage.download_file(f"parser_cache/{md5_hash}/sample.pdf")
+    assert file_data == b"example"
+    meta = json.loads(await storage.download_file(f"parser_cache/{md5_hash}/meta.json"))
+    assert meta == {
         "content_type": "application/pdf",
         "extension": ".pdf",
         "filename": "sample.pdf",

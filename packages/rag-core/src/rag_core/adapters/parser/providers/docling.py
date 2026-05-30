@@ -1,10 +1,10 @@
 import base64
 from typing import Any, ClassVar
 
+from app_http_client import get_http_client
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from rag_core.adapters.http_client.instance import get_http_client
 from rag_core.adapters.parser.interface import Parser, ParserInput
 from rag_core.adapters.parser.normalizers import normalize_docling_document
 from rag_core.parsers.schemas import PARSED_DOCUMENT_SCHEMA_VERSION, ParsedDocument
