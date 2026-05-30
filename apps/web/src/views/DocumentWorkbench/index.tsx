@@ -35,6 +35,7 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [parsedDoc, setParsedDoc] = useState<any>(null);
+  const [activeElement, setActiveElement] = useState<any>(null);
 
   const activeSummary = useMemo(() => {
     if (mode === "pdf") return `PDF preview: ${pdfName}`;
@@ -125,6 +126,8 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
           markdown={markdown}
           html={html}
           parsedDoc={parsedDoc}
+          activeElement={activeElement}
+          setActiveElement={setActiveElement}
         />
       )}
 
@@ -161,6 +164,8 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
           html={html}
           parsedDoc={parsedDoc}
           file={file}
+          activeElement={activeElement}
+          setActiveElement={setActiveElement}
         />
       </section>
     </div>

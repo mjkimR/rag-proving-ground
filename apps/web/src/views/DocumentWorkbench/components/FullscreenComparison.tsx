@@ -14,6 +14,8 @@ type FullscreenComparisonProps = {
   markdown: string;
   html: string;
   parsedDoc: any;
+  activeElement: any;
+  setActiveElement: (el: any) => void;
 };
 
 export function FullscreenComparison({
@@ -26,6 +28,8 @@ export function FullscreenComparison({
   markdown,
   html,
   parsedDoc,
+  activeElement,
+  setActiveElement,
 }: FullscreenComparisonProps) {
   return (
     <div
@@ -107,7 +111,7 @@ export function FullscreenComparison({
             <div className="panel-header">PDF / Original Source</div>
             <div className="panel-content">
               {file?.type === "application/pdf" ? (
-                <PdfPreview fileUrl={pdfUrl} fileName={pdfName} />
+                <PdfPreview fileUrl={pdfUrl} fileName={pdfName} activeElement={activeElement} parsedDoc={parsedDoc} />
               ) : (
                 <div className="non-pdf-info">
                   <h3>{file ? file.name : "No file selected"}</h3>
@@ -128,7 +132,7 @@ export function FullscreenComparison({
               {mode === "compare-html" && <HtmlPreview html={html} />}
               {mode === "compare-elements" && (
                 parsedDoc?.elements ? (
-                  <ElementsExplorer elements={parsedDoc.elements} />
+                  <ElementsExplorer elements={parsedDoc.elements} onElementClick={setActiveElement} />
                 ) : (
                   <div className="no-elements-multi">Run parser to inspect layout elements.</div>
                 )

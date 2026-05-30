@@ -24,9 +24,10 @@ export interface ParsedElement {
 
 interface ElementsExplorerProps {
   elements: ParsedElement[];
+  onElementClick?: (element: ParsedElement) => void;
 }
 
-export function ElementsExplorer({ elements }: ElementsExplorerProps) {
+export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerProps) {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -114,6 +115,27 @@ export function ElementsExplorer({ elements }: ElementsExplorerProps) {
                   {el.page_id && <span className="element-page">Page {el.page_id.split("-").pop() || el.page_id}</span>}
                   {el.level !== undefined && el.level !== null && (
                     <span className="element-level">Lvl {el.level}</span>
+                  )}
+                  {el.page_id && el.bbox && (
+                    <button
+                      className="show-in-pdf-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onElementClick) onElementClick(el);
+                      }}
+                      style={{
+                        marginLeft: "auto",
+                        background: "var(--accent-color, #4f46e5)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "2px 8px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      📍 Show in PDF
+                    </button>
                   )}
                 </div>
 
