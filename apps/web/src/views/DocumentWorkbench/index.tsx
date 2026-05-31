@@ -145,10 +145,6 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
           parseError={parseError}
           mode={mode}
           setMode={setMode}
-          markdown={markdown}
-          setMarkdown={setMarkdown}
-          html={html}
-          setHtml={setHtml}
           ignoreCache={ignoreCache}
           setIgnoreCache={setIgnoreCache}
           parsedDocMetadata={parsedDoc?.metadata}

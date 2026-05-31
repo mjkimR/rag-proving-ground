@@ -13,10 +13,6 @@ type ControlPanelProps = {
   parseError: string | null;
   mode: PreviewMode;
   setMode: (mode: PreviewMode) => void;
-  markdown: string;
-  setMarkdown: (markdown: string) => void;
-  html: string;
-  setHtml: (html: string) => void;
   ignoreCache: boolean;
   setIgnoreCache: (val: boolean) => void;
   parsedDocMetadata?: {
@@ -36,10 +32,6 @@ export function ControlPanel({
   parseError,
   mode,
   setMode,
-  markdown,
-  setMarkdown,
-  html,
-  setHtml,
   ignoreCache,
   setIgnoreCache,
   parsedDocMetadata,
@@ -172,24 +164,6 @@ export function ControlPanel({
           </button>
         ))}
       </div>
-
-      <label className="field-label" htmlFor="markdown-source">
-        Markdown Source (editable)
-      </label>
-      <textarea
-        id="markdown-source"
-        onChange={(event) => setMarkdown(event.target.value)}
-        value={markdown}
-      />
-
-      <label className="field-label" htmlFor="html-source">
-        HTML Source (editable)
-      </label>
-      <textarea
-        id="html-source"
-        onChange={(event) => setHtml(event.target.value)}
-        value={html}
-      />
     </aside>
   );
 }
