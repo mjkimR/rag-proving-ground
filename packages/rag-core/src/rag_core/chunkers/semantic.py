@@ -141,6 +141,8 @@ class RAGSemanticChunker:
         page_no_by_id = {page.page_id: page.page_no for page in document.pages}
 
         for element in sorted(document.elements, key=lambda item: item.order):
+            if element.ignored:
+                continue
             if element.type == ElementType.HEADING:
                 heading = self._element_text(element)
                 if heading:

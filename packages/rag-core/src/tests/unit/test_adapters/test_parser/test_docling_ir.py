@@ -9,7 +9,7 @@ from rag_core.adapters.parser.cache import ParserCache
 from rag_core.adapters.parser.interface import ParserInput
 from rag_core.adapters.parser.normalizers import normalize_docling_document
 from rag_core.adapters.parser.providers.docling import DoclingParser
-from rag_core.parsers.schemas import ElementType, ParsedDocument
+from rag_core.parsers.schemas import ElementType, ParsedDocument, ParsedElement
 
 
 class _InMemoryStorage(FileStorageClient):
@@ -165,3 +165,141 @@ async def test_parser_cache_update_meta_does_nested_merge() -> None:
     await cache._update_meta(md5_hash, {"parse_durations": {"marker": 4.56}})
     meta = json.loads(await storage.download_file(f"parser_cache/{md5_hash}/meta.json"))
     assert meta["parse_durations"] == {"docling": 1.23, "marker": 4.56}
+
+
+def test_docling_normalizer_new_labels_and_warning_counts(mocker: Any) -> None:
+    from rag_core.adapters.parser.normalizers.docling import _UNSEEN_LABEL_WARNING_COUNTS
+
+    # Reset warning counts to get a clean test state
+    _UNSEEN_LABEL_WARNING_COUNTS.clear()
+
+    # Mock loguru warning
+    from loguru import logger
+
+    mock_warning = mocker.patch.object(logger, "warning")
+
+    # Create mock response document
+    response_document = {
+        "origin": {"filename": "sample.pdf", "mimetype": "application/pdf"},
+        "pages": {"1": {"page_no": 1, "size": {"width": 612.0, "height": 792.0}}},
+        "texts": [
+            {"label": "footnote", "text": "This is a footnote text."},
+            {"label": "caption", "text": "Figure 1: Captioned text."},
+            {"label": "formula", "text": "E = mc^2"},
+            {"label": "page_header", "text": "Header Page 1"},
+            {"label": "page_footer", "text": "Footer Page 1"},
+            {"label": "document_index", "text": "TOC"},
+            {"label": "new_mysterious_label", "text": "Some mystery element."},
+        ],
+        "pictures": [],
+        "tables": [],
+        "groups": [],
+        "body": {
+            "children": [
+                {"$ref": "#/texts/0"},
+                {"$ref": "#/texts/1"},
+                {"$ref": "#/texts/2"},
+                {"$ref": "#/texts/3"},
+                {"$ref": "#/texts/4"},
+                {"$ref": "#/texts/5"},
+                {"$ref": "#/texts/6"},
+            ]
+        },
+    }
+
+    parsed = normalize_docling_document(
+        response_document,
+        parser_input=ParserInput(filename="sample.pdf", content_type="application/pdf"),
+        parser_name="docling",
+        raw_response={},
+        markdown="",
+        text="",
+    )
+
+    # Assert footnotes, captions, and formulas map to correct semantic types
+    assert parsed.elements[0].type == ElementType.FOOTNOTE
+    assert parsed.elements[0].content == "This is a footnote text."
+    assert parsed.elements[0].ignored is False
+
+    assert parsed.elements[1].type == ElementType.CAPTION
+    assert parsed.elements[1].content == "Figure 1: Captioned text."
+    assert parsed.elements[1].ignored is False
+
+    assert parsed.elements[2].type == ElementType.EQUATION
+    assert parsed.elements[2].content == "E = mc^2"
+    assert parsed.elements[2].ignored is False
+
+    # Assert layout elements map correctly and are flagged as ignored
+    assert parsed.elements[3].type == ElementType.PAGE_HEADER
+    assert parsed.elements[3].content == "Header Page 1"
+    assert parsed.elements[3].ignored is True
+
+    assert parsed.elements[4].type == ElementType.PAGE_FOOTER
+    assert parsed.elements[4].content == "Footer Page 1"
+    assert parsed.elements[4].ignored is True
+
+    assert parsed.elements[5].type == ElementType.SECTION_INDEX
+    assert parsed.elements[5].content == "<table>\n\n</table>"
+    assert parsed.elements[5].ignored is True
+
+    # Assert unknown label behavior
+    assert parsed.elements[6].type == ElementType.UNKNOWN
+    assert parsed.elements[6].content == "Some mystery element."
+    assert parsed.elements[6].ignored is False
+
+    # Assert that a warning was logged for the unseen label
+    mock_warning.assert_called_once()
+    assert "new_mysterious_label" in mock_warning.call_args[0][0]
+
+    # Verify warning limit of 3 works
+    mock_warning.reset_mock()
+    for _ in range(5):
+        normalize_docling_document(
+            {**response_document, "body": {"children": [{"$ref": "#/texts/6"}]}},
+            parser_input=ParserInput(filename="sample.pdf", content_type="application/pdf"),
+            parser_name="docling",
+            raw_response={},
+            markdown="",
+            text="",
+        )
+    # It was already called once, so it should only be called 2 more times to hit limit of 3
+    assert mock_warning.call_count == 2
+
+
+def test_semantic_chunker_ignores_layout_boilerplate() -> None:
+    from rag_core.chunkers.semantic import RAGSemanticChunker
+    from rag_core.parsers.schemas import ContentFormat, ParsedDocument, ParsedPage
+
+    doc = ParsedDocument(
+        doc_id="test_doc",
+        parser="docling",
+        pages=[ParsedPage(page_id="p1", page_no=1)],
+        elements=[
+            ParsedElement(
+                element_id="el1",
+                type=ElementType.PAGE_HEADER,
+                format=ContentFormat.MARKDOWN,
+                content="Layout Header Text",
+                order=0,
+                ignored=True,
+                page_id="p1",
+            ),
+            ParsedElement(
+                element_id="el2",
+                type=ElementType.PARAGRAPH,
+                format=ContentFormat.MARKDOWN,
+                content="Actual content paragraph.",
+                order=1,
+                ignored=False,
+                page_id="p1",
+            ),
+        ],
+    )
+
+    chunker = RAGSemanticChunker()
+    chunks = chunker.chunk_document(doc)
+
+    # Assert layout header is bypassed, only actual paragraph is chunked
+    assert len(chunks) == 1
+    assert "Layout Header Text" not in chunks[0].page_content
+    assert "Actual content paragraph." in chunks[0].page_content

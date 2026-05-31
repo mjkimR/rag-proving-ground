@@ -8,6 +8,15 @@ export interface BoundingBox {
   coord_origin?: string;
 }
 
+export interface AssetRef {
+  uri?: string;
+  path?: string;
+  mimetype?: string;
+  width?: number;
+  height?: number;
+  dpi?: number;
+}
+
 export interface ParsedElement {
   element_id: string;
   type: string;
@@ -19,6 +28,8 @@ export interface ParsedElement {
   bbox?: BoundingBox;
   parent_id?: string;
   children_ids: string[];
+  ignored?: boolean;
+  asset?: AssetRef;
   metadata: Record<string, any>;
 }
 
@@ -59,6 +70,11 @@ export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerP
       case "footnote":
       case "caption":
         return "var(--badge-caption, #8b5cf6)"; // Purple
+      case "page_header":
+      case "page_footer":
+        return "var(--badge-layout, #9ca3af)"; // Warm Gray
+      case "section_index":
+        return "var(--badge-index, #f43f5e)"; // Rose
       default:
         return "var(--badge-default, #6b7280)"; // Gray
     }
@@ -93,7 +109,7 @@ export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerP
             return (
               <div
                 key={el.element_id}
-                className={`element-card ${isExpanded ? "expanded" : ""}`}
+                className={`element-card ${isExpanded ? "expanded" : ""} ${el.ignored ? "ignored" : ""}`}
                 onClick={() => toggleExpand(el.element_id)}
                 role="button"
                 tabIndex={0}
@@ -111,6 +127,11 @@ export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerP
                   >
                     {el.type}
                   </span>
+                  {el.ignored && (
+                    <span className="element-ignored-badge" title="This layout element is boilerplate and ignored during semantic chunking">
+                      🚫 Ignored
+                    </span>
+                  )}
                   <span className="element-order">Order #{el.order}</span>
                   {el.page_id && <span className="element-page">Page {el.page_id.split("-").pop() || el.page_id}</span>}
                   {el.level !== undefined && el.level !== null && (
@@ -140,9 +161,13 @@ export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerP
                 </div>
 
                 <div className="element-content-preview">
-                  {el.type === "table" ? (
+                  {el.format === "html" ? (
                     <div className="table-placeholder-label">
                       [HTML Table Element - Click to inspect HTML source]
+                    </div>
+                  ) : el.type === "image" ? (
+                    <div className="image-placeholder-label" style={{ color: "var(--badge-image, #f59e0b)", fontWeight: 600, fontStyle: "italic" }}>
+                      🖼️ [Image Element {el.asset?.uri ? `- ${el.asset.uri}` : ""}]
                     </div>
                   ) : (
                     el.content || <span className="empty-content-label">[Empty Content]</span>
@@ -178,6 +203,24 @@ export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerP
                         </div>
                       )}
                     </div>
+                    {el.format === "html" && el.content && (
+                      <div className="html-element-render-container" style={{ marginTop: "12px", marginBottom: "12px" }}>
+                        <strong>Table Preview:</strong>
+                        <div className="html-element-render" dangerouslySetInnerHTML={{ __html: el.content }} />
+                      </div>
+                    )}
+                    {el.type === "image" && el.asset && (
+                      <div className="element-image-details" style={{ marginTop: "12px", border: "1px solid var(--border-color, #dde3ea)", borderRadius: "6px", padding: "10px", background: "var(--bg-app, #f8fafc)", color: "var(--text-primary)" }}>
+                        <strong>Image Asset Details:</strong>
+                        <div style={{ marginTop: "6px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "11px" }}>
+                          {el.asset.uri && <div><strong>URI:</strong> <code>{el.asset.uri}</code></div>}
+                          {el.asset.path && <div><strong>Storage Path:</strong> <code>{el.asset.path}</code></div>}
+                          {el.asset.mimetype && <div><strong>Mime-Type:</strong> {el.asset.mimetype}</div>}
+                          {(el.asset.width || el.asset.height) && <div><strong>Dimensions:</strong> {el.asset.width || "?"} x {el.asset.height || "?"}</div>}
+                          {el.asset.dpi && <div><strong>Resolution:</strong> {el.asset.dpi} DPI</div>}
+                        </div>
+                      </div>
+                    )}
                     {Object.keys(el.metadata).length > 0 && (
                       <div className="element-metadata-block">
                         <strong>Metadata:</strong>

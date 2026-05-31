@@ -2,6 +2,8 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
+from loguru import logger
+
 from rag_core.adapters.parser.interface import ParserInput
 from rag_core.parsers.schemas import (
     AssetRef,
@@ -13,6 +15,42 @@ from rag_core.parsers.schemas import (
     ParsedPage,
     Provenance,
 )
+
+# Mappings from Docling element labels to standard semantic ElementTypes
+_LABEL_TO_ELEMENT_TYPE: dict[str, ElementType] = {
+    "title": ElementType.HEADING,
+    "section_header": ElementType.HEADING,
+    "paragraph": ElementType.PARAGRAPH,
+    "text": ElementType.PARAGRAPH,
+    "list_item": ElementType.LIST_ITEM,
+    "table": ElementType.TABLE,
+    "picture": ElementType.IMAGE,
+    "caption": ElementType.CAPTION,
+    "footnote": ElementType.FOOTNOTE,
+    "formula": ElementType.EQUATION,
+    "equation": ElementType.EQUATION,
+    "page_header": ElementType.PAGE_HEADER,
+    "page_footer": ElementType.PAGE_FOOTER,
+    "document_index": ElementType.SECTION_INDEX,
+}
+
+# Labels that represent layout boilerplate to be marked as ignored during chunking
+_LAYOUT_IGNORED_LABELS: set[str] = {
+    "page_header",
+    "page_footer",
+    "document_index",
+}
+
+# Standard layout labels we expect but intentionally map to UNKNOWN or their respective types
+_EXPECTED_LABELS: set[str] = {
+    "page_header",
+    "page_footer",
+    "document_index",
+    "unknown",
+}
+
+# Warning counts to restrict duplicate logging of unseen label types
+_UNSEEN_LABEL_WARNING_COUNTS: dict[str, int] = {}
 
 
 def normalize_docling_document(
@@ -159,6 +197,17 @@ def _element_from_item(
         ]
 
     label = _string(item.get("label")) or "unknown"
+
+    # Track warning for unseen label types (limit to 3 warnings per label type)
+    if label not in _LABEL_TO_ELEMENT_TYPE and label not in _EXPECTED_LABELS:
+        count = _UNSEEN_LABEL_WARNING_COUNTS.get(label, 0)
+        if count < 3:
+            _UNSEEN_LABEL_WARNING_COUNTS[label] = count + 1
+            logger.warning(
+                f"Encountered unseen/unhandled Docling element label '{label}'. "
+                f"Mapping to ElementType.UNKNOWN. Item details: {item}"
+            )
+
     provenance = _provenance(item, ref, page_height_by_no)
     page_no = _first_page_no(provenance)
     common = {
@@ -167,17 +216,18 @@ def _element_from_item(
         "order": order,
         "bbox": provenance[0].bbox if provenance else None,
         "provenance": provenance,
+        "ignored": label in _LAYOUT_IGNORED_LABELS,
         "metadata": _metadata(item),
     }
 
-    if label == "section_header":
+    if label in ("section_header", "title"):
         return [
             ParsedElement(
                 **common,
                 type=ElementType.HEADING,
                 format=ContentFormat.MARKDOWN,
                 content=_heading_content(item),
-                level=_int(item.get("level")),
+                level=_int(item.get("level")) or (1 if label == "title" else None),
             )
         ]
     if label == "list_item":
@@ -218,11 +268,75 @@ def _element_from_item(
                 ],
             )
         ]
+    if label == "footnote":
+        return [
+            ParsedElement(
+                **common,
+                type=ElementType.FOOTNOTE,
+                format=ContentFormat.MARKDOWN,
+                content=_string(item.get("text")) or "",
+            )
+        ]
+    if label == "caption":
+        return [
+            ParsedElement(
+                **common,
+                type=ElementType.CAPTION,
+                format=ContentFormat.MARKDOWN,
+                content=_string(item.get("text")) or "",
+            )
+        ]
+    if label in ("formula", "equation"):
+        return [
+            ParsedElement(
+                **common,
+                type=ElementType.EQUATION,
+                format=ContentFormat.LATEX if label == "formula" else ContentFormat.MARKDOWN,
+                content=_string(item.get("text")) or "",
+            )
+        ]
+    if label in ("paragraph", "text"):
+        return [
+            ParsedElement(
+                **common,
+                type=ElementType.PARAGRAPH,
+                format=ContentFormat.MARKDOWN,
+                content=_string(item.get("text")) or "",
+            )
+        ]
+    if label == "page_header":
+        return [
+            ParsedElement(
+                **common,
+                type=ElementType.PAGE_HEADER,
+                format=ContentFormat.MARKDOWN,
+                content=_string(item.get("text")) or "",
+            )
+        ]
+    if label == "page_footer":
+        return [
+            ParsedElement(
+                **common,
+                type=ElementType.PAGE_FOOTER,
+                format=ContentFormat.MARKDOWN,
+                content=_string(item.get("text")) or "",
+            )
+        ]
+    if label == "document_index":
+        html = _table_html(item)
+        return [
+            ParsedElement(
+                **common,
+                type=ElementType.SECTION_INDEX,
+                format=ContentFormat.HTML,
+                content=html,
+            )
+        ]
 
     return [
         ParsedElement(
             **common,
-            type=ElementType.PARAGRAPH if label == "text" else ElementType.UNKNOWN,
+            type=ElementType.UNKNOWN,
             format=ContentFormat.MARKDOWN,
             content=_string(item.get("text")) or "",
         )

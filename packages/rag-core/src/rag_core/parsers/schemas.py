@@ -26,6 +26,9 @@ class ElementType(StrEnum):
     EQUATION = "equation"
     CAPTION = "caption"
     FOOTNOTE = "footnote"
+    PAGE_HEADER = "page_header"
+    PAGE_FOOTER = "page_footer"
+    SECTION_INDEX = "section_index"
     UNKNOWN = "unknown"
 
 
@@ -119,6 +122,9 @@ class ParsedElement(BaseModel):
     parent_id: str | None = None
     children_ids: list[str] = Field(default_factory=list)
     asset: AssetRef | None = None
+    ignored: bool = Field(
+        default=False, description="Whether this element is layout boilerplate and ignored during chunking."
+    )
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

@@ -595,7 +595,6 @@ textarea {
   padding: 2px 6px;
   border-radius: 4px;
 }
-
 .element-level {
   background-color: #fef3c7;
   color: #d97706;
@@ -603,6 +602,51 @@ textarea {
   padding: 2px 6px;
   border-radius: 4px;
 }
+
+.element-card.ignored {
+  border-style: dashed;
+  opacity: 0.7;
+  background-color: #fafbfd;
+}
+
+.element-card.ignored:hover {
+  opacity: 0.95;
+  border-color: #9ca3af;
+}
+
+.element-card.ignored.expanded {
+  border-color: #9ca3af;
+  background-color: #f8fafc;
+}
+
+.element-ignored-badge {
+  background-color: #fee2e2;
+  color: #ef4444;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fca5a5;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+}
+
+.dark-theme .element-ignored-badge {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.dark-theme .element-card.ignored {
+  background-color: rgba(30, 41, 59, 0.2);
+  border-color: #334155;
+}
+
+.dark-theme .element-card.ignored:hover {
+  border-color: #475569;
+}
+
 
 .element-content-preview {
   font-size: 13px;
@@ -709,4 +753,47 @@ textarea {
     height: 380px;
   }
 }
+
+.html-element-render {
+  margin-top: 8px;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px;
+  background: #ffffff;
+  max-width: 100%;
+}
+
+.html-element-render table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+
+.html-element-render th,
+.html-element-render td {
+  border: 1px solid #dde3ea;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.html-element-render th {
+  background-color: #f8fafc;
+  font-weight: 700;
+}
+
+.dark-theme .html-element-render {
+  border-color: #334155;
+  background: #0f172a;
+}
+
+.dark-theme .html-element-render th,
+.dark-theme .html-element-render td {
+  border-color: #334155;
+}
+
+.dark-theme .html-element-render th {
+  background-color: #1e293b;
+}
+
 
