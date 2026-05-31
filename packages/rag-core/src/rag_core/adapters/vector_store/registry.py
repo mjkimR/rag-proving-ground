@@ -9,7 +9,7 @@ class VectorStoreRegistry:
     """Registry for vector store providers."""
 
     _PROVIDER_MODULES: ClassVar[dict[VectorDBProviderType, str]] = {
-        VectorDBProviderType.QDRANT: "app_vector_store.providers.qdrant",
+        VectorDBProviderType.QDRANT: "rag_core.adapters.vector_store.providers.qdrant",
     }
 
     _PROVIDER_CLASSES: ClassVar[dict[VectorDBProviderType, str]] = {

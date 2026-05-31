@@ -24,6 +24,11 @@ class VectorStoreProvider(ABC):
         """Create and return a VectorStore instance."""
         pass
 
+    @abstractmethod
+    async def check_health(self) -> bool:
+        """Check connection health of the vector store."""
+        pass
+
 
 @contextmanager
 def import_error_handler(kind: str):

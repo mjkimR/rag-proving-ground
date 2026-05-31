@@ -62,3 +62,15 @@ async def close_vector_store() -> None:
     if provider:
         provider.close()
         logger.info("Global vector store provider closed.")
+
+
+async def check_vector_store_health() -> bool:
+    """Check the connection health of the global vector store provider."""
+    global _vector_store_provider
+    if _vector_store_provider is None:
+        return False
+    try:
+        return await _vector_store_provider.check_health()
+    except Exception as exc:
+        logger.warning(f"Vector store health check failed: {exc}")
+        return False

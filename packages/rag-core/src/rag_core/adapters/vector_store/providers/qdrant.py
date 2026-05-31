@@ -27,6 +27,15 @@ class QdrantProvider(VectorStoreProvider):
         if self.client:
             self.client.close()
 
+    async def check_health(self) -> bool:
+        if not self.client:
+            return False
+        try:
+            self.client.get_collections()
+            return True
+        except Exception:
+            return False
+
     async def create_vector_store(self, collection_name: str, model_name: str) -> Any:
         with import_error_handler("qdrant"):
             from langchain_qdrant import QdrantVectorStore
@@ -46,6 +55,12 @@ class QdrantProvider(VectorStoreProvider):
                 self.client.create_collection(
                     collection_name=collection_name,
                     vectors_config=conf.VectorParams(size=dimension, distance=conf.Distance.COSINE),
+                )
+                # Create payload index on metadata.knowledge_id as partition key
+                self.client.create_payload_index(
+                    collection_name=collection_name,
+                    field_name="metadata.knowledge_id",
+                    field_schema=conf.PayloadSchemaType.KEYWORD,
                 )
             except ApiException as e:
                 if "exists" in str(e):

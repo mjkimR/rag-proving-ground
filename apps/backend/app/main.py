@@ -23,6 +23,7 @@ from app_layer_base.base.exceptions.handler import set_exception_handler
 from app_layer_base.core import middlewares
 from app_layer_base.core.log import logger
 from fastapi import FastAPI
+from rag_core.adapters.vector_store import lifespan_vector_store
 from starlette.responses import RedirectResponse
 
 
@@ -30,7 +31,7 @@ def get_lifespan():
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         logger.info("Starting app lifespan")
-        async with lifespan_http_client(app), lifespan_file_storage(app):
+        async with lifespan_http_client(app), lifespan_file_storage(app), lifespan_vector_store(app):
             yield
         logger.info("End of app lifespan")
 
