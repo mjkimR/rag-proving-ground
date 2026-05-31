@@ -9,7 +9,7 @@ indexing, and retrieval.
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 PARSED_DOCUMENT_SCHEMA_VERSION = "1.0"
 
@@ -158,16 +158,33 @@ class ParsedDocument(BaseModel):
     def elements_for_page(self, page_id: str) -> list[ParsedElement]:
         return [element for element in self.elements if element.page_id == page_id]
 
-    def to_markdown(self, *, prefer_document: bool = False) -> str:
+    def to_markdown(self, *, prefer_document: bool = False, include_ignored: bool = False) -> str:
         """Render this document as Markdown."""
 
         from rag_core.parsers.renderers import parsed_document_to_markdown
 
-        return parsed_document_to_markdown(self, prefer_document=prefer_document)
+        return parsed_document_to_markdown(self, prefer_document=prefer_document, include_ignored=include_ignored)
 
-    def to_html(self, *, prefer_document: bool = False, title: str | None = None) -> str:
+    def to_html(self, *, prefer_document: bool = False, title: str | None = None, include_ignored: bool = False) -> str:
         """Render this document as HTML."""
 
         from rag_core.parsers.renderers import parsed_document_to_html
 
-        return parsed_document_to_html(self, prefer_document=prefer_document, title=title)
+        return parsed_document_to_html(
+            self, prefer_document=prefer_document, title=title, include_ignored=include_ignored
+        )
+
+    @model_validator(mode="after")
+    def populate_renders(self) -> "ParsedDocument":
+        if not self.markdown.strip() and self.elements:
+            self.markdown = self.to_markdown(include_ignored=False)
+        if not self.html.strip() and self.elements:
+            self.html = self.to_html(include_ignored=False)
+        if not self.text.strip():
+            if self.markdown.strip():
+                self.text = self.markdown
+            elif self.html.strip():
+                from rag_core.parsers.renderers import _html_to_text
+
+                self.text = _html_to_text(self.html)
+        return self

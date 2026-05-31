@@ -134,3 +134,50 @@ def test_parsed_document_to_html_renders_elements_and_full_document() -> None:
     assert "<h1>Title</h1>" in html
     assert "<ul><li>first</li><li>second</li></ul>" in html
     assert "<p>Plain text</p>" in html
+
+
+def test_parsed_document_to_markdown_filters_ignored_elements() -> None:
+    document = ParsedDocument(
+        doc_id="doc",
+        parser="unit",
+        elements=[
+            ParsedElement(
+                element_id="h1",
+                type=ElementType.HEADING,
+                format=ContentFormat.MARKDOWN,
+                content="Title",
+                level=1,
+                order=1,
+                ignored=False,
+            ),
+            ParsedElement(
+                element_id="hdr",
+                type=ElementType.PAGE_HEADER,
+                format=ContentFormat.MARKDOWN,
+                content="Running Header",
+                order=2,
+                ignored=True,
+            ),
+            ParsedElement(
+                element_id="p1",
+                type=ElementType.PARAGRAPH,
+                format=ContentFormat.TEXT,
+                content="Main text content",
+                order=3,
+                ignored=False,
+            ),
+        ],
+    )
+
+    # By default (include_ignored=False), layout elements are filtered out
+    assert parsed_document_to_markdown(document) == "# Title\n\nMain text content"
+    assert parsed_document_to_html(document) == "<h1>Title</h1>\n<p>Main text content</p>"
+
+    # When include_ignored=True, layout elements are included
+    assert (
+        parsed_document_to_markdown(document, include_ignored=True) == "# Title\n\nRunning Header\n\nMain text content"
+    )
+    assert (
+        parsed_document_to_html(document, include_ignored=True)
+        == "<h1>Title</h1>\n<p>Running Header</p>\n<p>Main text content</p>"
+    )

@@ -13,7 +13,9 @@ from typing import ClassVar
 from rag_core.parsers.schemas import ContentFormat, ElementType, ParsedDocument, ParsedElement
 
 
-def parsed_document_to_markdown(document: ParsedDocument, *, prefer_document: bool = False) -> str:
+def parsed_document_to_markdown(
+    document: ParsedDocument, *, prefer_document: bool = False, include_ignored: bool = False
+) -> str:
     """Return Markdown for a parsed document.
 
     By default, output is reconstructed from `document.elements` so previews
@@ -24,7 +26,9 @@ def parsed_document_to_markdown(document: ParsedDocument, *, prefer_document: bo
     if prefer_document and document.markdown.strip():
         return document.markdown
 
-    rendered = [_element_to_markdown(element) for element in _ordered_elements(document)]
+    rendered = [
+        _element_to_markdown(element) for element in _ordered_elements(document, include_ignored=include_ignored)
+    ]
     markdown = "\n\n".join(block for block in rendered if block.strip()).strip()
     if markdown:
         return markdown
@@ -39,7 +43,11 @@ def parsed_document_to_markdown(document: ParsedDocument, *, prefer_document: bo
 
 
 def parsed_document_to_html(
-    document: ParsedDocument, *, prefer_document: bool = False, title: str | None = None
+    document: ParsedDocument,
+    *,
+    prefer_document: bool = False,
+    title: str | None = None,
+    include_ignored: bool = False,
 ) -> str:
     """Return HTML for a parsed document.
 
@@ -51,7 +59,7 @@ def parsed_document_to_html(
     if prefer_document and document.html.strip():
         return document.html
 
-    rendered = [_element_to_html(element) for element in _ordered_elements(document)]
+    rendered = [_element_to_html(element) for element in _ordered_elements(document, include_ignored=include_ignored)]
     html = "\n".join(block for block in rendered if block.strip()).strip()
     if not html and document.html.strip():
         html = document.html
@@ -75,20 +83,31 @@ def parsed_document_to_html(
     )
 
 
-def to_markdown(document: ParsedDocument, *, prefer_document: bool = False) -> str:
+def to_markdown(document: ParsedDocument, *, prefer_document: bool = False, include_ignored: bool = False) -> str:
     """Short alias for `parsed_document_to_markdown`."""
 
-    return parsed_document_to_markdown(document, prefer_document=prefer_document)
+    return parsed_document_to_markdown(document, prefer_document=prefer_document, include_ignored=include_ignored)
 
 
-def to_html(document: ParsedDocument, *, prefer_document: bool = False, title: str | None = None) -> str:
+def to_html(
+    document: ParsedDocument,
+    *,
+    prefer_document: bool = False,
+    title: str | None = None,
+    include_ignored: bool = False,
+) -> str:
     """Short alias for `parsed_document_to_html`."""
 
-    return parsed_document_to_html(document, prefer_document=prefer_document, title=title)
+    return parsed_document_to_html(
+        document, prefer_document=prefer_document, title=title, include_ignored=include_ignored
+    )
 
 
-def _ordered_elements(document: ParsedDocument) -> list[ParsedElement]:
-    return sorted(document.elements, key=lambda element: element.order)
+def _ordered_elements(document: ParsedDocument, *, include_ignored: bool = False) -> list[ParsedElement]:
+    elements = document.elements
+    if not include_ignored:
+        elements = [element for element in elements if not element.ignored]
+    return sorted(elements, key=lambda element: element.order)
 
 
 def _markdown_heading(element: ParsedElement) -> str:

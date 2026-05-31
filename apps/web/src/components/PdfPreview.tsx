@@ -25,7 +25,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
     let targetIndex = 0;
     let width = 612;
     let height = 792;
-    
+
     if (parsedDoc && parsedDoc.pages && Array.isArray(parsedDoc.pages)) {
       const page = parsedDoc.pages.find((p: any) => p.page_id === element.page_id);
       if (page) {
@@ -36,13 +36,13 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
         return { targetIndex, width, height };
       }
     }
-    
+
     // Fallback if parsedDoc not provided or page_id not found
     const match = element.page_id ? element.page_id.match(/\d+/) : null;
     if (match && match[0].length < 10) {
       targetIndex = parseInt(match[0], 10) - 1;
     }
-    
+
     return { targetIndex, width, height };
   };
 
@@ -65,15 +65,17 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
       <div
         style={{
           position: "absolute",
-          left: `${leftPercent}%`,
-          top: `${topPercent}%`,
-          width: `${widthPercent}%`,
-          height: `${heightPercent}%`,
-          background: "rgba(255, 99, 71, 0.25)",
-          border: "2px solid tomato",
+          left: `calc(${leftPercent}% - 3px)`,
+          top: `calc(${topPercent}% - 3px)`,
+          width: `calc(${widthPercent}% + 6px)`,
+          height: `calc(${heightPercent}% + 6px)`,
+          background: "var(--highlight-bg, rgba(79, 70, 229, 0.15))",
+          border: "2px solid var(--accent-color, #4f46e5)",
           borderRadius: "4px",
+          boxSizing: "border-box",
           pointerEvents: "none",
           zIndex: 100,
+          boxShadow: "0 0 6px rgba(79, 70, 229, 0.25)",
         }}
       />
     );
@@ -89,7 +91,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
     // Only attempt to jump if the document is fully loaded and we have pages
     if (docLoaded && numPages > 0 && activeElement && activeElement.page_id && activeElement.bbox) {
       const { targetIndex, width: pdfPageWidthPoints, height: pdfPageHeightPoints } = getPageInfo(activeElement);
-      
+
       // Ensure target index is within bounds to prevent "Invalid page request" error
       if (targetIndex < 0 || targetIndex >= numPages) {
         console.warn(`Highlight target page ${targetIndex} is out of bounds (0 - ${numPages - 1})`);
@@ -140,9 +142,9 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
   return (
     <div className="pdf-frame" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Worker workerUrl={workerUrl}>
-        <Viewer 
-          fileUrl={fileUrl} 
-          plugins={[defaultLayoutPluginInstance, highlightPluginInstance]} 
+        <Viewer
+          fileUrl={fileUrl}
+          plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
           defaultScale={0.9}
           onDocumentLoad={(e) => {
             setDocLoaded(true);
