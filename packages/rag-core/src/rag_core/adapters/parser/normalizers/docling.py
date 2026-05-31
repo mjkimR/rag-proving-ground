@@ -154,6 +154,213 @@ def _elements(
     return elements
 
 
+def _handle_group(
+    item: dict[str, Any],
+    ref: str | None,
+    order: int,
+    indexes: dict[str, list[Any]],
+    page_id_by_no: dict[int, str],
+    page_height_by_no: dict[int, float],
+    provenance: list[Provenance],
+) -> list[ParsedElement]:
+    children = _list(item.get("children"))
+    list_items: list[str] = []
+    child_ids: list[str] = []
+    for child in children:
+        child_ref = _ref(child)
+        child_item = _resolve_ref(child_ref, indexes)
+        if not isinstance(child_item, dict):
+            continue
+        text = _string(child_item.get("text")) or ""
+        marker = _string(child_item.get("marker")) or "-"
+        list_items.append(f"{marker} {text}".strip())
+        if child_ref:
+            child_ids.append(child_ref)
+
+    if not provenance:
+        provenance = _union_child_provenances(children, indexes, page_height_by_no)
+    page_no = _first_page_no(provenance)
+    return [
+        ParsedElement(
+            element_id=ref or f"element_{order}",
+            type=ElementType.LIST,
+            format=ContentFormat.MARKDOWN,
+            content="\n".join(list_items),
+            page_id=page_id_by_no.get(page_no) if page_no is not None else None,
+            order=order,
+            bbox=provenance[0].bbox if provenance else None,
+            provenance=provenance,
+            children_ids=child_ids,
+            metadata=_metadata(item),
+        )
+    ]
+
+
+def _handle_heading(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    label = _string(item.get("label"))
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.HEADING,
+            format=ContentFormat.MARKDOWN,
+            content=_heading_content(item),
+            level=_int(item.get("level")) or (1 if label == "title" else None),
+        )
+    ]
+
+
+def _handle_list_item(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.LIST_ITEM,
+            format=ContentFormat.MARKDOWN,
+            content=_list_item_content(item),
+        )
+    ]
+
+
+def _handle_table(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    html = _table_html(item)
+    table_common = {key: value for key, value in common.items() if key != "metadata"}
+    return [
+        ParsedElement(
+            **table_common,
+            type=ElementType.TABLE,
+            format=ContentFormat.HTML,
+            content=html,
+            metadata={
+                **_metadata(item),
+                "is_complex": _is_complex_table(item),
+                "num_rows": _table_data(item).get("num_rows"),
+                "num_cols": _table_data(item).get("num_cols"),
+            },
+        )
+    ]
+
+
+def _handle_picture(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.IMAGE,
+            format=ContentFormat.ASSET_REF,
+            asset=_asset_ref(_dict_or_none(item.get("image"))),
+            children_ids=[
+                child_ref for child_ref in (_ref(child) for child in _list(item.get("children"))) if child_ref
+            ],
+        )
+    ]
+
+
+def _handle_footnote(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.FOOTNOTE,
+            format=ContentFormat.MARKDOWN,
+            content=_string(item.get("text")) or "",
+        )
+    ]
+
+
+def _handle_caption(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.CAPTION,
+            format=ContentFormat.MARKDOWN,
+            content=_string(item.get("text")) or "",
+        )
+    ]
+
+
+def _handle_equation(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    label = _string(item.get("label"))
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.EQUATION,
+            format=ContentFormat.LATEX if label == "formula" else ContentFormat.MARKDOWN,
+            content=_string(item.get("text")) or "",
+        )
+    ]
+
+
+def _handle_paragraph(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.PARAGRAPH,
+            format=ContentFormat.MARKDOWN,
+            content=_string(item.get("text")) or "",
+        )
+    ]
+
+
+def _handle_page_header(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.PAGE_HEADER,
+            format=ContentFormat.MARKDOWN,
+            content=_string(item.get("text")) or "",
+        )
+    ]
+
+
+def _handle_page_footer(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.PAGE_FOOTER,
+            format=ContentFormat.MARKDOWN,
+            content=_string(item.get("text")) or "",
+        )
+    ]
+
+
+def _handle_document_index(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    html = _table_html(item)
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.SECTION_INDEX,
+            format=ContentFormat.HTML,
+            content=html,
+        )
+    ]
+
+
+def _handle_default(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.UNKNOWN,
+            format=ContentFormat.MARKDOWN,
+            content=_string(item.get("text")) or "",
+        )
+    ]
+
+
+_ELEMENT_HANDLERS = {
+    "section_header": _handle_heading,
+    "title": _handle_heading,
+    "list_item": _handle_list_item,
+    "table": _handle_table,
+    "picture": _handle_picture,
+    "footnote": _handle_footnote,
+    "caption": _handle_caption,
+    "formula": _handle_equation,
+    "equation": _handle_equation,
+    "paragraph": _handle_paragraph,
+    "text": _handle_paragraph,
+    "page_header": _handle_page_header,
+    "page_footer": _handle_page_footer,
+    "document_index": _handle_document_index,
+}
+
+
 def _element_from_item(
     item: dict[str, Any],
     ref: str | None,
@@ -162,39 +369,10 @@ def _element_from_item(
     page_id_by_no: dict[int, str],
     page_height_by_no: dict[int, float],
 ) -> list[ParsedElement]:
-    if ref and ref.startswith("#/groups/"):
-        children = _list(item.get("children"))
-        list_items: list[str] = []
-        child_ids: list[str] = []
-        for child in children:
-            child_ref = _ref(child)
-            child_item = _resolve_ref(child_ref, indexes)
-            if not isinstance(child_item, dict):
-                continue
-            text = _string(child_item.get("text")) or ""
-            marker = _string(child_item.get("marker")) or "-"
-            list_items.append(f"{marker} {text}".strip())
-            if child_ref:
-                child_ids.append(child_ref)
+    provenance = _provenance(item, ref, page_height_by_no)
 
-        provenance = _provenance(item, ref, page_height_by_no)
-        if not provenance:
-            provenance = _union_child_provenances(children, indexes, page_height_by_no)
-        page_no = _first_page_no(provenance)
-        return [
-            ParsedElement(
-                element_id=ref or f"element_{order}",
-                type=ElementType.LIST,
-                format=ContentFormat.MARKDOWN,
-                content="\n".join(list_items),
-                page_id=page_id_by_no.get(page_no) if page_no is not None else None,
-                order=order,
-                bbox=provenance[0].bbox if provenance else None,
-                provenance=provenance,
-                children_ids=child_ids,
-                metadata=_metadata(item),
-            )
-        ]
+    if ref and ref.startswith("#/groups/"):
+        return _handle_group(item, ref, order, indexes, page_id_by_no, page_height_by_no, provenance)
 
     label = _string(item.get("label")) or "unknown"
 
@@ -208,7 +386,6 @@ def _element_from_item(
                 f"Mapping to ElementType.UNKNOWN. Item details: {item}"
             )
 
-    provenance = _provenance(item, ref, page_height_by_no)
     page_no = _first_page_no(provenance)
     common = {
         "element_id": ref or f"element_{order}",
@@ -220,127 +397,8 @@ def _element_from_item(
         "metadata": _metadata(item),
     }
 
-    if label in ("section_header", "title"):
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.HEADING,
-                format=ContentFormat.MARKDOWN,
-                content=_heading_content(item),
-                level=_int(item.get("level")) or (1 if label == "title" else None),
-            )
-        ]
-    if label == "list_item":
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.LIST_ITEM,
-                format=ContentFormat.MARKDOWN,
-                content=_list_item_content(item),
-            )
-        ]
-    if label == "table":
-        html = _table_html(item)
-        table_common = {key: value for key, value in common.items() if key != "metadata"}
-        return [
-            ParsedElement(
-                **table_common,
-                type=ElementType.TABLE,
-                format=ContentFormat.HTML,
-                content=html,
-                metadata={
-                    **_metadata(item),
-                    "is_complex": _is_complex_table(item),
-                    "num_rows": _table_data(item).get("num_rows"),
-                    "num_cols": _table_data(item).get("num_cols"),
-                },
-            )
-        ]
-    if label == "picture":
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.IMAGE,
-                format=ContentFormat.ASSET_REF,
-                asset=_asset_ref(_dict_or_none(item.get("image"))),
-                children_ids=[
-                    child_ref for child_ref in (_ref(child) for child in _list(item.get("children"))) if child_ref
-                ],
-            )
-        ]
-    if label == "footnote":
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.FOOTNOTE,
-                format=ContentFormat.MARKDOWN,
-                content=_string(item.get("text")) or "",
-            )
-        ]
-    if label == "caption":
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.CAPTION,
-                format=ContentFormat.MARKDOWN,
-                content=_string(item.get("text")) or "",
-            )
-        ]
-    if label in ("formula", "equation"):
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.EQUATION,
-                format=ContentFormat.LATEX if label == "formula" else ContentFormat.MARKDOWN,
-                content=_string(item.get("text")) or "",
-            )
-        ]
-    if label in ("paragraph", "text"):
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.PARAGRAPH,
-                format=ContentFormat.MARKDOWN,
-                content=_string(item.get("text")) or "",
-            )
-        ]
-    if label == "page_header":
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.PAGE_HEADER,
-                format=ContentFormat.MARKDOWN,
-                content=_string(item.get("text")) or "",
-            )
-        ]
-    if label == "page_footer":
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.PAGE_FOOTER,
-                format=ContentFormat.MARKDOWN,
-                content=_string(item.get("text")) or "",
-            )
-        ]
-    if label == "document_index":
-        html = _table_html(item)
-        return [
-            ParsedElement(
-                **common,
-                type=ElementType.SECTION_INDEX,
-                format=ContentFormat.HTML,
-                content=html,
-            )
-        ]
-
-    return [
-        ParsedElement(
-            **common,
-            type=ElementType.UNKNOWN,
-            format=ContentFormat.MARKDOWN,
-            content=_string(item.get("text")) or "",
-        )
-    ]
+    handler = _ELEMENT_HANDLERS.get(label, _handle_default)
+    return handler(item, common)
 
 
 def _heading_content(item: dict[str, Any]) -> str:

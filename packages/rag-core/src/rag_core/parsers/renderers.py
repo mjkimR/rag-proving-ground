@@ -91,28 +91,49 @@ def _ordered_elements(document: ParsedDocument) -> list[ParsedElement]:
     return sorted(document.elements, key=lambda element: element.order)
 
 
-def _element_to_markdown(element: ParsedElement) -> str:
+def _markdown_heading(element: ParsedElement) -> str:
     content = element.content.strip()
+    text = _strip_markdown_heading(content)
+    level = _safe_heading_level(element.level)
+    return f"{'#' * level} {text}" if text else ""
 
-    if element.type == ElementType.HEADING:
-        text = _strip_markdown_heading(content)
-        level = _safe_heading_level(element.level)
-        return f"{'#' * level} {text}" if text else ""
 
-    if element.type == ElementType.TABLE:
-        if element.format == ContentFormat.HTML:
-            return _html_table_to_markdown(content)
-        return content
+def _markdown_table(element: ParsedElement) -> str:
+    content = element.content.strip()
+    if element.format == ContentFormat.HTML:
+        return _html_table_to_markdown(content)
+    return content
 
-    if element.type == ElementType.IMAGE:
-        return _image_to_markdown(element)
 
-    if element.type == ElementType.EQUATION:
-        return f"$$\n{content}\n$$" if content and element.format == ContentFormat.LATEX else content
+def _markdown_image(element: ParsedElement) -> str:
+    return _image_to_markdown(element)
 
-    if element.type == ElementType.CAPTION and content:
-        return f"*{content}*"
 
+def _markdown_equation(element: ParsedElement) -> str:
+    content = element.content.strip()
+    return f"$$\n{content}\n$$" if content and element.format == ContentFormat.LATEX else content
+
+
+def _markdown_caption(element: ParsedElement) -> str:
+    content = element.content.strip()
+    return f"*{content}*" if content else ""
+
+
+_MARKDOWN_ELEMENT_RENDERERS = {
+    ElementType.HEADING: _markdown_heading,
+    ElementType.TABLE: _markdown_table,
+    ElementType.IMAGE: _markdown_image,
+    ElementType.EQUATION: _markdown_equation,
+    ElementType.CAPTION: _markdown_caption,
+}
+
+
+def _element_to_markdown(element: ParsedElement) -> str:
+    renderer = _MARKDOWN_ELEMENT_RENDERERS.get(element.type)
+    if renderer:
+        return renderer(element)
+
+    content = element.content.strip()
     if element.format == ContentFormat.HTML:
         return _html_to_text(content)
     if element.format == ContentFormat.ASSET_REF:
@@ -122,35 +143,62 @@ def _element_to_markdown(element: ParsedElement) -> str:
     return content
 
 
-def _element_to_html(element: ParsedElement) -> str:
+def _html_heading(element: ParsedElement) -> str:
     content = element.content.strip()
+    text = _strip_markdown_heading(content)
+    level = _safe_heading_level(element.level)
+    return f"<h{level}>{escape(text)}</h{level}>" if text else ""
 
-    if element.type == ElementType.HEADING:
-        text = _strip_markdown_heading(content)
-        level = _safe_heading_level(element.level)
-        return f"<h{level}>{escape(text)}</h{level}>" if text else ""
 
-    if element.type == ElementType.LIST:
-        return _markdown_list_to_html(content)
+def _html_list(element: ParsedElement) -> str:
+    content = element.content.strip()
+    return _markdown_list_to_html(content)
 
-    if element.type == ElementType.LIST_ITEM:
-        item = _strip_list_marker(content)
-        return f"<ul><li>{escape(item)}</li></ul>" if item else ""
 
-    if element.type == ElementType.TABLE:
-        if element.format == ContentFormat.HTML:
-            return content
-        return _markdown_table_to_html(content)
+def _html_list_item(element: ParsedElement) -> str:
+    content = element.content.strip()
+    item = _strip_list_marker(content)
+    return f"<ul><li>{escape(item)}</li></ul>" if item else ""
 
-    if element.type == ElementType.IMAGE:
-        return _image_to_html(element)
 
-    if element.type == ElementType.EQUATION:
-        return f'<pre><code class="language-latex">{escape(content)}</code></pre>' if content else ""
+def _html_table(element: ParsedElement) -> str:
+    content = element.content.strip()
+    if element.format == ContentFormat.HTML:
+        return content
+    return _markdown_table_to_html(content)
 
-    if element.type == ElementType.CAPTION:
-        return f"<p><em>{escape(content)}</em></p>" if content else ""
 
+def _html_image(element: ParsedElement) -> str:
+    return _image_to_html(element)
+
+
+def _html_equation(element: ParsedElement) -> str:
+    content = element.content.strip()
+    return f'<pre><code class="language-latex">{escape(content)}</code></pre>' if content else ""
+
+
+def _html_caption(element: ParsedElement) -> str:
+    content = element.content.strip()
+    return f"<p><em>{escape(content)}</em></p>" if content else ""
+
+
+_HTML_ELEMENT_RENDERERS = {
+    ElementType.HEADING: _html_heading,
+    ElementType.LIST: _html_list,
+    ElementType.LIST_ITEM: _html_list_item,
+    ElementType.TABLE: _html_table,
+    ElementType.IMAGE: _html_image,
+    ElementType.EQUATION: _html_equation,
+    ElementType.CAPTION: _html_caption,
+}
+
+
+def _element_to_html(element: ParsedElement) -> str:
+    renderer = _HTML_ELEMENT_RENDERERS.get(element.type)
+    if renderer:
+        return renderer(element)
+
+    content = element.content.strip()
     if element.format == ContentFormat.HTML:
         return content
     if element.format == ContentFormat.LATEX:
