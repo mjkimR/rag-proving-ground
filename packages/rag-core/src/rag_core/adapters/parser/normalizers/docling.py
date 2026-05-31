@@ -179,7 +179,7 @@ def _element_from_item(
 
         provenance = _provenance(item, ref, page_height_by_no)
         if not provenance:
-            provenance = _first_child_provenance(children, indexes, page_height_by_no)
+            provenance = _union_child_provenances(children, indexes, page_height_by_no)
         page_no = _first_page_no(provenance)
         return [
             ParsedElement(
@@ -424,18 +424,60 @@ def _provenance(item: dict[str, Any], source_ref: str | None, page_height_by_no:
     return result
 
 
-def _first_child_provenance(
+def _union_child_provenances(
     children: list[Any], indexes: dict[str, list[Any]], page_height_by_no: dict[int, float]
 ) -> list[Provenance]:
+    all_provs: list[Provenance] = []
     for child in children:
         child_ref = _ref(child)
         child_item = _resolve_ref(child_ref, indexes)
         if not isinstance(child_item, dict):
             continue
-        provenance = _provenance(child_item, child_ref, page_height_by_no)
-        if provenance:
-            return provenance
-    return []
+        child_prov = _provenance(child_item, child_ref, page_height_by_no)
+        if child_prov:
+            all_provs.extend(child_prov)
+
+    if not all_provs:
+        return []
+
+    # Group provenances by page number to support multi-page groups
+    provs_by_page: dict[int, list[Provenance]] = {}
+    for prov in all_provs:
+        if prov.page_no is not None:
+            provs_by_page.setdefault(prov.page_no, []).append(prov)
+
+    result: list[Provenance] = []
+    for page_no, page_provs in sorted(provs_by_page.items()):
+        lefts = [p.bbox.left for p in page_provs if p.bbox]
+        tops = [p.bbox.top for p in page_provs if p.bbox]
+        rights = [p.bbox.right for p in page_provs if p.bbox]
+        bottoms = [p.bbox.bottom for p in page_provs if p.bbox]
+
+        if lefts and tops and rights and bottoms:
+            merged_bbox = BoundingBox(
+                left=min(lefts),
+                top=min(tops),
+                right=max(rights),
+                bottom=max(bottoms),
+                coord_origin="TOPLEFT",
+            )
+        else:
+            merged_bbox = None
+
+        charspan_starts = [p.charspan[0] for p in page_provs if p.charspan]
+        charspan_ends = [p.charspan[1] for p in page_provs if p.charspan]
+        merged_charspan = (min(charspan_starts), max(charspan_ends)) if charspan_starts and charspan_ends else None
+
+        result.append(
+            Provenance(
+                page_no=page_no,
+                bbox=merged_bbox,
+                charspan=merged_charspan,
+                source_ref=page_provs[0].source_ref if page_provs else None,
+            )
+        )
+
+    return result
 
 
 def _bbox(data: dict[str, Any] | None, page_no: int | None, page_height_by_no: dict[int, float]) -> BoundingBox | None:
