@@ -33,6 +33,9 @@ class DownloadKnowledgeDocumentUseCase(BaseUseCase):
             )
 
         filename = os.path.basename(original_file_key)
+        import urllib.parse
+
+        encoded_filename = urllib.parse.quote(filename)
 
         try:
 
@@ -43,7 +46,7 @@ class DownloadKnowledgeDocumentUseCase(BaseUseCase):
             return StreamingResponse(
                 file_streamer(),
                 media_type="application/octet-stream",
-                headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+                headers={"Content-Disposition": f"attachment; filename*=utf-8''{encoded_filename}"},
             )
         except Exception as e:
             logger.exception(f"Failed to download file '{original_file_key}': {e}")

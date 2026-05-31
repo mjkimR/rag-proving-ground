@@ -22,7 +22,7 @@ const initialHtml = `<article>
 </article>`;
 
 export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
-  const [mode, setMode] = useState<PreviewMode>("pdf");
+  const [mode, setMode] = useState<PreviewMode>("compare-elements");
   const [file, setFile] = useState<File | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string>();
   const [pdfName, setPdfName] = useState("No file selected");
@@ -39,15 +39,11 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
   const [ignoreCache, setIgnoreCache] = useState<boolean>(false);
 
   const activeSummary = useMemo(() => {
-    if (mode === "pdf") return `PDF preview: ${pdfName}`;
-    if (mode === "markdown") return `Markdown preview: ${markdown.length} chars`;
-    if (mode === "html") return `HTML preview: ${html.length} chars`;
-    if (mode === "elements") return `Layout elements count: ${parsedDoc?.elements?.length || 0}`;
     if (mode === "compare-markdown") return "Side-by-side: PDF & Markdown active";
     if (mode === "compare-html") return "Side-by-side: PDF & HTML active";
-    if (mode === "compare-elements") return "Side-by-side: PDF & Layout Elements active";
+    if (mode === "compare-elements") return `Side-by-side: PDF & Layout Elements active (${parsedDoc?.elements?.length || 0} elements)`;
     return "Office preview: convert via Gotenberg first";
-  }, [html.length, markdown.length, mode, pdfName, parsedDoc]);
+  }, [mode, parsedDoc]);
 
   useEffect(() => {
     return () => {
@@ -67,9 +63,9 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
     if (selectedFile.type === "application/pdf") {
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
       setPdfUrl(URL.createObjectURL(selectedFile));
-      setMode("pdf");
+      setMode("compare-elements");
     } else {
-      setMode("markdown");
+      setMode("compare-markdown");
     }
   }
 
@@ -106,7 +102,7 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
       setHtml(data.html || "");
       
       // Auto switch to comparison view to show off the results!
-      setMode("compare-markdown");
+      setMode("compare-elements");
     } catch (err: any) {
       console.error(err);
       setParseError(err.message || "Failed to parse document");

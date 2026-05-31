@@ -68,25 +68,12 @@ export function PreviewPanel({
 
       {!isParsing && (
         <>
-          {mode === "pdf" && <PdfPreview fileUrl={pdfUrl} fileName={pdfName} activeElement={activeElement} parsedDoc={parsedDoc} />}
-          {mode === "markdown" && <MarkdownPreview markdown={markdown} />}
-          {mode === "html" && <HtmlPreview html={html} />}
-          {mode === "elements" && (
-            parsedDoc?.elements ? (
-              <ElementsExplorer elements={parsedDoc.elements} onElementClick={setActiveElement} />
-            ) : (
-              <div className="empty-state">
-                <h2>No structured elements parsed yet</h2>
-                <p>Upload a document and run the parser to see layout elements.</p>
-              </div>
-            )
-          )}
           {mode === "office" && (
             <OfficePreview onPdfReady={(url, name) => {
               if (pdfUrl) URL.revokeObjectURL(pdfUrl);
               setPdfUrl(url);
               setPdfName(name);
-              setMode("pdf");
+              setMode("compare-elements");
             }} />
           )}
           

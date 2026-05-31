@@ -165,9 +165,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </Sider>
 
       {/* Main Container */}
-      <AntdLayout style={{ 
-        marginLeft: collapsed ? 0 : 260, 
-        minHeight: '100vh', 
+      <AntdLayout style={{
+        marginLeft: collapsed ? 0 : 260,
+        minHeight: '100vh',
         background: 'transparent',
         transition: 'margin-left 0.2s ease-in-out'
       }}>
@@ -204,10 +204,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             />
             <h2 className="font-outfit" style={{ margin: 0, fontSize: '20px', fontWeight: 700, textTransform: 'capitalize' }}>
-              {activeTab === 'knowledge' 
-                ? 'Knowledge Base Management' 
-                : activeTab === 'workbench' 
-                  ? 'Showcase Workbench' 
+              {activeTab === 'knowledge'
+                ? 'Knowledge Base Management'
+                : activeTab === 'workbench'
+                  ? 'Showcase Workbench'
                   : 'Dashboard Overview'}
             </h2>
           </div>
@@ -236,7 +236,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Content Area */}
         <Content style={{ padding: '32px', minHeight: 280 }}>
-          <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{ maxWidth: activeTab === 'dashboard' ? 1400 : '100%', margin: '0 auto' }}>
             {children}
           </div>
         </Content>

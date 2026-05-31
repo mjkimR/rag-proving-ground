@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  Card, Table, Button, Space, Input, List, Row, Col, Typography, 
-  Upload, Select, Spin, Drawer, Tag, Empty, Modal, Badge, Tooltip 
+import {
+  Card, Table, Button, Space, Input, List, Row, Col, Typography,
+  Upload, Select, Spin, Drawer, Tag, Empty, Modal, Badge, Tooltip
 } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  listKnowledgeBasesApiV1KnowledgeGet, 
+import {
+  listKnowledgeBasesApiV1KnowledgeGet,
   listKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGet,
   uploadDocumentApiV1KnowledgeKnowledgeNameUploadPost,
   deleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5Delete,
   getParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGet
 } from '@/generated/api/sdk.gen';
-import { 
-  Database, Plus, UploadCloud, FileText, Trash2, Download, Eye, AlertCircle, FileDigit 
+import {
+  Database, Plus, UploadCloud, FileText, Trash2, Download, Eye, AlertCircle, FileDigit
 } from 'lucide-react';
 import { useThemeStore } from '@/stores/themeStore';
 import { ElementsExplorer } from '@/components/ElementsExplorer';
+import { PdfPreview } from '@/components/PdfPreview';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -27,6 +28,7 @@ export const Knowledge: React.FC = () => {
   const [parserProvider, setParserProvider] = useState('docling');
   const [isUploading, setIsUploading] = useState(false);
   const [inspectingFile, setInspectingFile] = useState<{ md5: string; name: string } | null>(null);
+  const [activeElement, setActiveElement] = useState<any>(null);
 
   // 1. Fetch Knowledge Bases
   const { data: kbList, isLoading: kbLoading, refetch: refetchKbs } = useQuery({
@@ -144,22 +146,22 @@ export const Knowledge: React.FC = () => {
     <Row gutter={[24, 24]}>
       {/* Sidebar: Knowledge Bases List */}
       <Col xs={24} md={7}>
-        <Card 
-          bordered={false} 
-          className="glass-card" 
+        <Card
+          bordered={false}
+          className="glass-card"
           title={<span className="font-outfit" style={{ fontSize: '15px', fontWeight: 700 }}>Knowledge Bases</span>}
         >
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            <Input 
-              placeholder="e.g. legal_docs" 
+            <Input
+              placeholder="e.g. legal_docs"
               value={newKbName}
               onChange={(e) => setNewKbName(e.target.value)}
               onPressEnter={handleCreateKb}
               className="font-outfit"
             />
-            <Button 
-              type="primary" 
-              icon={<Plus size={16} />} 
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
               onClick={handleCreateKb}
             />
           </div>
@@ -209,14 +211,14 @@ export const Knowledge: React.FC = () => {
                 <Col>
                   <Space size="middle">
                     <Text strong>Parser Provider:</Text>
-                    <Select 
-                      defaultValue="docling" 
-                      style={{ width: 140 }} 
+                    <Select
+                      defaultValue="docling"
+                      style={{ width: 140 }}
                       onChange={(val) => setParserProvider(val)}
                       className="font-outfit"
                     >
-                      <Option value="docling">Docling (Sleek)</Option>
-                      <Option value="marker">Marker (Text)</Option>
+                      <Option value="docling">Docling</Option>
+                      <Option value="marker">Marker</Option>
                     </Select>
                   </Space>
                 </Col>
@@ -256,8 +258,8 @@ export const Knowledge: React.FC = () => {
             </Card>
 
             {/* Documents List Table */}
-            <Card 
-              bordered={false} 
+            <Card
+              bordered={false}
               className="glass-card"
               title={<span className="font-outfit" style={{ fontSize: '15px', fontWeight: 700 }}>Knowledge Documents</span>}
             >
@@ -306,22 +308,22 @@ export const Knowledge: React.FC = () => {
                     align: 'right',
                     render: (_, record: any) => (
                       <Space size="middle">
-                        <Button 
-                          type="text" 
-                          icon={<Eye size={16} />} 
+                        <Button
+                          type="text"
+                          icon={<Eye size={16} />}
                           onClick={() => setInspectingFile({ md5: record.md5_hash, name: record.filename })}
                         >
                           Inspect
                         </Button>
-                        <Button 
-                          type="text" 
-                          icon={<Download size={16} />} 
+                        <Button
+                          type="text"
+                          icon={<Download size={16} />}
                           onClick={() => handleDownload(record.md5_hash)}
                         />
-                        <Button 
-                          type="text" 
+                        <Button
+                          type="text"
                           danger
-                          icon={<Trash2 size={16} />} 
+                          icon={<Trash2 size={16} />}
                           onClick={() => handleDelete(record.md5_hash)}
                         />
                       </Space>
@@ -354,10 +356,14 @@ export const Knowledge: React.FC = () => {
             Layout Element Inspector: <span style={{ color: 'var(--accent-gradient)' }}>{inspectingFile?.name}</span>
           </span>
         }
-        width={720}
-        onClose={() => setInspectingFile(null)}
+        width="90vw"
+        onClose={() => {
+          setInspectingFile(null);
+          setActiveElement(null);
+        }}
         open={!!inspectingFile}
         destroyOnClose
+        styles={{ body: { padding: 0, overflow: 'hidden' } }}
       >
         {parsedLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -365,14 +371,43 @@ export const Knowledge: React.FC = () => {
             <p className="font-outfit" style={{ marginTop: '16px', fontWeight: 600 }}>Loading elements structure...</p>
           </div>
         ) : parsedDoc?.data ? (
-          <ElementsExplorer 
-            elements={
-              (parsedDoc.data.elements || []).map((el: any) => ({
-                ...el,
-                content: el.content || '',
-              }))
-            } 
-          />
+          <div className="multi-view-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", height: "100%", gap: "16px", padding: "16px", background: "var(--bg-app)" }}>
+            {/* Left Side Panel: Original Source */}
+            <div className="multi-panel" style={{ height: "100%", background: "#ffffff", border: "1px solid var(--border-color)", borderRadius: "8px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div className="panel-header" style={{ padding: "10px 16px", background: "var(--bg-app)", borderBottom: "1px solid var(--border-color)", fontWeight: 700, fontSize: "13px" }}>PDF / Original Source</div>
+              <div className="panel-content" style={{ flex: 1, overflow: "hidden" }}>
+                {inspectingFile?.name.toLowerCase().endsWith('.pdf') ? (
+                  <PdfPreview
+                    fileUrl={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389'}/api/v1/knowledge/${selectedKnowledgeName}/files/${inspectingFile.md5}/download`}
+                    fileName={inspectingFile.name}
+                    activeElement={activeElement}
+                    parsedDoc={parsedDoc.data}
+                  />
+                ) : (
+                  <div className="non-pdf-info" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", padding: "24px", textAlign: "center" }}>
+                    <h3>{inspectingFile?.name}</h3>
+                    <p>Comparison is only supported for PDF files.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Side Panel: Layout Elements */}
+            <div className="multi-panel" style={{ height: "100%", background: "#ffffff", border: "1px solid var(--border-color)", borderRadius: "8px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div className="panel-header" style={{ padding: "10px 16px", background: "var(--bg-app)", borderBottom: "1px solid var(--border-color)", fontWeight: 700, fontSize: "13px" }}>Layout Elements</div>
+              <div className="panel-content" style={{ flex: 1, overflow: "hidden" }}>
+                <ElementsExplorer
+                  elements={
+                    (parsedDoc.data.elements || []).map((el: any) => ({
+                      ...el,
+                      content: el.content || '',
+                    }))
+                  }
+                  onElementClick={setActiveElement}
+                />
+              </div>
+            </div>
+          </div>
         ) : (
           <Empty description="No elements data parsed successfully." />
         )}

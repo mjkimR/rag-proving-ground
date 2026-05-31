@@ -175,14 +175,22 @@ export function ElementDetails({ element }: ElementDetailsProps) {
 export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerProps) {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [hideIgnored, setHideIgnored] = useState<boolean>(false);
 
   // Get unique element types for the filter bar
   const elementTypes = ["all", ...Array.from(new Set(elements.map((el) => el.type)))];
 
   // Filter & sort elements by order
   const sortedElements = [...elements].sort((a, b) => a.order - b.order);
-  const filteredElements =
+
+  // First filter by type selection
+  const typeFilteredElements =
     selectedType === "all" ? sortedElements : sortedElements.filter((el) => el.type === selectedType);
+
+  // Then filter out ignored elements if the toggle is active
+  const filteredElements = hideIgnored
+    ? typeFilteredElements.filter((el) => !el.ignored)
+    : typeFilteredElements;
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -191,7 +199,20 @@ export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerP
   return (
     <div className="elements-explorer">
       <div className="explorer-header">
-        <h3>Structured Layout Elements ({filteredElements.length})</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3>Structured Layout Elements ({filteredElements.length})</h3>
+
+          {/* Elegant Toggle Switch for Hiding Ignored Elements */}
+          <label className="ignored-toggle-container">
+            <input
+              type="checkbox"
+              checked={hideIgnored}
+              onChange={(e) => setHideIgnored(e.target.checked)}
+            />
+            <span className="ignored-switch" />
+            <span className="ignored-toggle-label">Hide Ignored</span>
+          </label>
+        </div>
 
         {/* Sleek element filter bar */}
         <div className="filter-tags" role="group" aria-label="Filter elements by type">

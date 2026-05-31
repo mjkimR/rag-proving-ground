@@ -70,7 +70,7 @@ export function FullscreenComparison({
 
         {/* Mode switcher tabs inside fullscreen modal */}
         <div className="mode-tabs" style={{ display: "flex", gap: "4px", background: "#eef1f5", padding: "4px", borderRadius: "8px", width: "420px" }} aria-label="Fullscreen type">
-          {(["compare-markdown", "compare-html", "compare-elements"] as PreviewMode[]).map((nextMode) => (
+          {(["compare-elements", "compare-markdown", "compare-html"] as PreviewMode[]).map((nextMode) => (
             <button
               aria-pressed={mode === nextMode}
               className="mode-tab"

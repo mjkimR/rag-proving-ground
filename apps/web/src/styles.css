@@ -88,7 +88,7 @@ textarea {
   gap: 20px;
   justify-content: space-between;
   margin: 0 auto 20px;
-  max-width: 1320px;
+  max-width: 100%;
 }
 
 .app-header h1 {
@@ -123,7 +123,7 @@ textarea {
   gap: 18px;
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   margin: 0 auto;
-  max-width: 1320px;
+  max-width: 100%;
   transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s ease;
   height: calc(100vh - 170px);
   min-height: 560px;
@@ -293,6 +293,7 @@ textarea {
   border: 0;
   height: 100%;
   width: 100%;
+  display: block;
 }
 
 .office-upload {
@@ -451,7 +452,7 @@ textarea {
 
 .panel-content {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
 }
 
@@ -503,6 +504,65 @@ textarea {
   font-size: 15px;
   color: #1e293b;
   font-weight: 700;
+}
+
+/* Sleek Toggle Switch for Hiding Ignored Elements */
+.ignored-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ignored-toggle-container input {
+  display: none;
+}
+
+.ignored-switch {
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  position: relative;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-block;
+}
+
+.dark-theme .ignored-switch {
+  background: #334155;
+}
+
+.ignored-switch::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.ignored-toggle-container input:checked + .ignored-switch {
+  background: var(--accent-color, #4f46e5);
+}
+
+.ignored-toggle-container input:checked + .ignored-switch::after {
+  left: 18px;
+}
+
+.ignored-toggle-label {
+  font-weight: 600;
+  color: var(--text-secondary, #647084);
+  transition: color 0.2s ease;
+}
+
+.ignored-toggle-container:hover .ignored-toggle-label {
+  color: var(--text-primary);
 }
 
 .filter-tags {
