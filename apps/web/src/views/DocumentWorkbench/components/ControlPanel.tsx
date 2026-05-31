@@ -93,7 +93,7 @@ export function ControlPanel({
           onChange={(e) => setProvider(e.target.value)}
           className="provider-select"
         >
-          <option value="docling">Docling Serve (AI Parser)</option>
+          <option value="docling">Docling Serve</option>
         </select>
 
         <button
