@@ -92,9 +92,9 @@ export const Dashboard: React.FC = () => {
       {/* Main Section */}
       <Row gutter={[18, 18]} style={{ marginTop: '24px' }}>
         <Col xs={24} lg={16}>
-          <Card 
+          <Card
             title={<span className="font-outfit" style={{ fontSize: '16px', fontWeight: 700 }}>Your Knowledge Bases</span>}
-            bordered={false} 
+            bordered={false}
             className="glass-card"
           >
             {kbError ? (
@@ -126,7 +126,7 @@ export const Dashboard: React.FC = () => {
                     align: 'right',
                     render: (_, record) => (
                       <Space size="middle">
-                        <a 
+                        <a
                           onClick={() => {
                             setSelectedKnowledgeName(record.name);
                             setActiveTab('knowledge');
@@ -157,7 +157,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Sidebar Info Panel */}
         <Col xs={24} lg={8}>
-          <Card 
+          <Card
             title={<span className="font-outfit" style={{ fontSize: '16px', fontWeight: 700 }}>System Health Info</span>}
             bordered={false}
             className="glass-card"
@@ -179,14 +179,6 @@ export const Dashboard: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
                 <span style={{ fontWeight: 600 }}>RAG-Core Library:</span>
                 <Tag color="cyan">Ready</Tag>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
-                <span style={{ fontWeight: 600 }}>Object Storage:</span>
-                <Tag color="cyan">Local Directory</Tag>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ fontWeight: 600 }}>Docling API URL:</span>
-                <span style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>http://127.0.0.1:5001</span>
               </div>
             </div>
           </Card>
