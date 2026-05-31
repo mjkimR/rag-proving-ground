@@ -108,8 +108,7 @@ The generated SDK exports ready-to-use, fully typed asynchronous functions match
 
 ```tsx
 import React, { useEffect, useState } from 'react';
-import { uploadDocumentApiV1KnowledgeKnowledgeNameUploadPost } from '@/generated/api/sdk.gen';
-import { ParsedDocument } from '@/generated/api/types.gen';
+import { uploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPost } from '@/generated/api/sdk.gen';
 import { App, Upload } from 'antd';
 
 export const DocumentUpload: React.FC = () => {
@@ -119,10 +118,10 @@ export const DocumentUpload: React.FC = () => {
   const handleUpload = async (file: File) => {
     setLoading(true);
     try {
-      // Endpoint: /api/v1/knowledge/{knowledge_name}/upload
-      const response = await uploadDocumentApiV1KnowledgeKnowledgeNameUploadPost({
+      // Endpoint: /api/v1/knowledge_bases/{knowledge_base_id}/upload
+      const response = await uploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPost({
         path: {
-          knowledge_name: 'legal_docs',
+          knowledge_base_id: 'a384b6f1-a1e4-4fa9-b873-90974b67329d', // Knowledge Base UUID
         },
         body: {
           file: file,
@@ -130,8 +129,8 @@ export const DocumentUpload: React.FC = () => {
         },
       });
 
-      message.success(`Successfully uploaded and parsed document! Hash: ${response.md5_hash}`);
-      console.log('Parsed Elements:', response.parsed_document.elements);
+      message.success(`Successfully uploaded and parsed document! Hash: ${response.data?.file_md5}`);
+      console.log('Parsed Document Info:', response.data?.document_info);
     } catch (error) {
       console.error('Upload failed:', error);
       message.error('Failed to parse document.');

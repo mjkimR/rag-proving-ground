@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteData, DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteErrors, DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteResponses, DocumentParseApiV1DocParseParsePostData, DocumentParseApiV1DocParseParsePostErrors, DocumentParseApiV1DocParseParsePostResponses, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetData, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetErrors, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetResponses, GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetData, GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors, GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses, HealthApiHealthGetData, HealthApiHealthGetResponses, ListKnowledgeBasesApiV1KnowledgeGetData, ListKnowledgeBasesApiV1KnowledgeGetResponses, ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetData, ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors, ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses, RootGetData, RootGetResponses, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostData, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostErrors, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostResponses } from './types.gen';
+import type { CreateKnowledgeBaseApiV1KnowledgeBasesPostData, CreateKnowledgeBaseApiV1KnowledgeBasesPostErrors, CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostData, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostErrors, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostResponses, CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostData, CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostErrors, CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostResponses, CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostData, CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostErrors, CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostResponses, CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostData, CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostErrors, CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostResponses, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteData, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteErrors, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteResponses, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteData, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteErrors, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteResponses, DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteData, DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteErrors, DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteResponses, DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteData, DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteErrors, DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteResponses, DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteData, DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteErrors, DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteResponses, DocumentParseApiV1DocParseParsePostData, DocumentParseApiV1DocParseParsePostErrors, DocumentParseApiV1DocParseParsePostResponses, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetData, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetErrors, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetResponses, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetData, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetErrors, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetResponses, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetData, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetErrors, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetResponses, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetData, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetErrors, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetResponses, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetData, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetErrors, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses, GetKnowledgeBasesApiV1KnowledgeBasesGetData, GetKnowledgeBasesApiV1KnowledgeBasesGetErrors, GetKnowledgeBasesApiV1KnowledgeBasesGetResponses, GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetData, GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetErrors, GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponses, GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetData, GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetErrors, GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponses, GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetData, GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetErrors, GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponses, GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetData, GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetErrors, GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponses, GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetData, GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetErrors, GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponses, GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetData, GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetErrors, GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponses, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetData, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetErrors, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetResponses, HealthApiHealthGetData, HealthApiHealthGetResponses, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchData, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchErrors, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchResponses, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchData, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchErrors, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchResponses, PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchData, PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchErrors, PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchResponses, PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchData, PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchErrors, PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchResponses, PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchData, PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchErrors, PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchResponses, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutData, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutErrors, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutResponses, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutData, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutErrors, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutResponses, PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutData, PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutErrors, PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutResponses, PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutData, PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutErrors, PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutResponses, PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutData, PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutErrors, PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutResponses, RootGetData, RootGetResponses, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostData, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostErrors, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -44,34 +44,64 @@ export const documentParseApiV1DocParseParsePost = <ThrowOnError extends boolean
 });
 
 /**
- * List Knowledge Bases
- *
- * List all unique active knowledge base names from S3/MinIO storage.
+ * Get Knowledge Bases
  */
-export const listKnowledgeBasesApiV1KnowledgeGet = <ThrowOnError extends boolean = false>(options?: Options<ListKnowledgeBasesApiV1KnowledgeGetData, ThrowOnError>) => (options?.client ?? client).get<ListKnowledgeBasesApiV1KnowledgeGetResponses, unknown, ThrowOnError>({ url: '/api/v1/knowledge', ...options });
+export const getKnowledgeBasesApiV1KnowledgeBasesGet = <ThrowOnError extends boolean = false>(options?: Options<GetKnowledgeBasesApiV1KnowledgeBasesGetData, ThrowOnError>) => (options?.client ?? client).get<GetKnowledgeBasesApiV1KnowledgeBasesGetResponses, GetKnowledgeBasesApiV1KnowledgeBasesGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_bases', ...options });
 
 /**
- * List Knowledge Files
- *
- * List all uploaded document assets and parsed element counts inside a knowledge base.
+ * Create Knowledge Base
  */
-export const listKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGet = <ThrowOnError extends boolean = false>(options: Options<ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetData, ThrowOnError>) => (options.client ?? client).get<ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses, ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors, ThrowOnError>({ url: '/api/v1/knowledge/{knowledge_name}/files', ...options });
+export const createKnowledgeBaseApiV1KnowledgeBasesPost = <ThrowOnError extends boolean = false>(options: Options<CreateKnowledgeBaseApiV1KnowledgeBasesPostData, ThrowOnError>) => (options.client ?? client).post<CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses, CreateKnowledgeBaseApiV1KnowledgeBasesPostErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_bases',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
- * Get Parsed Document
- *
- * Get the parsed elements document structure (parsed_data.json) for a document.
+ * Delete Knowledge Base
  */
-export const getParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGet = <ThrowOnError extends boolean = false>(options: Options<GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetData, ThrowOnError>) => (options.client ?? client).get<GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses, GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors, ThrowOnError>({ url: '/api/v1/knowledge/{knowledge_name}/files/{file_md5}/parsed', ...options });
+export const deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteResponses, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteErrors, ThrowOnError>({ url: '/api/v1/knowledge_bases/{knowledge_base_id}', ...options });
 
 /**
- * Upload Document
- *
- * Upload a document to a specific knowledge base, parse it, and save the assets in storage.
+ * Get Knowledge Base
  */
-export const uploadDocumentApiV1KnowledgeKnowledgeNameUploadPost = <ThrowOnError extends boolean = false>(options: Options<UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostData, ThrowOnError>) => (options.client ?? client).post<UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostResponses, UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostErrors, ThrowOnError>({
+export const getKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGet = <ThrowOnError extends boolean = false>(options: Options<GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetData, ThrowOnError>) => (options.client ?? client).get<GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetResponses, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_bases/{knowledge_base_id}', ...options });
+
+/**
+ * Patch Knowledge Base
+ */
+export const patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch = <ThrowOnError extends boolean = false>(options: Options<PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchData, ThrowOnError>) => (options.client ?? client).patch<PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchResponses, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Put Knowledge Base
+ */
+export const putKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPut = <ThrowOnError extends boolean = false>(options: Options<PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutData, ThrowOnError>) => (options.client ?? client).put<PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutResponses, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Upload Knowledge Base Document
+ *
+ * Upload a document, parse it, chunk it, embed it, and index it into the vector store.
+ */
+export const uploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPost = <ThrowOnError extends boolean = false>(options: Options<UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostData, ThrowOnError>) => (options.client ?? client).post<UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostResponses, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostErrors, ThrowOnError>({
     ...formDataBodySerializer,
-    url: '/api/v1/knowledge/{knowledge_name}/upload',
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}/upload',
     ...options,
     headers: {
         'Content-Type': null,
@@ -80,15 +110,226 @@ export const uploadDocumentApiV1KnowledgeKnowledgeNameUploadPost = <ThrowOnError
 });
 
 /**
- * Download Document
+ * Get Knowledge Base Documents
  *
- * Download the original uploaded document from a specific knowledge base.
+ * List all documents and their processing status inside a specific knowledge base.
  */
-export const downloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGet = <ThrowOnError extends boolean = false>(options: Options<DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetData, ThrowOnError>) => (options.client ?? client).get<DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetResponses, DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetErrors, ThrowOnError>({ url: '/api/v1/knowledge/{knowledge_name}/files/{file_md5}/download', ...options });
+export const getKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGet = <ThrowOnError extends boolean = false>(options: Options<GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetData, ThrowOnError>) => (options.client ?? client).get<GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_bases/{knowledge_base_id}/documents', ...options });
 
 /**
- * Delete Document
- *
- * Delete all document assets (original file and parsed JSON) from a specific knowledge base.
+ * Get Knowledge Base Documents
  */
-export const deleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5Delete = <ThrowOnError extends boolean = false>(options: Options<DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteResponses, DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteErrors, ThrowOnError>({ url: '/api/v1/knowledge/{knowledge_name}/files/{file_md5}', ...options });
+export const getKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGet = <ThrowOnError extends boolean = false>(options?: Options<GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetData, ThrowOnError>) => (options?.client ?? client).get<GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetResponses, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_base_documents', ...options });
+
+/**
+ * Create Knowledge Base Document
+ */
+export const createKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPost = <ThrowOnError extends boolean = false>(options: Options<CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostData, ThrowOnError>) => (options.client ?? client).post<CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostResponses, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_base_documents',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Knowledge Base Document
+ */
+export const deleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteResponses, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteErrors, ThrowOnError>({ url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}', ...options });
+
+/**
+ * Get Knowledge Base Document
+ */
+export const getKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGet = <ThrowOnError extends boolean = false>(options: Options<GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetData, ThrowOnError>) => (options.client ?? client).get<GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetResponses, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}', ...options });
+
+/**
+ * Patch Knowledge Base Document
+ */
+export const patchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatch = <ThrowOnError extends boolean = false>(options: Options<PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchData, ThrowOnError>) => (options.client ?? client).patch<PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchResponses, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Put Knowledge Base Document
+ */
+export const putKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPut = <ThrowOnError extends boolean = false>(options: Options<PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutData, ThrowOnError>) => (options.client ?? client).put<PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutResponses, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Download Knowledge Base Document
+ *
+ * Download the original uploaded document from storage.
+ */
+export const downloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGet = <ThrowOnError extends boolean = false>(options: Options<DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetData, ThrowOnError>) => (options.client ?? client).get<DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetResponses, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}/download', ...options });
+
+/**
+ * Get Parsed Document
+ *
+ * Get the parsed elements document structure (parsed_data.json) for a document.
+ */
+export const getParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGet = <ThrowOnError extends boolean = false>(options: Options<GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetData, ThrowOnError>) => (options.client ?? client).get<GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetResponses, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}/parsed', ...options });
+
+/**
+ * Get Knowledge Parsing Histories
+ */
+export const getKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGet = <ThrowOnError extends boolean = false>(options?: Options<GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetData, ThrowOnError>) => (options?.client ?? client).get<GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponses, GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_parsing_histories', ...options });
+
+/**
+ * Create Knowledge Parsing History
+ */
+export const createKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPost = <ThrowOnError extends boolean = false>(options: Options<CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostData, ThrowOnError>) => (options.client ?? client).post<CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostResponses, CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_parsing_histories',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Knowledge Parsing History
+ */
+export const deleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteResponses, DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteErrors, ThrowOnError>({ url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}', ...options });
+
+/**
+ * Get Knowledge Parsing History
+ */
+export const getKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGet = <ThrowOnError extends boolean = false>(options: Options<GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetData, ThrowOnError>) => (options.client ?? client).get<GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponses, GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}', ...options });
+
+/**
+ * Patch Knowledge Parsing History
+ */
+export const patchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatch = <ThrowOnError extends boolean = false>(options: Options<PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchData, ThrowOnError>) => (options.client ?? client).patch<PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchResponses, PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Put Knowledge Parsing History
+ */
+export const putKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPut = <ThrowOnError extends boolean = false>(options: Options<PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutData, ThrowOnError>) => (options.client ?? client).put<PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutResponses, PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Knowledge Chunking Histories
+ */
+export const getKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGet = <ThrowOnError extends boolean = false>(options?: Options<GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetData, ThrowOnError>) => (options?.client ?? client).get<GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponses, GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_chunking_histories', ...options });
+
+/**
+ * Create Knowledge Chunking History
+ */
+export const createKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPost = <ThrowOnError extends boolean = false>(options: Options<CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostData, ThrowOnError>) => (options.client ?? client).post<CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostResponses, CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_chunking_histories',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Knowledge Chunking History
+ */
+export const deleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteResponses, DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteErrors, ThrowOnError>({ url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}', ...options });
+
+/**
+ * Get Knowledge Chunking History
+ */
+export const getKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGet = <ThrowOnError extends boolean = false>(options: Options<GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetData, ThrowOnError>) => (options.client ?? client).get<GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponses, GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}', ...options });
+
+/**
+ * Patch Knowledge Chunking History
+ */
+export const patchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatch = <ThrowOnError extends boolean = false>(options: Options<PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchData, ThrowOnError>) => (options.client ?? client).patch<PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchResponses, PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Put Knowledge Chunking History
+ */
+export const putKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPut = <ThrowOnError extends boolean = false>(options: Options<PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutData, ThrowOnError>) => (options.client ?? client).put<PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutResponses, PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Knowledge Embedding Histories
+ */
+export const getKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGet = <ThrowOnError extends boolean = false>(options?: Options<GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetData, ThrowOnError>) => (options?.client ?? client).get<GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponses, GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_embedding_histories', ...options });
+
+/**
+ * Create Knowledge Embedding History
+ */
+export const createKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPost = <ThrowOnError extends boolean = false>(options: Options<CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostData, ThrowOnError>) => (options.client ?? client).post<CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostResponses, CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_embedding_histories',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Knowledge Embedding History
+ */
+export const deleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteResponses, DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteErrors, ThrowOnError>({ url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}', ...options });
+
+/**
+ * Get Knowledge Embedding History
+ */
+export const getKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGet = <ThrowOnError extends boolean = false>(options: Options<GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetData, ThrowOnError>) => (options.client ?? client).get<GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponses, GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetErrors, ThrowOnError>({ url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}', ...options });
+
+/**
+ * Patch Knowledge Embedding History
+ */
+export const patchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatch = <ThrowOnError extends boolean = false>(options: Options<PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchData, ThrowOnError>) => (options.client ?? client).patch<PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchResponses, PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Put Knowledge Embedding History
+ */
+export const putKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPut = <ThrowOnError extends boolean = false>(options: Options<PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutData, ThrowOnError>) => (options.client ?? client).put<PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutResponses, PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutErrors, ThrowOnError>({
+    url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

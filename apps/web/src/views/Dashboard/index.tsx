@@ -1,19 +1,19 @@
 import React from 'react';
 import { Card, Col, Row, Statistic, Table, Tag, Typography, Alert, Space } from 'antd';
 import { useQuery } from '@tanstack/react-query';
-import { listKnowledgeBasesApiV1KnowledgeGet, healthApiHealthGet } from '@/generated/api/sdk.gen';
+import { getKnowledgeBasesApiV1KnowledgeBasesGet, healthApiHealthGet } from '@/generated/api/sdk.gen';
 import { Database, FileText, Activity, Server, AlertCircle } from 'lucide-react';
 import { useThemeStore } from '@/stores/themeStore';
 
 const { Title, Paragraph } = Typography;
 
 export const Dashboard: React.FC = () => {
-  const { setActiveTab, setSelectedKnowledgeName } = useThemeStore();
+  const { setActiveTab, setSelectedKnowledgeName, setSelectedKnowledgeId } = useThemeStore();
 
   // 1. Fetch all knowledge bases
   const { data: kbList, isLoading: kbLoading, error: kbError } = useQuery({
     queryKey: ['kbList'],
-    queryFn: () => listKnowledgeBasesApiV1KnowledgeGet({ throwOnError: true }),
+    queryFn: () => getKnowledgeBasesApiV1KnowledgeBasesGet({ throwOnError: true }),
   });
 
   // 2. Fetch API Health
@@ -44,7 +44,7 @@ export const Dashboard: React.FC = () => {
           <Card bordered={false} hoverable className="glass-card">
             <Statistic
               title={<span className="font-outfit" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Knowledge Bases</span>}
-              value={kbList?.data ? kbList.data.length : 0}
+              value={kbList?.data?.items ? kbList.data.items.length : 0}
               loading={kbLoading}
               prefix={<Database size={22} color="var(--accent-gradient)" style={{ marginRight: '8px', verticalAlign: 'middle' }} />}
               valueStyle={{ fontWeight: 800, fontSize: '28px', fontFamily: 'Outfit' }}
@@ -105,9 +105,10 @@ export const Dashboard: React.FC = () => {
                 showIcon
                 icon={<AlertCircle />}
               />
-            ) : kbList?.data && kbList.data.length > 0 ? (
+            ) : kbList?.data?.items && kbList.data.items.length > 0 ? (
               <Table
-                dataSource={kbList.data.map((name, index) => ({ key: index, name }))}
+                dataSource={kbList.data.items}
+                rowKey="id"
                 columns={[
                   {
                     title: 'Name',
@@ -128,6 +129,7 @@ export const Dashboard: React.FC = () => {
                       <Space size="middle">
                         <a
                           onClick={() => {
+                            setSelectedKnowledgeId(record.id);
                             setSelectedKnowledgeName(record.name);
                             setActiveTab('knowledge');
                           }}

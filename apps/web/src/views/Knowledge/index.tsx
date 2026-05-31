@@ -5,14 +5,16 @@ import {
 } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  listKnowledgeBasesApiV1KnowledgeGet,
-  listKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGet,
-  uploadDocumentApiV1KnowledgeKnowledgeNameUploadPost,
-  deleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5Delete,
-  getParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGet
+  getKnowledgeBasesApiV1KnowledgeBasesGet,
+  createKnowledgeBaseApiV1KnowledgeBasesPost,
+  deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete,
+  getKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGet,
+  uploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPost,
+  deleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDelete,
+  getParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGet
 } from '@/generated/api/sdk.gen';
 import {
-  Database, Plus, UploadCloud, FileText, Trash2, Download, Eye, AlertCircle, FileDigit
+  Database, Plus, UploadCloud, FileText, Trash2, Download, Eye, AlertCircle
 } from 'lucide-react';
 import { useThemeStore } from '@/stores/themeStore';
 import { ElementsExplorer } from '@/components/ElementsExplorer';
@@ -23,55 +25,114 @@ const { Option } = Select;
 
 export const Knowledge: React.FC = () => {
   const queryClient = useQueryClient();
-  const { selectedKnowledgeName, setSelectedKnowledgeName } = useThemeStore();
+  const {
+    selectedKnowledgeName,
+    setSelectedKnowledgeName,
+    selectedKnowledgeId,
+    setSelectedKnowledgeId
+  } = useThemeStore();
   const [newKbName, setNewKbName] = useState('');
   const [parserProvider, setParserProvider] = useState('docling');
   const [isUploading, setIsUploading] = useState(false);
-  const [inspectingFile, setInspectingFile] = useState<{ md5: string; name: string } | null>(null);
+  const [inspectingFile, setInspectingFile] = useState<{ id: string; md5: string; name: string } | null>(null);
   const [activeElement, setActiveElement] = useState<any>(null);
 
   // 1. Fetch Knowledge Bases
   const { data: kbList, isLoading: kbLoading, refetch: refetchKbs } = useQuery({
     queryKey: ['kbList'],
-    queryFn: () => listKnowledgeBasesApiV1KnowledgeGet({ throwOnError: true }),
+    queryFn: () => getKnowledgeBasesApiV1KnowledgeBasesGet({ throwOnError: true }),
   });
+
+  // Auto-select the first KB if nothing is selected
+  React.useEffect(() => {
+    if (!selectedKnowledgeId && kbList?.data?.items?.length) {
+      const firstKb = kbList.data.items[0];
+      setSelectedKnowledgeId(firstKb.id);
+      setSelectedKnowledgeName(firstKb.name);
+    }
+  }, [kbList, selectedKnowledgeId, setSelectedKnowledgeId, setSelectedKnowledgeName]);
 
   // 2. Fetch Knowledge Files
   const { data: fileList, isLoading: filesLoading, refetch: refetchFiles } = useQuery({
-    queryKey: ['fileList', selectedKnowledgeName],
+    queryKey: ['fileList', selectedKnowledgeId],
     queryFn: () => {
-      if (!selectedKnowledgeName) return Promise.resolve({ data: [] as any });
-      return listKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGet({
-        path: { knowledge_name: selectedKnowledgeName },
+      if (!selectedKnowledgeId) return Promise.resolve({ data: { items: [] } as any });
+      return getKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGet({
+        path: { knowledge_base_id: selectedKnowledgeId },
         throwOnError: true,
       });
     },
-    enabled: !!selectedKnowledgeName,
+    enabled: !!selectedKnowledgeId,
   });
 
   // 3. Fetch Parsed Document for Inspector
   const { data: parsedDoc, isLoading: parsedLoading } = useQuery({
-    queryKey: ['parsedDoc', selectedKnowledgeName, inspectingFile?.md5],
+    queryKey: ['parsedDoc', inspectingFile?.id],
     queryFn: () => {
-      if (!selectedKnowledgeName || !inspectingFile) return Promise.resolve(null);
-      return getParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGet({
+      if (!inspectingFile) return Promise.resolve(null);
+      return getParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGet({
         path: {
-          knowledge_name: selectedKnowledgeName,
-          file_md5: inspectingFile.md5,
+          knowledge_base_document_id: inspectingFile.id,
         },
         throwOnError: true,
       });
     },
-    enabled: !!selectedKnowledgeName && !!inspectingFile,
+    enabled: !!inspectingFile,
   });
 
-  // 4. Delete file mutation
+  // 4. Create KB Mutation
+  const createKbMutation = useMutation({
+    mutationFn: (name: string) => {
+      return createKnowledgeBaseApiV1KnowledgeBasesPost({
+        body: { name },
+        throwOnError: true,
+      });
+    },
+    onSuccess: (response: any) => {
+      const created = response.data;
+      if (created) {
+        setSelectedKnowledgeId(created.id);
+        setSelectedKnowledgeName(created.name);
+      }
+      refetchKbs();
+    },
+    onError: (e) => {
+      console.error('Failed to create knowledge base:', e);
+      Modal.error({
+        title: 'Failed to Create Knowledge Base',
+        content: e instanceof Error ? e.message : 'Please check your connection.',
+      });
+    }
+  });
+
+  // 5. Delete KB Mutation
+  const deleteKbMutation = useMutation({
+    mutationFn: (kbId: string) => {
+      return deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete({
+        path: { knowledge_base_id: kbId },
+        throwOnError: true,
+      });
+    },
+    onSuccess: () => {
+      refetchKbs();
+      setSelectedKnowledgeId(null);
+      setSelectedKnowledgeName(null);
+    },
+    onError: (e) => {
+      console.error('Failed to delete knowledge base:', e);
+      Modal.error({
+        title: 'Delete Failed',
+        content: e instanceof Error ? e.message : 'Failed to delete the knowledge base.',
+      });
+    }
+  });
+
+  // 6. Delete file mutation
   const deleteMutation = useMutation({
-    mutationFn: (fileMd5: string) => {
-      return deleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5Delete({
+    mutationFn: (docId: string) => {
+      return deleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDelete({
         path: {
-          knowledge_name: selectedKnowledgeName!,
-          file_md5: fileMd5,
+          knowledge_base_document_id: docId,
         },
         throwOnError: true,
       });
@@ -85,18 +146,27 @@ export const Knowledge: React.FC = () => {
   const handleCreateKb = () => {
     if (!newKbName.trim()) return;
     const name = newKbName.trim().toLowerCase().replace(/\s+/g, '_');
-    setSelectedKnowledgeName(name);
+    createKbMutation.mutate(name);
     setNewKbName('');
-    // S3 directories are created dynamically on first upload, so we just set active state!
+  };
+
+  const handleDeleteKb = (kbId: string, name: string) => {
+    Modal.confirm({
+      title: 'Delete Knowledge Base',
+      content: `Are you sure you want to delete "${name}"? This will permanently delete all documents and parsed vectors inside it.`,
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      onOk: () => deleteKbMutation.mutate(kbId),
+    });
   };
 
   const handleUpload = async (file: File) => {
-    if (!selectedKnowledgeName) return;
+    if (!selectedKnowledgeId) return;
     setIsUploading(true);
     try {
-      await uploadDocumentApiV1KnowledgeKnowledgeNameUploadPost({
+      await uploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPost({
         path: {
-          knowledge_name: selectedKnowledgeName,
+          knowledge_base_id: selectedKnowledgeId,
         },
         body: {
           file: file,
@@ -109,8 +179,8 @@ export const Knowledge: React.FC = () => {
     } catch (e) {
       console.error('File parsing/upload failed:', e);
       Modal.error({
-        title: 'Document Parsing Failed',
-        content: e instanceof Error ? e.message : 'Please check your backend connection or Docling parser logs.',
+        title: 'Document Ingestion Failed',
+        content: e instanceof Error ? e.message : 'Please check your backend connection, Docling parser logs, or LLM config.',
         icon: <AlertCircle color="#ef4444" />,
       });
     } finally {
@@ -118,19 +188,19 @@ export const Knowledge: React.FC = () => {
     }
   };
 
-  const handleDelete = (fileMd5: string) => {
+  const handleDelete = (docId: string) => {
     Modal.confirm({
       title: 'Delete Document',
-      content: 'Are you sure you want to delete this document and all its parsed elements from the knowledge base?',
+      content: 'Are you sure you want to delete this document and all its parsed elements/chunks from the knowledge base?',
       okText: 'Yes, Delete',
       okType: 'danger',
-      onOk: () => deleteMutation.mutate(fileMd5),
+      onOk: () => deleteMutation.mutate(docId),
     });
   };
 
-  const handleDownload = (fileMd5: string) => {
+  const handleDownload = (docId: string) => {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389';
-    window.open(`${apiBaseUrl}/api/v1/knowledge/${selectedKnowledgeName}/files/${fileMd5}/download`, '_blank');
+    window.open(`${apiBaseUrl}/api/v1/knowledge_base_documents/${docId}/download`, '_blank');
   };
 
   const formatBytes = (bytes: number, decimals = 2) => {
@@ -168,23 +238,38 @@ export const Knowledge: React.FC = () => {
 
           <List
             loading={kbLoading}
-            dataSource={kbList?.data || []}
-            renderItem={(item) => (
+            dataSource={kbList?.data?.items || []}
+            renderItem={(item: any) => (
               <List.Item
                 style={{
                   padding: '12px 16px',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   marginBottom: '6px',
-                  background: selectedKnowledgeName === item ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
-                  border: selectedKnowledgeName === item ? '1px solid rgba(79, 70, 229, 0.2)' : '1px solid transparent',
+                  background: selectedKnowledgeId === item.id ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
+                  border: selectedKnowledgeId === item.id ? '1px solid rgba(79, 70, 229, 0.2)' : '1px solid transparent',
                   transition: 'all 0.2s ease',
                 }}
-                onClick={() => setSelectedKnowledgeName(item)}
+                onClick={() => {
+                  setSelectedKnowledgeId(item.id);
+                  setSelectedKnowledgeName(item.name);
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Database size={16} color={selectedKnowledgeName === item ? 'var(--accent-gradient)' : 'var(--text-secondary)'} />
-                  <span className="font-outfit" style={{ fontWeight: selectedKnowledgeName === item ? 700 : 500 }}>{item}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Database size={16} color={selectedKnowledgeId === item.id ? 'var(--accent-gradient)' : 'var(--text-secondary)'} />
+                    <span className="font-outfit" style={{ fontWeight: selectedKnowledgeId === item.id ? 700 : 500 }}>{item.name}</span>
+                  </div>
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<Trash2 size={14} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteKb(item.id, item.name);
+                    }}
+                  />
                 </div>
               </List.Item>
             )}
@@ -197,7 +282,7 @@ export const Knowledge: React.FC = () => {
 
       {/* Main Area: Files upload & table list */}
       <Col xs={24} md={17}>
-        {selectedKnowledgeName ? (
+        {selectedKnowledgeId ? (
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             {/* Header & Upload panel */}
             <Card bordered={false} className="glass-card">
@@ -234,10 +319,10 @@ export const Knowledge: React.FC = () => {
                     <div style={{ padding: '24px 0' }}>
                       <Spin size="large" />
                       <p className="font-outfit" style={{ marginTop: '16px', fontWeight: 600, fontSize: '15px' }}>
-                        Docling Parsing in progress...
+                        Docling Ingestion in progress...
                       </p>
                       <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        Layout detection, table parsing, and semantic tagging running on backend.
+                        Layout detection, parsing, chunking and embedding are running in background.
                       </p>
                     </div>
                   ) : (
@@ -264,13 +349,13 @@ export const Knowledge: React.FC = () => {
               title={<span className="font-outfit" style={{ fontSize: '15px', fontWeight: 700 }}>Knowledge Documents</span>}
             >
               <Table
-                dataSource={fileList?.data || []}
+                dataSource={fileList?.data?.items || []}
                 loading={filesLoading}
-                rowKey="md5_hash"
+                rowKey="id"
                 columns={[
                   {
                     title: 'Filename',
-                    dataIndex: 'filename',
+                    dataIndex: 'name',
                     key: 'filename',
                     render: (text) => (
                       <Space>
@@ -280,27 +365,47 @@ export const Knowledge: React.FC = () => {
                     ),
                   },
                   {
+                    title: 'Status',
+                    dataIndex: 'status',
+                    key: 'status',
+                    render: (status: string) => {
+                      let color = 'default';
+                      if (status === 'COMPLETED') color = 'success';
+                      else if (status === 'FAILED') color = 'error';
+                      else if (['PARSING', 'CHUNKING', 'EMBEDDING'].includes(status)) color = 'processing';
+                      return (
+                        <Tag color={color}>
+                          {status}
+                        </Tag>
+                      );
+                    }
+                  },
+                  {
                     title: 'MD5 Hash',
-                    dataIndex: 'md5_hash',
+                    dataIndex: 'file_md5',
                     key: 'md5',
                     render: (text) => (
                       <Tooltip title={text}>
-                        <code>{text.slice(0, 8)}...</code>
+                        <code>{text ? text.slice(0, 8) : ''}...</code>
                       </Tooltip>
                     ),
                   },
                   {
                     title: 'Elements',
-                    dataIndex: 'element_count',
                     key: 'elements',
                     align: 'center',
-                    render: (count) => <Badge count={count} showZero color="#4f46e5" style={{ fontWeight: 700 }} />,
+                    render: (_, record: any) => {
+                      const count = record.document_info?.element_count ?? 0;
+                      return <Badge count={count} showZero color="#4f46e5" style={{ fontWeight: 700 }} />;
+                    },
                   },
                   {
                     title: 'Size',
-                    dataIndex: 'size_bytes',
                     key: 'size',
-                    render: (bytes) => formatBytes(bytes),
+                    render: (_, record: any) => {
+                      const bytes = record.document_info?.size_bytes ?? 0;
+                      return formatBytes(bytes);
+                    },
                   },
                   {
                     title: 'Actions',
@@ -311,20 +416,21 @@ export const Knowledge: React.FC = () => {
                         <Button
                           type="text"
                           icon={<Eye size={16} />}
-                          onClick={() => setInspectingFile({ md5: record.md5_hash, name: record.filename })}
+                          onClick={() => setInspectingFile({ id: record.id, md5: record.file_md5, name: record.name })}
+                          disabled={record.status !== 'COMPLETED'}
                         >
                           Inspect
                         </Button>
                         <Button
                           type="text"
                           icon={<Download size={16} />}
-                          onClick={() => handleDownload(record.md5_hash)}
+                          onClick={() => handleDownload(record.id)}
                         />
                         <Button
                           type="text"
                           danger
                           icon={<Trash2 size={16} />}
-                          onClick={() => handleDelete(record.md5_hash)}
+                          onClick={() => handleDelete(record.id)}
                         />
                       </Space>
                     ),
@@ -378,10 +484,10 @@ export const Knowledge: React.FC = () => {
               <div className="panel-content" style={{ flex: 1, overflow: "hidden" }}>
                 {inspectingFile?.name.toLowerCase().endsWith('.pdf') ? (
                   <PdfPreview
-                    fileUrl={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389'}/api/v1/knowledge/${selectedKnowledgeName}/files/${inspectingFile.md5}/download`}
+                    fileUrl={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389'}/api/v1/knowledge_base_documents/${inspectingFile.id}/download`}
                     fileName={inspectingFile.name}
                     activeElement={activeElement}
-                    parsedDoc={parsedDoc.data}
+                    parsedDoc={parsedDoc.data as any}
                   />
                 ) : (
                   <div className="non-pdf-info" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", padding: "24px", textAlign: "center" }}>
@@ -398,7 +504,7 @@ export const Knowledge: React.FC = () => {
               <div className="panel-content" style={{ flex: 1, overflow: "hidden" }}>
                 <ElementsExplorer
                   elements={
-                    (parsedDoc.data.elements || []).map((el: any) => ({
+                    ((parsedDoc.data as any).elements || []).map((el: any) => ({
                       ...el,
                       content: el.content || '',
                     }))

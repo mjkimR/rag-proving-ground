@@ -58,12 +58,16 @@ export type BodyDocumentParseApiV1DocParseParsePost = {
      * Provider
      */
     provider?: string | null;
+    /**
+     * Ignore Cache
+     */
+    ignore_cache?: boolean;
 };
 
 /**
- * Body_upload_document_api_v1_knowledge__knowledge_name__upload_post
+ * Body_upload_knowledge_base_document_api_v1_knowledge_bases__knowledge_base_id__upload_post
  */
-export type BodyUploadDocumentApiV1KnowledgeKnowledgeNameUploadPost = {
+export type BodyUploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPost = {
     /**
      * File
      */
@@ -120,21 +124,37 @@ export type BoundingBox = {
 export type ContentFormat = 'markdown' | 'html' | 'latex' | 'text' | 'asset_ref';
 
 /**
- * DeleteKnowledgeDocumentResponse
+ * DeleteResponse
  */
-export type DeleteKnowledgeDocumentResponse = {
+export type DeleteResponse = {
     /**
-     * Status
+     * Success
      */
-    status: string;
+    success?: boolean;
     /**
      * Message
      */
-    message: string;
+    message?: string | null;
     /**
-     * Deleted Files
+     * Identity
+     *
+     * The identity of the deleted object.
      */
-    deleted_files: Array<string>;
+    identity?: Array<string | number | string> | string | number | string | null;
+    /**
+     * Representation
+     *
+     * The string representation of the deleted object.
+     */
+    representation?: string | null;
+    /**
+     * Meta
+     *
+     * Additional metadata about the delete operation.
+     */
+    meta?: {
+        [key: string]: unknown;
+    };
 };
 
 /**
@@ -142,7 +162,7 @@ export type DeleteKnowledgeDocumentResponse = {
  *
  * Normalized semantic categories for parser layout elements.
  */
-export type ElementType = 'heading' | 'paragraph' | 'list' | 'list_item' | 'table' | 'image' | 'equation' | 'caption' | 'footnote' | 'unknown';
+export type ElementType = 'heading' | 'paragraph' | 'list' | 'list_item' | 'table' | 'image' | 'equation' | 'caption' | 'footnote' | 'page_header' | 'page_footer' | 'section_index' | 'unknown';
 
 /**
  * HTTPValidationError
@@ -155,60 +175,1103 @@ export type HttpValidationError = {
 };
 
 /**
- * KnowledgeDocumentResponse
+ * KnowledgeBaseCreate
  */
-export type KnowledgeDocumentResponse = {
+export type KnowledgeBaseCreate = {
     /**
-     * Knowledge Name
+     * Name
+     *
+     * The name of the knowledge_base.
      */
-    knowledge_name: string;
+    name: string;
     /**
-     * Md5 Hash
+     * Embedding Config
+     *
+     * The embedding config.
      */
-    md5_hash: string;
+    embedding_config?: {
+        [key: string]: unknown;
+    } | null;
     /**
-     * Filename
+     * Default Chunking Config
+     *
+     * The default chunking config.
      */
-    filename: string;
+    default_chunking_config?: {
+        [key: string]: unknown;
+    } | null;
     /**
-     * Original File Path
+     * Default Parsing Config
+     *
+     * The default parsing config.
      */
-    original_file_path: string;
-    /**
-     * Parsed Data Path
-     */
-    parsed_data_path: string;
-    parsed_document: ParsedDocument;
+    default_parsing_config?: {
+        [key: string]: unknown;
+    } | null;
 };
 
 /**
- * KnowledgeFileEntry
+ * KnowledgeBaseDocumentCreate
  */
-export type KnowledgeFileEntry = {
+export type KnowledgeBaseDocumentCreate = {
     /**
-     * Md5 Hash
+     * Name
+     *
+     * The name of the knowledge_base_document.
      */
-    md5_hash: string;
+    name: string;
     /**
-     * Filename
+     * Knowledge Base Id
+     *
+     * The ID of the parent knowledge base.
      */
-    filename: string;
+    knowledge_base_id: string;
     /**
-     * Original File Path
+     * Status
+     *
+     * The status of document processing.
      */
-    original_file_path: string;
+    status?: string;
     /**
-     * Parsed Data Path
+     * File Md5
+     *
+     * The MD5 hash of the file content.
      */
-    parsed_data_path: string;
+    file_md5: string;
     /**
-     * Element Count
+     * Document Info
+     *
+     * File size, path, element count metadata.
      */
-    element_count: number;
+    document_info?: {
+        [key: string]: unknown;
+    } | null;
     /**
-     * Size Bytes
+     * Parsing Config
+     *
+     * Document-level parsing override config.
      */
-    size_bytes: number;
+    parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Chunking Config
+     *
+     * Document-level chunking override config.
+     */
+    chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * KnowledgeBaseDocumentPatch
+ */
+export type KnowledgeBaseDocumentPatch = {
+    /**
+     * Name
+     *
+     * The name of the document.
+     */
+    name?: string | null;
+    /**
+     * Status
+     *
+     * The status of document processing.
+     */
+    status?: string | null;
+    /**
+     * Parsing Config
+     *
+     * Document-level parsing override config.
+     */
+    parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Chunking Config
+     *
+     * Document-level chunking override config.
+     */
+    chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * KnowledgeBaseDocumentPut
+ */
+export type KnowledgeBaseDocumentPut = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_base_document.
+     */
+    name: string;
+    /**
+     * Knowledge Base Id
+     *
+     * The ID of the parent knowledge base.
+     */
+    knowledge_base_id: string;
+    /**
+     * Status
+     *
+     * The status of document processing.
+     */
+    status?: string;
+    /**
+     * File Md5
+     *
+     * The MD5 hash of the file content.
+     */
+    file_md5: string;
+    /**
+     * Document Info
+     *
+     * File size, path, element count metadata.
+     */
+    document_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Parsing Config
+     *
+     * Document-level parsing override config.
+     */
+    parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Chunking Config
+     *
+     * Document-level chunking override config.
+     */
+    chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * KnowledgeBaseDocumentRead
+ */
+export type KnowledgeBaseDocumentRead = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_base_document.
+     */
+    name: string;
+    /**
+     * Knowledge Base Id
+     *
+     * The ID of the parent knowledge base.
+     */
+    knowledge_base_id: string;
+    /**
+     * Status
+     *
+     * The status of document processing.
+     */
+    status?: string;
+    /**
+     * File Md5
+     *
+     * The MD5 hash of the file content.
+     */
+    file_md5: string;
+    /**
+     * Document Info
+     *
+     * File size, path, element count metadata.
+     */
+    document_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Parsing Config
+     *
+     * Document-level parsing override config.
+     */
+    parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Chunking Config
+     *
+     * Document-level chunking override config.
+     */
+    chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
+ * KnowledgeBasePatch
+ */
+export type KnowledgeBasePatch = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_base.
+     */
+    name?: string | null;
+    /**
+     * Status
+     *
+     * The status of the knowledge_base.
+     */
+    status?: string | null;
+    /**
+     * Embedding Config
+     *
+     * The embedding config.
+     */
+    embedding_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Default Chunking Config
+     *
+     * The default chunking config.
+     */
+    default_chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Default Parsing Config
+     *
+     * The default parsing config.
+     */
+    default_parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * KnowledgeBasePut
+ */
+export type KnowledgeBasePut = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_base.
+     */
+    name: string;
+    /**
+     * Embedding Config
+     *
+     * The embedding config.
+     */
+    embedding_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Default Chunking Config
+     *
+     * The default chunking config.
+     */
+    default_chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Default Parsing Config
+     *
+     * The default parsing config.
+     */
+    default_parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * KnowledgeBaseRead
+ */
+export type KnowledgeBaseRead = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_base.
+     */
+    name: string;
+    /**
+     * Embedding Config
+     *
+     * The embedding config.
+     */
+    embedding_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Default Chunking Config
+     *
+     * The default chunking config.
+     */
+    default_chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Default Parsing Config
+     *
+     * The default parsing config.
+     */
+    default_parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Status
+     *
+     * Current status of the knowledge base.
+     */
+    status: string;
+    /**
+     * Embed Config Hash
+     *
+     * Hash signature of the embedding config.
+     */
+    embed_config_hash?: string | null;
+};
+
+/**
+ * KnowledgeChunkingHistoryCreate
+ */
+export type KnowledgeChunkingHistoryCreate = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_chunking_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Strategy
+     *
+     * The chunking strategy used (e.g. recursive, semantic).
+     */
+    strategy: string;
+    /**
+     * Chunk Count
+     *
+     * Number of chunks generated.
+     */
+    chunk_count?: number;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Chunking Config
+     *
+     * The chunking config used.
+     */
+    chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error message if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+};
+
+/**
+ * KnowledgeChunkingHistoryPatch
+ */
+export type KnowledgeChunkingHistoryPatch = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_chunking_history.
+     */
+    name?: string | null;
+};
+
+/**
+ * KnowledgeChunkingHistoryPut
+ */
+export type KnowledgeChunkingHistoryPut = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_chunking_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Strategy
+     *
+     * The chunking strategy used (e.g. recursive, semantic).
+     */
+    strategy: string;
+    /**
+     * Chunk Count
+     *
+     * Number of chunks generated.
+     */
+    chunk_count?: number;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Chunking Config
+     *
+     * The chunking config used.
+     */
+    chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error message if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+};
+
+/**
+ * KnowledgeChunkingHistoryRead
+ */
+export type KnowledgeChunkingHistoryRead = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_chunking_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Strategy
+     *
+     * The chunking strategy used (e.g. recursive, semantic).
+     */
+    strategy: string;
+    /**
+     * Chunk Count
+     *
+     * Number of chunks generated.
+     */
+    chunk_count?: number;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Chunking Config
+     *
+     * The chunking config used.
+     */
+    chunking_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error message if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
+ * KnowledgeEmbeddingHistoryCreate
+ */
+export type KnowledgeEmbeddingHistoryCreate = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_embedding_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Model Name
+     *
+     * The embedding model used.
+     */
+    model_name: string;
+    /**
+     * Vector Count
+     *
+     * The number of vectors indexed.
+     */
+    vector_count?: number;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Embedding Config
+     *
+     * The embedding config used.
+     */
+    embedding_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error message if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+};
+
+/**
+ * KnowledgeEmbeddingHistoryPatch
+ */
+export type KnowledgeEmbeddingHistoryPatch = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_embedding_history.
+     */
+    name?: string | null;
+};
+
+/**
+ * KnowledgeEmbeddingHistoryPut
+ */
+export type KnowledgeEmbeddingHistoryPut = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_embedding_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Model Name
+     *
+     * The embedding model used.
+     */
+    model_name: string;
+    /**
+     * Vector Count
+     *
+     * The number of vectors indexed.
+     */
+    vector_count?: number;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Embedding Config
+     *
+     * The embedding config used.
+     */
+    embedding_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error message if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+};
+
+/**
+ * KnowledgeEmbeddingHistoryRead
+ */
+export type KnowledgeEmbeddingHistoryRead = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_embedding_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Model Name
+     *
+     * The embedding model used.
+     */
+    model_name: string;
+    /**
+     * Vector Count
+     *
+     * The number of vectors indexed.
+     */
+    vector_count?: number;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Embedding Config
+     *
+     * The embedding config used.
+     */
+    embedding_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error message if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
+ * KnowledgeParsingHistoryCreate
+ */
+export type KnowledgeParsingHistoryCreate = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_parsing_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Provider
+     *
+     * Parsing provider (e.g. docling)
+     */
+    provider?: string | null;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Parsing Config
+     *
+     * The parsing configurations used.
+     */
+    parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error details if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+};
+
+/**
+ * KnowledgeParsingHistoryPatch
+ */
+export type KnowledgeParsingHistoryPatch = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_parsing_history.
+     */
+    name?: string | null;
+};
+
+/**
+ * KnowledgeParsingHistoryPut
+ */
+export type KnowledgeParsingHistoryPut = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_parsing_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Provider
+     *
+     * Parsing provider (e.g. docling)
+     */
+    provider?: string | null;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Parsing Config
+     *
+     * The parsing configurations used.
+     */
+    parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error details if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+};
+
+/**
+ * KnowledgeParsingHistoryRead
+ */
+export type KnowledgeParsingHistoryRead = {
+    /**
+     * Name
+     *
+     * The name of the knowledge_parsing_history.
+     */
+    name?: string | null;
+    /**
+     * Document Id
+     *
+     * The parent document ID.
+     */
+    document_id: string;
+    /**
+     * Provider
+     *
+     * Parsing provider (e.g. docling)
+     */
+    provider?: string | null;
+    /**
+     * Status
+     *
+     * SUCCESS or FAILED
+     */
+    status: string;
+    /**
+     * Parsing Config
+     *
+     * The parsing configurations used.
+     */
+    parsing_config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Error details if failed.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Duration in seconds.
+     */
+    duration_seconds?: number | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
+ * PaginatedList[KnowledgeBaseDocumentRead]
+ */
+export type PaginatedListKnowledgeBaseDocumentRead = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeBaseDocumentRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
+ * PaginatedList[KnowledgeBaseRead]
+ */
+export type PaginatedListKnowledgeBaseRead = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeBaseRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
+ * PaginatedList[KnowledgeChunkingHistoryRead]
+ */
+export type PaginatedListKnowledgeChunkingHistoryRead = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeChunkingHistoryRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
+ * PaginatedList[KnowledgeEmbeddingHistoryRead]
+ */
+export type PaginatedListKnowledgeEmbeddingHistoryRead = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeEmbeddingHistoryRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
+ * PaginatedList[KnowledgeParsingHistoryRead]
+ */
+export type PaginatedListKnowledgeParsingHistoryRead = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeParsingHistoryRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
 };
 
 /**
@@ -332,6 +1395,12 @@ export type ParsedElement = {
     children_ids?: Array<string>;
     asset?: AssetRef | null;
     /**
+     * Ignored
+     *
+     * Whether this element is layout boilerplate and ignored during chunking.
+     */
+    ignored?: boolean;
+    /**
      * Metadata
      */
     metadata?: {
@@ -433,6 +1502,116 @@ export type ValidationError = {
     };
 };
 
+/**
+ * PaginatedList[KnowledgeBaseDocumentRead]
+ */
+export type PaginatedListKnowledgeBaseDocumentReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeBaseDocumentRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
+ * PaginatedList[KnowledgeBaseRead]
+ */
+export type PaginatedListKnowledgeBaseReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeBaseRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
+ * PaginatedList[KnowledgeChunkingHistoryRead]
+ */
+export type PaginatedListKnowledgeChunkingHistoryReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeChunkingHistoryRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
+ * PaginatedList[KnowledgeEmbeddingHistoryRead]
+ */
+export type PaginatedListKnowledgeEmbeddingHistoryReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeEmbeddingHistoryRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
+ * PaginatedList[KnowledgeParsingHistoryRead]
+ */
+export type PaginatedListKnowledgeParsingHistoryReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeParsingHistoryRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
 export type RootGetData = {
     body?: never;
     path?: never;
@@ -486,182 +1665,1044 @@ export type DocumentParseApiV1DocParseParsePostResponses = {
 
 export type DocumentParseApiV1DocParseParsePostResponse = DocumentParseApiV1DocParseParsePostResponses[keyof DocumentParseApiV1DocParseParsePostResponses];
 
-export type ListKnowledgeBasesApiV1KnowledgeGetData = {
+export type GetKnowledgeBasesApiV1KnowledgeBasesGetData = {
     body?: never;
     path?: never;
-    query?: never;
-    url: '/api/v1/knowledge';
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge_bases';
 };
 
-export type ListKnowledgeBasesApiV1KnowledgeGetResponses = {
+export type GetKnowledgeBasesApiV1KnowledgeBasesGetErrors = {
     /**
-     * Response List Knowledge Bases Api V1 Knowledge Get
-     *
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeBasesApiV1KnowledgeBasesGetError = GetKnowledgeBasesApiV1KnowledgeBasesGetErrors[keyof GetKnowledgeBasesApiV1KnowledgeBasesGetErrors];
+
+export type GetKnowledgeBasesApiV1KnowledgeBasesGetResponses = {
+    /**
      * Successful Response
      */
-    200: Array<string>;
+    200: PaginatedListKnowledgeBaseRead;
 };
 
-export type ListKnowledgeBasesApiV1KnowledgeGetResponse = ListKnowledgeBasesApiV1KnowledgeGetResponses[keyof ListKnowledgeBasesApiV1KnowledgeGetResponses];
+export type GetKnowledgeBasesApiV1KnowledgeBasesGetResponse = GetKnowledgeBasesApiV1KnowledgeBasesGetResponses[keyof GetKnowledgeBasesApiV1KnowledgeBasesGetResponses];
 
-export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetData = {
+export type CreateKnowledgeBaseApiV1KnowledgeBasesPostData = {
+    body: KnowledgeBaseCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge_bases';
+};
+
+export type CreateKnowledgeBaseApiV1KnowledgeBasesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateKnowledgeBaseApiV1KnowledgeBasesPostError = CreateKnowledgeBaseApiV1KnowledgeBasesPostErrors[keyof CreateKnowledgeBaseApiV1KnowledgeBasesPostErrors];
+
+export type CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: KnowledgeBaseRead;
+};
+
+export type CreateKnowledgeBaseApiV1KnowledgeBasesPostResponse = CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses[keyof CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses];
+
+export type DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteData = {
     body?: never;
     path: {
         /**
-         * Knowledge Name
+         * Knowledge Base Id
          */
-        knowledge_name: string;
+        knowledge_base_id: string;
     };
     query?: never;
-    url: '/api/v1/knowledge/{knowledge_name}/files';
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}';
 };
 
-export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors = {
+export type DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetError = ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors[keyof ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetErrors];
+export type DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteError = DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteErrors[keyof DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteErrors];
 
-export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses = {
+export type DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteResponses = {
     /**
-     * Response List Knowledge Files Api V1 Knowledge  Knowledge Name  Files Get
-     *
      * Successful Response
      */
-    200: Array<KnowledgeFileEntry>;
+    200: DeleteResponse;
 };
 
-export type ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponse = ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses[keyof ListKnowledgeFilesApiV1KnowledgeKnowledgeNameFilesGetResponses];
+export type DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteResponse = DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteResponses[keyof DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteResponses];
 
-export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetData = {
+export type GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetData = {
     body?: never;
     path: {
         /**
-         * Knowledge Name
+         * Knowledge Base Id
          */
-        knowledge_name: string;
-        /**
-         * File Md5
-         */
-        file_md5: string;
+        knowledge_base_id: string;
     };
     query?: never;
-    url: '/api/v1/knowledge/{knowledge_name}/files/{file_md5}/parsed';
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}';
 };
 
-export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors = {
+export type GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetError = GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors[keyof GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetErrors];
+export type GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetError = GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetErrors[keyof GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetErrors];
 
-export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses = {
+export type GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetResponses = {
     /**
      * Successful Response
      */
-    200: ParsedDocument;
+    200: KnowledgeBaseRead;
 };
 
-export type GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponse = GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses[keyof GetParsedDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5ParsedGetResponses];
+export type GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetResponse = GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetResponses[keyof GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetResponses];
 
-export type UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostData = {
-    body: BodyUploadDocumentApiV1KnowledgeKnowledgeNameUploadPost;
+export type PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchData = {
+    body: KnowledgeBasePatch;
     path: {
         /**
-         * Knowledge Name
+         * Knowledge Base Id
          */
-        knowledge_name: string;
+        knowledge_base_id: string;
     };
     query?: never;
-    url: '/api/v1/knowledge/{knowledge_name}/upload';
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}';
 };
 
-export type UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostErrors = {
+export type PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostError = UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostErrors[keyof UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostErrors];
+export type PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchError = PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchErrors[keyof PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchErrors];
 
-export type UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostResponses = {
+export type PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchResponses = {
     /**
      * Successful Response
      */
-    200: KnowledgeDocumentResponse;
+    200: KnowledgeBaseRead;
 };
 
-export type UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostResponse = UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostResponses[keyof UploadDocumentApiV1KnowledgeKnowledgeNameUploadPostResponses];
+export type PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchResponse = PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchResponses[keyof PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchResponses];
 
-export type DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetData = {
+export type PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutData = {
+    body: KnowledgeBasePut;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}';
+};
+
+export type PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutError = PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutErrors[keyof PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutErrors];
+
+export type PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseRead;
+};
+
+export type PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutResponse = PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutResponses[keyof PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutResponses];
+
+export type UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostData = {
+    body: BodyUploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPost;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}/upload';
+};
+
+export type UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostError = UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostErrors[keyof UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostErrors];
+
+export type UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: unknown;
+};
+
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetData = {
     body?: never;
     path: {
         /**
-         * Knowledge Name
+         * Knowledge Base Id
          */
-        knowledge_name: string;
-        /**
-         * File Md5
-         */
-        file_md5: string;
+        knowledge_base_id: string;
     };
-    query?: never;
-    url: '/api/v1/knowledge/{knowledge_name}/files/{file_md5}/download';
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}/documents';
 };
 
-export type DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetErrors = {
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetError = DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetErrors[keyof DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetErrors];
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetError = GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetErrors[keyof GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetErrors];
 
-export type DownloadDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DownloadGetResponses = {
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListKnowledgeBaseDocumentRead;
+};
+
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponse = GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses[keyof GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses];
+
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge_base_documents';
+};
+
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetError = GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetErrors[keyof GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetErrors];
+
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListKnowledgeBaseDocumentRead;
+};
+
+export type GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetResponse = GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetResponses[keyof GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetResponses];
+
+export type CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostData = {
+    body: KnowledgeBaseDocumentCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge_base_documents';
+};
+
+export type CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostError = CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostErrors[keyof CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostErrors];
+
+export type CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: KnowledgeBaseDocumentRead;
+};
+
+export type CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostResponse = CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostResponses[keyof CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostResponses];
+
+export type DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Document Id
+         */
+        knowledge_base_document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}';
+};
+
+export type DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteError = DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteErrors[keyof DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteErrors];
+
+export type DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteResponse = DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteResponses[keyof DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteResponses];
+
+export type GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Document Id
+         */
+        knowledge_base_document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}';
+};
+
+export type GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetError = GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetErrors[keyof GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetErrors];
+
+export type GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseDocumentRead;
+};
+
+export type GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetResponse = GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetResponses[keyof GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetResponses];
+
+export type PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchData = {
+    body: KnowledgeBaseDocumentPatch;
+    path: {
+        /**
+         * Knowledge Base Document Id
+         */
+        knowledge_base_document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}';
+};
+
+export type PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchError = PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchErrors[keyof PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchErrors];
+
+export type PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseDocumentRead;
+};
+
+export type PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchResponse = PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchResponses[keyof PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchResponses];
+
+export type PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutData = {
+    body: KnowledgeBaseDocumentPut;
+    path: {
+        /**
+         * Knowledge Base Document Id
+         */
+        knowledge_base_document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}';
+};
+
+export type PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutError = PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutErrors[keyof PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutErrors];
+
+export type PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseDocumentRead;
+};
+
+export type PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutResponse = PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutResponses[keyof PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutResponses];
+
+export type DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Document Id
+         */
+        knowledge_base_document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}/download';
+};
+
+export type DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetError = DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetErrors[keyof DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetErrors];
+
+export type DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetResponses = {
     /**
      * Successful Response
      */
     200: unknown;
 };
 
-export type DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteData = {
+export type GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetData = {
     body?: never;
     path: {
         /**
-         * Knowledge Name
+         * Knowledge Base Document Id
          */
-        knowledge_name: string;
-        /**
-         * File Md5
-         */
-        file_md5: string;
+        knowledge_base_document_id: string;
     };
     query?: never;
-    url: '/api/v1/knowledge/{knowledge_name}/files/{file_md5}';
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}/parsed';
 };
 
-export type DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteErrors = {
+export type GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteError = DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteErrors[keyof DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteErrors];
+export type GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetError = GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetErrors[keyof GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetErrors];
 
-export type DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteResponses = {
+export type GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetResponses = {
     /**
      * Successful Response
      */
-    200: DeleteKnowledgeDocumentResponse;
+    200: unknown;
 };
 
-export type DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteResponse = DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteResponses[keyof DeleteDocumentApiV1KnowledgeKnowledgeNameFilesFileMd5DeleteResponses];
+export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge_parsing_histories';
+};
+
+export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetError = GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetErrors[keyof GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetErrors];
+
+export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListKnowledgeParsingHistoryRead;
+};
+
+export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponse = GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponses[keyof GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponses];
+
+export type CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostData = {
+    body: KnowledgeParsingHistoryCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge_parsing_histories';
+};
+
+export type CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostError = CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostErrors[keyof CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostErrors];
+
+export type CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: KnowledgeParsingHistoryRead;
+};
+
+export type CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostResponse = CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostResponses[keyof CreateKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesPostResponses];
+
+export type DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Parsing History Id
+         */
+        knowledge_parsing_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}';
+};
+
+export type DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteError = DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteErrors[keyof DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteErrors];
+
+export type DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteResponse = DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteResponses[keyof DeleteKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdDeleteResponses];
+
+export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Parsing History Id
+         */
+        knowledge_parsing_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}';
+};
+
+export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetError = GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetErrors[keyof GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetErrors];
+
+export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeParsingHistoryRead;
+};
+
+export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponse = GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponses[keyof GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponses];
+
+export type PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchData = {
+    body: KnowledgeParsingHistoryPatch;
+    path: {
+        /**
+         * Knowledge Parsing History Id
+         */
+        knowledge_parsing_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}';
+};
+
+export type PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchError = PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchErrors[keyof PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchErrors];
+
+export type PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeParsingHistoryRead;
+};
+
+export type PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchResponse = PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchResponses[keyof PatchKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPatchResponses];
+
+export type PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutData = {
+    body: KnowledgeParsingHistoryPut;
+    path: {
+        /**
+         * Knowledge Parsing History Id
+         */
+        knowledge_parsing_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}';
+};
+
+export type PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutError = PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutErrors[keyof PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutErrors];
+
+export type PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeParsingHistoryRead;
+};
+
+export type PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutResponse = PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutResponses[keyof PutKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdPutResponses];
+
+export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge_chunking_histories';
+};
+
+export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetError = GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetErrors[keyof GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetErrors];
+
+export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListKnowledgeChunkingHistoryRead;
+};
+
+export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponse = GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponses[keyof GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponses];
+
+export type CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostData = {
+    body: KnowledgeChunkingHistoryCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge_chunking_histories';
+};
+
+export type CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostError = CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostErrors[keyof CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostErrors];
+
+export type CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: KnowledgeChunkingHistoryRead;
+};
+
+export type CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostResponse = CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostResponses[keyof CreateKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesPostResponses];
+
+export type DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Chunking History Id
+         */
+        knowledge_chunking_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}';
+};
+
+export type DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteError = DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteErrors[keyof DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteErrors];
+
+export type DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteResponse = DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteResponses[keyof DeleteKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdDeleteResponses];
+
+export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Chunking History Id
+         */
+        knowledge_chunking_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}';
+};
+
+export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetError = GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetErrors[keyof GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetErrors];
+
+export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeChunkingHistoryRead;
+};
+
+export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponse = GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponses[keyof GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponses];
+
+export type PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchData = {
+    body: KnowledgeChunkingHistoryPatch;
+    path: {
+        /**
+         * Knowledge Chunking History Id
+         */
+        knowledge_chunking_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}';
+};
+
+export type PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchError = PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchErrors[keyof PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchErrors];
+
+export type PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeChunkingHistoryRead;
+};
+
+export type PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchResponse = PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchResponses[keyof PatchKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPatchResponses];
+
+export type PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutData = {
+    body: KnowledgeChunkingHistoryPut;
+    path: {
+        /**
+         * Knowledge Chunking History Id
+         */
+        knowledge_chunking_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}';
+};
+
+export type PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutError = PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutErrors[keyof PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutErrors];
+
+export type PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeChunkingHistoryRead;
+};
+
+export type PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutResponse = PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutResponses[keyof PutKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdPutResponses];
+
+export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge_embedding_histories';
+};
+
+export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetError = GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetErrors[keyof GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetErrors];
+
+export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListKnowledgeEmbeddingHistoryRead;
+};
+
+export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponse = GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponses[keyof GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponses];
+
+export type CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostData = {
+    body: KnowledgeEmbeddingHistoryCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge_embedding_histories';
+};
+
+export type CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostError = CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostErrors[keyof CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostErrors];
+
+export type CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: KnowledgeEmbeddingHistoryRead;
+};
+
+export type CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostResponse = CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostResponses[keyof CreateKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesPostResponses];
+
+export type DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Embedding History Id
+         */
+        knowledge_embedding_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}';
+};
+
+export type DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteError = DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteErrors[keyof DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteErrors];
+
+export type DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteResponse = DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteResponses[keyof DeleteKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdDeleteResponses];
+
+export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Embedding History Id
+         */
+        knowledge_embedding_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}';
+};
+
+export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetError = GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetErrors[keyof GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetErrors];
+
+export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeEmbeddingHistoryRead;
+};
+
+export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponse = GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponses[keyof GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponses];
+
+export type PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchData = {
+    body: KnowledgeEmbeddingHistoryPatch;
+    path: {
+        /**
+         * Knowledge Embedding History Id
+         */
+        knowledge_embedding_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}';
+};
+
+export type PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchError = PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchErrors[keyof PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchErrors];
+
+export type PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeEmbeddingHistoryRead;
+};
+
+export type PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchResponse = PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchResponses[keyof PatchKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPatchResponses];
+
+export type PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutData = {
+    body: KnowledgeEmbeddingHistoryPut;
+    path: {
+        /**
+         * Knowledge Embedding History Id
+         */
+        knowledge_embedding_history_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}';
+};
+
+export type PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutError = PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutErrors[keyof PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutErrors];
+
+export type PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeEmbeddingHistoryRead;
+};
+
+export type PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutResponse = PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutResponses[keyof PutKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdPutResponses];

@@ -19,3 +19,9 @@ package = false
 [tool.uv.sources]
 rag-core = { workspace = true }
 app-layer-base = { git = "https://github.com/mjkimR/app-common.git", subdirectory = "app-layer-base", rev = "main" }
+app-tools = { git = "https://github.com/mjkimR/app-common.git", subdirectory = "app-tools", rev = "main" }
+
+[dependency-groups]
+dev = [
+    "app-tools",
+]

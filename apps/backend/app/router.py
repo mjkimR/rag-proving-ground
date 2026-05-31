@@ -1,5 +1,11 @@
 from app.features.doc_parse.api.v1 import router as v1_doc_parse_router
-from app.features.knowledge.api.v1 import router as v1_knowledge_router
+from app.features.knowledge.knowledge_base_documents.api.v1 import router as v1_knowledge_base_documents_router
+from app.features.knowledge.knowledge_bases.api.v1 import router as v1_knowledge_bases_router
+from app.features.knowledge.knowledge_chunking_histories.api.v1 import router as v1_knowledge_chunking_histories_router
+from app.features.knowledge.knowledge_embedding_histories.api.v1 import (
+    router as v1_knowledge_embedding_histories_router,
+)
+from app.features.knowledge.knowledge_parsing_histories.api.v1 import router as v1_knowledge_parsing_histories_router
 from fastapi import APIRouter, status
 from rag_core.adapters.vector_store import check_vector_store_health
 
@@ -18,5 +24,9 @@ async def health():
 
 # Feature routers
 v1_router.include_router(v1_doc_parse_router)
-v1_router.include_router(v1_knowledge_router)
+v1_router.include_router(v1_knowledge_bases_router)
+v1_router.include_router(v1_knowledge_base_documents_router)
+v1_router.include_router(v1_knowledge_parsing_histories_router)
+v1_router.include_router(v1_knowledge_chunking_histories_router)
+v1_router.include_router(v1_knowledge_embedding_histories_router)
 router.include_router(v1_router)
