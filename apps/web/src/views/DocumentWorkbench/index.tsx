@@ -36,6 +36,7 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
   const [parseError, setParseError] = useState<string | null>(null);
   const [parsedDoc, setParsedDoc] = useState<any>(null);
   const [activeElement, setActiveElement] = useState<any>(null);
+  const [ignoreCache, setIgnoreCache] = useState<boolean>(false);
 
   const activeSummary = useMemo(() => {
     if (mode === "pdf") return `PDF preview: ${pdfName}`;
@@ -87,6 +88,7 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
       if (provider) {
         formData.append("provider", provider);
       }
+      formData.append("ignore_cache", String(ignoreCache));
 
       const response = await fetch("/api/v1/doc_parse/parse", {
         method: "POST",
@@ -147,6 +149,9 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
           setMarkdown={setMarkdown}
           html={html}
           setHtml={setHtml}
+          ignoreCache={ignoreCache}
+          setIgnoreCache={setIgnoreCache}
+          parsedDocMetadata={parsedDoc?.metadata}
         />
 
         <PreviewPanel

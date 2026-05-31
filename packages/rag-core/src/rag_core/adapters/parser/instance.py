@@ -1,3 +1,5 @@
+import json
+import time
 from typing import Any
 
 from app_file_storage import get_storage_client
@@ -47,27 +49,65 @@ async def parse_document(
     parser_input: ParserInput,
     *,
     provider: str | None = None,
+    ignore_cache: bool = False,
 ) -> Any:
     """Parse a document with the configured parser engine."""
     parser = get_parser(provider=provider)
 
     if parser_input.content is None:
-        return await parser.parse(parser_input)
+        start_time = time.perf_counter()
+        result = await parser.parse(parser_input)
+        duration_sec = time.perf_counter() - start_time
+        if hasattr(result, "metadata") and isinstance(result.metadata, dict):
+            result.metadata["cache_hit"] = False
+            result.metadata["parse_duration_sec"] = duration_sec
+        return result
 
     cache = await _get_cache()
 
     md5_hash = await cache.store_file(parser_input)
-    cached_data = await cache.get_result(md5_hash, parser.name, schema_version=parser.schema_version)
-    if cached_data is not None:
-        return parser.from_cache_data(cached_data)
 
+    if not ignore_cache:
+        start_time = time.perf_counter()
+        cached_data = await cache.get_result(md5_hash, parser.name, schema_version=parser.schema_version)
+        if cached_data is not None:
+            result = parser.from_cache_data(cached_data)
+            duration_sec = time.perf_counter() - start_time
+
+            # Retrieve original duration from meta.json if possible
+            original_duration = None
+            try:
+                meta_key = cache._meta_key(md5_hash)
+                if await cache._client.file_exists(meta_key):
+                    meta_bytes = await cache._client.download_file(meta_key)
+                    meta = json.loads(meta_bytes.decode("utf-8"))
+                    original_duration = meta.get("parse_durations", {}).get(parser.name)
+            except Exception as e:
+                logger.warning(f"Failed to load parse duration from cache meta: {e}")
+
+            if hasattr(result, "metadata") and isinstance(result.metadata, dict):
+                result.metadata["cache_hit"] = True
+                result.metadata["parse_duration_sec"] = (
+                    original_duration if original_duration is not None else duration_sec
+                )
+            return result
+
+    start_time = time.perf_counter()
     result = await parser.parse(parser_input)
+    duration_sec = time.perf_counter() - start_time
+
     await cache.store_result(
         md5_hash,
         parser.name,
         parser.to_cache_data(result),
         schema_version=parser.schema_version,
+        parse_duration_sec=duration_sec,
     )
+
+    if hasattr(result, "metadata") and isinstance(result.metadata, dict):
+        result.metadata["cache_hit"] = False
+        result.metadata["parse_duration_sec"] = duration_sec
+
     return result
 
 
@@ -78,6 +118,7 @@ async def parse_file(
     content_type: str | None = None,
     metadata: dict[str, Any] | None = None,
     provider: str | None = None,
+    ignore_cache: bool = False,
 ) -> Any:
     """Parse file bytes with the configured parser engine."""
     return await parse_document(
@@ -88,6 +129,7 @@ async def parse_file(
             metadata=metadata or {},
         ),
         provider=provider,
+        ignore_cache=ignore_cache,
     )
 
 

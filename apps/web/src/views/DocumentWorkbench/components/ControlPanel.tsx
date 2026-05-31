@@ -17,6 +17,12 @@ type ControlPanelProps = {
   setMarkdown: (markdown: string) => void;
   html: string;
   setHtml: (html: string) => void;
+  ignoreCache: boolean;
+  setIgnoreCache: (val: boolean) => void;
+  parsedDocMetadata?: {
+    cache_hit?: boolean;
+    parse_duration_sec?: number;
+  };
 };
 
 export function ControlPanel({
@@ -34,6 +40,9 @@ export function ControlPanel({
   setMarkdown,
   html,
   setHtml,
+  ignoreCache,
+  setIgnoreCache,
+  parsedDocMetadata,
 }: ControlPanelProps) {
   return (
     <aside className="control-panel" style={{ position: "relative" }}>
@@ -72,9 +81,20 @@ export function ControlPanel({
       />
 
       <div className="parser-settings-block">
-        <label className="field-label" htmlFor="parser-provider">
-          Parser Provider
-        </label>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <label className="field-label" htmlFor="parser-provider" style={{ marginTop: 0 }}>
+            Parser Provider
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary, #647084)", fontWeight: "500", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={ignoreCache}
+              onChange={(e) => setIgnoreCache(e.target.checked)}
+              style={{ cursor: "pointer", width: "14px", height: "14px", accentColor: "var(--accent-color)" }}
+            />
+            Ignore Cache
+          </label>
+        </div>
         <select
           id="parser-provider"
           value={provider}
@@ -92,6 +112,43 @@ export function ControlPanel({
         >
           {isParsing ? "Parsing document..." : "Parse Document"}
         </button>
+
+        {parsedDocMetadata && (
+          <div style={{
+            marginTop: "4px",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            background: "var(--bg-app, #f8fafc)",
+            border: "1px solid var(--border-color, #cbd5e1)",
+            fontSize: "12px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: "var(--text-secondary, #647084)", fontWeight: "500" }}>Cache Status</span>
+              <span style={{
+                fontWeight: "700",
+                color: parsedDocMetadata.cache_hit ? "#10b981" : "#3b82f6",
+                backgroundColor: parsedDocMetadata.cache_hit ? "rgba(16, 185, 129, 0.1)" : "rgba(59, 130, 246, 0.1)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontSize: "10px",
+                letterSpacing: "0.05em"
+              }}>
+                {parsedDocMetadata.cache_hit ? "CACHE HIT" : "CACHE MISS"}
+              </span>
+            </div>
+            {parsedDocMetadata.parse_duration_sec !== undefined && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "var(--text-secondary, #647084)", fontWeight: "500" }}>Parse Duration</span>
+                <span style={{ fontWeight: "600", color: "var(--text-primary, #1e293b)" }}>
+                  {parsedDocMetadata.parse_duration_sec.toFixed(2)}s
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {parseError && (

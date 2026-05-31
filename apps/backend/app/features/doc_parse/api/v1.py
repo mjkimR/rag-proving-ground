@@ -12,6 +12,7 @@ async def document_parse(
     use_case: Annotated[DocumentParsingUseCase, Depends()],
     file: UploadFile = File(...),  # noqa: B008
     provider: str | None = Form(None),
+    ignore_cache: bool = Form(False),
 ) -> ParsedDocument:
     """Parse an uploaded document using the specified or default parser engine."""
-    return await use_case.execute(file=file, provider=provider)
+    return await use_case.execute(file=file, provider=provider, ignore_cache=ignore_cache)

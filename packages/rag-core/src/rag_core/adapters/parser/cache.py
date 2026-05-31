@@ -63,13 +63,17 @@ class ParserCache:
         result: dict[str, Any],
         *,
         schema_version: str | None = None,
+        parse_duration_sec: float | None = None,
     ) -> None:
         key = self._result_key(md5_hash, provider, schema_version=schema_version)
         await self._client.upload_file(
             key,
             json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8"),
         )
-        await self._update_meta(md5_hash, {"converted_at": datetime.now(UTC).isoformat()})
+        meta_updates: dict[str, Any] = {"converted_at": datetime.now(UTC).isoformat()}
+        if parse_duration_sec is not None:
+            meta_updates["parse_durations"] = {provider: parse_duration_sec}
+        await self._update_meta(md5_hash, meta_updates)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -91,7 +95,14 @@ class ParserCache:
 
         data = await self._client.download_file(key)
         meta = json.loads(data.decode("utf-8"))
-        meta.update(values)
+
+        # Merge dictionary values recursively to prevent overwriting whole sub-dicts (e.g. parse_durations)
+        for k, v in values.items():
+            if isinstance(v, dict) and k in meta and isinstance(meta[k], dict):
+                meta[k].update(v)
+            else:
+                meta[k] = v
+
         await self._client.upload_file(
             key,
             json.dumps(meta, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8"),

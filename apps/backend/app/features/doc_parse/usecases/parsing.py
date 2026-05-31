@@ -19,7 +19,12 @@ class DocumentParsingUseCase(BaseUseCase):
     ) -> None:
         self.service = service
 
-    async def execute(self, file: UploadFile, provider: str | None = None) -> ParsedDocument:
+    async def execute(
+        self,
+        file: UploadFile,
+        provider: str | None = None,
+        ignore_cache: bool = False,
+    ) -> ParsedDocument:
         """Validate, sanitize, and parse an uploaded file using rag-core."""
         # 1. Sanitize filename to prevent directory traversal
         if not file.filename:
@@ -47,7 +52,7 @@ class DocumentParsingUseCase(BaseUseCase):
             )
 
         logger.info(
-            f"Parsing uploaded file '{filename}' ({len(content)} bytes) using provider: {provider or 'default'}"
+            f"Parsing uploaded file '{filename}' ({len(content)} bytes) using provider: {provider or 'default'} (ignore_cache: {ignore_cache})"
         )
 
         try:
@@ -56,6 +61,7 @@ class DocumentParsingUseCase(BaseUseCase):
                 filename=filename,
                 content_type=file.content_type,
                 provider=provider,
+                ignore_cache=ignore_cache,
             )
             logger.info(f"Successfully parsed '{filename}'. Generated doc_id: {parsed_doc.doc_id}")
             return parsed_doc

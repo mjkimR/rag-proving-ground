@@ -143,3 +143,25 @@ def test_docling_parser_does_not_mix_generic_content_into_specific_formats() -> 
     assert parser._extract_markdown(document) is None
     assert parser._extract_text(document) is None
     assert parser._extract_html(document) is None
+
+
+@pytest.mark.asyncio
+async def test_parser_cache_update_meta_does_nested_merge() -> None:
+    storage = _InMemoryStorage()
+    cache = ParserCache(storage, prefix="parser_cache")
+    parser_input = ParserInput(
+        content=b"example",
+        filename="sample.pdf",
+        content_type="application/pdf",
+    )
+    md5_hash = await cache.store_file(parser_input)
+
+    # 1. Update with first provider duration
+    await cache._update_meta(md5_hash, {"parse_durations": {"docling": 1.23}})
+    meta = json.loads(await storage.download_file(f"parser_cache/{md5_hash}/meta.json"))
+    assert meta["parse_durations"] == {"docling": 1.23}
+
+    # 2. Update with second provider duration - should MERGE, not OVERWRITE
+    await cache._update_meta(md5_hash, {"parse_durations": {"marker": 4.56}})
+    meta = json.loads(await storage.download_file(f"parser_cache/{md5_hash}/meta.json"))
+    assert meta["parse_durations"] == {"docling": 1.23, "marker": 4.56}
