@@ -48,7 +48,7 @@ wrapper = AppWrapper()
 
 
 @asynccontextmanager
-async def lifespan(app: FastStream):
+async def lifespan():
     """Worker lifespan: initialize shared resources and run recovery."""
     logger.info("Worker starting up...")
 
