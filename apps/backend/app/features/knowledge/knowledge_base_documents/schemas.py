@@ -9,6 +9,7 @@ from rag_core.parsers import KnowledgeParsingConfig
 
 class KnowledgeBaseDocumentStatus(StrEnum):
     READY = "READY"
+    QUEUED = "QUEUED"
     PARSING = "PARSING"
     CHUNKING = "CHUNKING"
     EMBEDDING = "EMBEDDING"
@@ -66,3 +67,21 @@ class KnowledgeBaseDocumentPatch(BaseModel):
 
 class KnowledgeBaseDocumentRead(UUIDSchemaMixin, TimestampSchemaMixin, KnowledgeBaseDocumentBase):
     model_config = ConfigDict(from_attributes=True)
+
+
+class IngestDocumentMessage(BaseModel):
+    """Message payload for async document ingestion."""
+
+    document_id: UUID
+    knowledge_base_id: UUID
+    file_hash: str
+    filename: str
+    content_type: str | None = None
+    provider: str | None = None
+
+
+class ReprocessDocumentMessage(BaseModel):
+    """Message payload for async document reprocessing."""
+
+    document_id: UUID
+    mode: KnowledgeBaseDocumentReprocessMode = KnowledgeBaseDocumentReprocessMode.AUTO

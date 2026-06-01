@@ -17,6 +17,7 @@ except ImportError:
     pass
 
 from app.router import router
+from app.worker.broker import broker
 from app_file_storage import lifespan_file_storage
 from app_http_client import lifespan_http_client
 from app_layer_base.base.exceptions.handler import set_exception_handler
@@ -32,7 +33,9 @@ def get_lifespan():
     async def lifespan(app: FastAPI):
         logger.info("Starting app lifespan")
         async with lifespan_http_client(app), lifespan_file_storage(app), lifespan_vector_store(app):
+            await broker.connect()
             yield
+            await broker.close()
         logger.info("End of app lifespan")
 
     return lifespan

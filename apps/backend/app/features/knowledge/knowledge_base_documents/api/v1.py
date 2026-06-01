@@ -93,7 +93,7 @@ async def delete_knowledge_base_document(
 
 @router.post(
     "/{knowledge_base_document_id}/reprocess",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_202_ACCEPTED,
     response_model=KnowledgeBaseDocumentRead,
 )
 async def reprocess_knowledge_base_document(

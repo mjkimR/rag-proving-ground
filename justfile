@@ -67,6 +67,10 @@ test +paths="":
 kill:
     @bash ./scripts/kill-dev.sh
 
+# Start the background worker for async document processing
+worker:
+    @bash ./scripts/worker-run.sh
+
 # Generate OpenAPI client for the frontend UI module from Python backend schema
 gen-ui-api:
     @bash ./scripts/gen-ui-api.sh

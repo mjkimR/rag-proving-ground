@@ -75,3 +75,16 @@ def get_parser_settings() -> ParserSettings:
 @lru_cache
 def get_http_client_settings() -> HTTPClientSettings:
     return HTTPClientSettings()
+
+
+class RedisSettings(BaseSettings):
+    """Settings for Redis connection (FastStream broker)."""
+
+    url: str = Field(default="redis://localhost:16379/0", validation_alias="REDIS_URL")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_redis_settings() -> RedisSettings:
+    return RedisSettings()

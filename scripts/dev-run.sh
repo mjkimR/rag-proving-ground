@@ -6,6 +6,7 @@ target=$(resolve_module "${1:-all}")
 
 PID_WEB=""
 PID_BACKEND=""
+PID_WORKER=""
 
 if should_run "$target" "web"; then
     path=$(resolve_module_path "web")
@@ -19,6 +20,10 @@ if should_run "$target" "backend"; then
     echo "Starting FastAPI backend ($path)..."
     uv run --directory "$path" uvicorn app.main:create_app --port 8389 --reload &
     PID_BACKEND=$!
+
+    echo "Starting document processing worker ($path)..."
+    uv run --directory "$path" faststream run app.worker.main:app --workers 1 &
+    PID_WORKER=$!
 fi
 
 # Set up clean up for processes on script termination
@@ -26,11 +31,13 @@ cleanup() {
     echo "Stopping development servers..."
     [ -n "$PID_WEB" ] && kill "$PID_WEB" 2>/dev/null || true
     [ -n "$PID_BACKEND" ] && kill "$PID_BACKEND" 2>/dev/null || true
+    [ -n "$PID_WORKER" ] && kill "$PID_WORKER" 2>/dev/null || true
 }
 
 PIDS=()
 [ -n "$PID_WEB" ] && PIDS+=("$PID_WEB")
 [ -n "$PID_BACKEND" ] && PIDS+=("$PID_BACKEND")
+[ -n "$PID_WORKER" ] && PIDS+=("$PID_WORKER")
 
 is_job_running() {
     local wanted_pid="$1"

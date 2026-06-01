@@ -23,7 +23,6 @@ async def test_ingest_document_missing_filename() -> None:
     use_case = IngestKnowledgeDocumentUseCase(
         kb_service=MagicMock(),
         doc_service=MagicMock(),
-        pipeline_service=MagicMock(),
     )
 
     # Act & Assert
@@ -42,7 +41,6 @@ async def test_ingest_document_invalid_extension() -> None:
     use_case = IngestKnowledgeDocumentUseCase(
         kb_service=MagicMock(),
         doc_service=MagicMock(),
-        pipeline_service=MagicMock(),
     )
 
     # Act & Assert
@@ -65,7 +63,6 @@ async def test_ingest_document_oversized_file() -> None:
     use_case = IngestKnowledgeDocumentUseCase(
         kb_service=MagicMock(),
         doc_service=MagicMock(),
-        pipeline_service=MagicMock(),
     )
 
     # Act & Assert

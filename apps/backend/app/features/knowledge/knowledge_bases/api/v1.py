@@ -89,7 +89,7 @@ async def delete_knowledge_base(
     return await use_case.execute(knowledge_base_id)
 
 
-@router.post("/{knowledge_base_id}/upload", status_code=status.HTTP_201_CREATED)
+@router.post("/{knowledge_base_id}/upload", status_code=status.HTTP_202_ACCEPTED)
 async def upload_knowledge_base_document(
     knowledge_base_id: UUID,
     use_case: Annotated[IngestKnowledgeDocumentUseCase, Depends()],

@@ -56,7 +56,17 @@ services:
       - parser
       - basic
 
+  rag-redis:
+    image: redis:7-alpine
+    container_name: rag-redis
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
 volumes:
   storage_object_data:
   vector_db_data:
   meta_db_data:
+  redis_data:

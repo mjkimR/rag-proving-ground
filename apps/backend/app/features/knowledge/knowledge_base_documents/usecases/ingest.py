@@ -3,18 +3,20 @@ import os
 from typing import Annotated
 from uuid import UUID
 
-from app.features.knowledge.knowledge_base_documents.facade.pipeline import KnowledgeDocumentPipelineService
+from app.features.knowledge.knowledge_base_documents.facade.pipeline import knowledge_original_file_key
 from app.features.knowledge.knowledge_base_documents.schemas import (
+    IngestDocumentMessage,
     KnowledgeBaseDocumentCreate,
     KnowledgeBaseDocumentStatus,
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
+from app.worker.broker import broker
+from app_file_storage import get_storage_client
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, UploadFile, status
 from loguru import logger
-from rag_core.embeddings import resolve_knowledge_embedding_config
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {".pdf", ".html", ".htm", ".md", ".docx", ".txt"}
@@ -29,11 +31,9 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
         self,
         kb_service: Annotated[KnowledgeBaseService, Depends()],
         doc_service: Annotated[KnowledgeBaseDocumentService, Depends()],
-        pipeline_service: Annotated[KnowledgeDocumentPipelineService, Depends()],
     ):
         self.kb_service = kb_service
         self.doc_service = doc_service
-        self.pipeline_service = pipeline_service
 
     async def execute(
         self,
@@ -41,7 +41,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
         file: UploadFile,
         provider: str | None = None,
     ) -> dict:
-        """Validate, parse, chunk, and embed a document into the knowledge base, tracking state transitions and histories."""
+        """Validate, upload to MinIO, and queue a document ingestion task, tracking state transitions."""
         # 1. Input validation & sanitization
         if not file.filename:
             raise HTTPException(
@@ -87,7 +87,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
 
             if existing_docs:
                 doc = existing_docs[0]
-                doc.status = KnowledgeBaseDocumentStatus.READY
+                doc.status = KnowledgeBaseDocumentStatus.QUEUED
                 doc.name = filename
                 doc_info = dict(doc.document_info or {})
                 doc_info.update(
@@ -103,7 +103,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                 doc_create = KnowledgeBaseDocumentCreate(
                     name=filename,
                     knowledge_base_id=knowledge_base_id,
-                    status=KnowledgeBaseDocumentStatus.READY,
+                    status=KnowledgeBaseDocumentStatus.QUEUED,
                     file_hash=file_hash,
                     document_info={
                         "filename": filename,
@@ -115,52 +115,44 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
 
             doc_id = doc.id
             kb_name = kb.name
-            knowledge_base_id = kb.id
-            resolved_parsing_config = (
-                doc.parsing_config if doc.parsing_config is not None else kb.default_parsing_config
-            )
-            resolved_chunking_config = (
-                doc.chunking_config if doc.chunking_config is not None else kb.default_chunking_config
-            )
-            embedding_config = resolve_knowledge_embedding_config(kb.embedding_config)
-            previous_embed_config_hash = kb.embed_config_hash
 
-        parsed_doc = await self.pipeline_service.parse_or_load_cached(
-            document_id=doc_id,
-            knowledge_base_name=kb_name,
-            file_hash=file_hash,
-            filename=filename,
-            content=content,
-            content_type=file.content_type,
-            parsing_config=resolved_parsing_config,
-            provider_override=provider,
-        )
-        chunks = await self.pipeline_service.rebuild_chunks(
-            document_id=doc_id,
-            filename=filename,
-            parsed_doc=parsed_doc,
-            chunking_config=resolved_chunking_config,
-            record_history=True,
-            history_name_prefix="Chunk",
-            failure_detail_prefix="Ingestion",
-        )
-        await self.pipeline_service.embed_chunks(
-            document_id=doc_id,
-            filename=filename,
-            knowledge_base_id=knowledge_base_id,
-            chunks=chunks,
-            embedding_config=embedding_config,
-            previous_embed_config_hash=previous_embed_config_hash,
-            history_name_prefix="Embedding",
-            failure_detail_prefix="Ingestion",
-        )
+        # 3. Upload file content to MinIO
+        storage_client = get_storage_client()
+        original_file_key = knowledge_original_file_key(kb_name, file_hash, filename)
+        try:
+            logger.info(f"Uploading file '{filename}' to MinIO path '{original_file_key}'")
+            await storage_client.upload_file(original_file_key, content)
+        except Exception as exc:
+            logger.error(f"Failed to upload document content to storage: {exc}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save document to storage: {exc}",
+            ) from exc
 
+        # 4. Publish ingest message to Redis
+        try:
+            logger.info(f"Publishing document.ingest message for document {doc_id}")
+            await broker.publish(
+                IngestDocumentMessage(
+                    document_id=doc_id,
+                    knowledge_base_id=knowledge_base_id,
+                    file_hash=file_hash,
+                    filename=filename,
+                    content_type=file.content_type,
+                    provider=provider,
+                ),
+                "document.ingest",
+            )
+        except Exception as exc:
+            logger.warning(f"Failed to publish ingest message for doc {doc_id}: {exc}")
+
+        # 5. Return immediate response
         async with AsyncTransaction() as session:
             final_doc = await self.doc_service.repo.get_by_pk(session, doc_id)
             doc_data = {
                 "id": str(final_doc.id) if final_doc else str(doc_id),
                 "name": final_doc.name if final_doc else filename,
-                "status": final_doc.status if final_doc else KnowledgeBaseDocumentStatus.COMPLETED,
+                "status": final_doc.status if final_doc else KnowledgeBaseDocumentStatus.QUEUED,
                 "file_hash": file_hash,
                 "document_info": final_doc.document_info if final_doc else {},
                 "parsing_config": final_doc.parsing_config if final_doc else None,

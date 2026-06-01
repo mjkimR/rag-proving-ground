@@ -1,20 +1,18 @@
 from typing import Annotated
 from uuid import UUID
 
-from app.features.knowledge.knowledge_base_documents.facade.pipeline import (
-    KnowledgeDocumentPipelineService,
-    load_parsed_document_from_storage,
-)
 from app.features.knowledge.knowledge_base_documents.schemas import (
     KnowledgeBaseDocumentReprocessMode,
     KnowledgeBaseDocumentStatus,
+    ReprocessDocumentMessage,
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
+from app.worker.broker import broker
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
-from rag_core.embeddings import resolve_knowledge_embedding_config
+from loguru import logger
 
 
 class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
@@ -22,17 +20,16 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
         self,
         kb_service: Annotated[KnowledgeBaseService, Depends()],
         doc_service: Annotated[KnowledgeBaseDocumentService, Depends()],
-        pipeline_service: Annotated[KnowledgeDocumentPipelineService, Depends()],
     ) -> None:
         self.kb_service = kb_service
         self.doc_service = doc_service
-        self.pipeline_service = pipeline_service
 
     async def execute(
         self,
         document_id: UUID,
         mode: KnowledgeBaseDocumentReprocessMode = KnowledgeBaseDocumentReprocessMode.AUTO,
     ) -> dict:
+        """Validate status, set to QUEUED, and publish a reprocess message to Redis."""
         async with AsyncTransaction() as session:
             doc = await self.doc_service.repo.get_by_pk(session, document_id)
             if not doc:
@@ -56,34 +53,22 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
                     detail="Document has no parsed artifact. Upload or reparse the document first.",
                 )
 
-            filename = doc.name
-            knowledge_base_id = doc.knowledge_base_id
-            resolved_chunking_config = (
-                doc.chunking_config if doc.chunking_config is not None else kb.default_chunking_config
-            )
-            embedding_config = resolve_knowledge_embedding_config(kb.embedding_config)
-            previous_embed_config_hash = kb.embed_config_hash
+            # Update status to QUEUED to signify processing is requested
+            doc.status = KnowledgeBaseDocumentStatus.QUEUED
+            await session.flush()
 
-        parsed_doc = await load_parsed_document_from_storage(parsed_data_path)
-        chunks = await self.pipeline_service.rebuild_chunks(
-            document_id=document_id,
-            filename=filename,
-            parsed_doc=parsed_doc,
-            chunking_config=resolved_chunking_config,
-            record_history=reprocess_mode == KnowledgeBaseDocumentReprocessMode.RECHUNK,
-            history_name_prefix="Rechunk",
-            failure_detail_prefix="Document reprocessing",
-        )
-        await self.pipeline_service.embed_chunks(
-            document_id=document_id,
-            filename=filename,
-            knowledge_base_id=knowledge_base_id,
-            chunks=chunks,
-            embedding_config=embedding_config,
-            previous_embed_config_hash=previous_embed_config_hash,
-            history_name_prefix="Reembedding",
-            failure_detail_prefix="Document reprocessing",
-        )
+        # Publish reprocess message to Redis
+        try:
+            logger.info(f"Publishing document.reprocess message for document {document_id}")
+            await broker.publish(
+                ReprocessDocumentMessage(
+                    document_id=document_id,
+                    mode=reprocess_mode,
+                ),
+                "document.reprocess",
+            )
+        except Exception as exc:
+            logger.warning(f"Failed to publish reprocess message for doc {document_id}: {exc}")
 
         async with AsyncTransaction() as session:
             final_doc = await self.doc_service.repo.get_by_pk(session, document_id)
