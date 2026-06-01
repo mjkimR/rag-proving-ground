@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
-import { Viewer, Worker } from "@react-pdf-viewer/core";
-import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
-import { highlightPlugin, RenderHighlightsProps } from "@react-pdf-viewer/highlight";
-import "@react-pdf-viewer/core/lib/styles/index.css";
-import "@react-pdf-viewer/default-layout/lib/styles/index.css";
-import "@react-pdf-viewer/highlight/lib/styles/index.css";
+import { useEffect, useState, useRef } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
+import { ZoomIn, ZoomOut, RotateCcw, AlertCircle } from "lucide-react";
+
+// Configure worker src with ESM support for secure pdfjs-dist version 5.x
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 type PdfPreviewProps = {
   fileName: string;
@@ -13,13 +17,12 @@ type PdfPreviewProps = {
   parsedDoc?: any;
 };
 
-const workerUrl = new URL("pdfjs-dist/build/pdf.worker.min.js", import.meta.url).toString();
-
 export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfPreviewProps) {
   const [docLoaded, setDocLoaded] = useState(false);
-  const [numPages, setNumPages] = useState(0);
-
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [scale, setScale] = useState(0.9);
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const getPageInfo = (element: any) => {
     let targetIndex = 0;
@@ -46,12 +49,12 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
     return { targetIndex, width, height };
   };
 
-  const renderHighlights = (props: RenderHighlightsProps) => {
-    if (!activeElement || !activeElement.bbox || !activeElement.page_id) return <></>;
+  const renderHighlightsForPage = (pageIndex: number) => {
+    if (!activeElement || !activeElement.bbox || !activeElement.page_id) return null;
 
     const { targetIndex, width: pdfPageWidthPoints, height: pdfPageHeightPoints } = getPageInfo(activeElement);
 
-    if (props.pageIndex !== targetIndex) return <></>;
+    if (pageIndex !== targetIndex) return null;
 
     const { bbox } = activeElement;
 
@@ -74,61 +77,53 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
           borderRadius: "4px",
           boxSizing: "border-box",
           pointerEvents: "none",
-          zIndex: 100,
+          zIndex: 10,
           boxShadow: "0 0 6px rgba(79, 70, 229, 0.25)",
         }}
       />
     );
   };
 
-  const highlightPluginInstance = highlightPlugin({
-    renderHighlights,
-  });
-
-  const { jumpToHighlightArea } = highlightPluginInstance;
-
+  // Scroll to activeElement bounding box when activeElement changes
   useEffect(() => {
-    // Only attempt to jump if the document is fully loaded and we have pages
-    if (docLoaded && numPages > 0 && activeElement && activeElement.page_id && activeElement.bbox) {
+    if (docLoaded && numPages && numPages > 0 && activeElement && activeElement.page_id && activeElement.bbox) {
       const { targetIndex, width: pdfPageWidthPoints, height: pdfPageHeightPoints } = getPageInfo(activeElement);
 
-      // Ensure target index is within bounds to prevent "Invalid page request" error
       if (targetIndex < 0 || targetIndex >= numPages) {
         console.warn(`Highlight target page ${targetIndex} is out of bounds (0 - ${numPages - 1})`);
         return;
       }
 
-      const { bbox } = activeElement;
-
-      // Backend normalizes all bbox to TOPLEFT origin
-      const leftPercent = (bbox.left / pdfPageWidthPoints) * 100;
-      const bboxTopPercent = (bbox.top / pdfPageHeightPoints) * 100;
-      const bboxHeightPercent = ((bbox.bottom - bbox.top) / pdfPageHeightPoints) * 100;
-
-      // jumpToHighlightArea scrolls so that `top` sits at the very top of the viewport.
-      // To center the bbox vertically, subtract ~35% (roughly half a viewport at 90% zoom).
-      // Clamp to 0 so we never scroll above the page top.
-      const viewportOffsetPercent = 35;
-      const scrollTopPercent = Math.max(0, bboxTopPercent - viewportOffsetPercent);
-
-      // Small delay ensures viewer layout is settled before jumping
+      // 100ms timeout ensures standard react-pdf render lifecycle finishes layout first
       const timer = setTimeout(() => {
         try {
-          jumpToHighlightArea({
-            pageIndex: targetIndex,
-            left: leftPercent,
-            top: scrollTopPercent,
-            width: ((bbox.right - bbox.left) / pdfPageWidthPoints) * 100,
-            height: bboxHeightPercent,
-          });
+          const pageWrapper = document.querySelector(`[data-page-index="${targetIndex}"]`);
+          const container = scrollContainerRef.current;
+          
+          if (pageWrapper && container) {
+            const { bbox } = activeElement;
+            const bboxTopPercent = bbox.top / pdfPageHeightPoints;
+            const pageHeight = pageWrapper.clientHeight;
+            const scrollOffsetInPage = pageHeight * bboxTopPercent;
+
+            const elementTop = (pageWrapper as HTMLElement).offsetTop;
+            // Center vertically within viewport by subtracting ~35% of visible container height
+            const viewportOffset = container.clientHeight * 0.35;
+            const targetScrollTop = Math.max(0, elementTop + scrollOffsetInPage - viewportOffset);
+
+            container.scrollTo({
+              top: targetScrollTop,
+              behavior: "smooth",
+            });
+          }
         } catch (e) {
           console.warn("Failed to jump to highlight area", e);
         }
-      }, 50);
+      }, 100);
 
       return () => clearTimeout(timer);
     }
-  }, [activeElement, jumpToHighlightArea, docLoaded, numPages, parsedDoc]);
+  }, [activeElement, docLoaded, numPages, parsedDoc]);
 
   if (!fileUrl) {
     return (
@@ -140,18 +135,203 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
   }
 
   return (
-    <div className="pdf-frame" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <Worker workerUrl={workerUrl}>
-        <Viewer
-          fileUrl={fileUrl}
-          plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
-          defaultScale={0.9}
-          onDocumentLoad={(e) => {
+    <div className="pdf-frame" style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Premium Glassmorphic Toolbar */}
+      <div 
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "var(--bg-card)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "1px solid var(--border-color)",
+          padding: "8px 16px",
+          zIndex: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+          <span 
+            style={{ 
+              fontSize: "14px", 
+              fontWeight: 700, 
+              color: "var(--text-primary)",
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {fileName}
+          </span>
+          {numPages && (
+            <span 
+              style={{ 
+                fontSize: "11px", 
+                color: "var(--text-secondary)", 
+                background: "var(--border-color)", 
+                padding: "2px 6px", 
+                borderRadius: "4px",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {numPages} Pages
+            </span>
+          )}
+        </div>
+        
+        {/* Zoom Controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button
+            onClick={() => setScale(prev => Math.max(0.5, prev - 0.1))}
+            title="Zoom Out"
+            style={{
+              background: "transparent",
+              border: "1px solid var(--border-color)",
+              borderRadius: "6px",
+              padding: "6px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-secondary)",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--accent-color)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-color)";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            <ZoomOut size={15} />
+          </button>
+          
+          <span style={{ fontSize: "12px", fontWeight: 600, minWidth: "40px", textAlign: "center", color: "var(--text-primary)" }}>
+            {Math.round(scale * 100)}%
+          </span>
+          
+          <button
+            onClick={() => setScale(prev => Math.min(2.5, prev + 0.1))}
+            title="Zoom In"
+            style={{
+              background: "transparent",
+              border: "1px solid var(--border-color)",
+              borderRadius: "6px",
+              padding: "6px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-secondary)",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--accent-color)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-color)";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            <ZoomIn size={15} />
+          </button>
+          
+          <button
+            onClick={() => setScale(0.9)}
+            title="Reset Zoom"
+            style={{
+              background: "transparent",
+              border: "1px solid var(--border-color)",
+              borderRadius: "6px",
+              padding: "6px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-secondary)",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--accent-color)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-color)";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            <RotateCcw size={15} />
+          </button>
+        </div>
+      </div>
+
+      {/* PDF Viewport Scroll Area */}
+      <div
+        ref={scrollContainerRef}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "24px 16px",
+          background: "var(--bg-app)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "24px",
+          position: "relative",
+        }}
+      >
+        <Document
+          file={fileUrl}
+          onLoadSuccess={(pdf) => {
             setDocLoaded(true);
-            setNumPages(e.doc.numPages);
+            setNumPages(pdf.numPages);
           }}
-        />
-      </Worker>
+          loading={
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "48px" }}>
+              <div className="spinner" />
+              <p style={{ color: "var(--text-secondary)", fontSize: "13px" }}>Loading PDF...</p>
+            </div>
+          }
+          error={
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "48px", color: "var(--text-secondary)" }}>
+              <AlertCircle size={32} color="var(--accent-color)" />
+              <p style={{ fontSize: "13px", fontWeight: 600 }}>Failed to load PDF</p>
+            </div>
+          }
+        >
+          {Array.from(new Array(numPages || 0), (el, index) => (
+            <div
+              key={`page_${index + 1}`}
+              data-page-index={index}
+              style={{
+                position: "relative",
+                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+                borderRadius: "8px",
+                overflow: "hidden",
+                border: "1px solid var(--border-color)",
+                background: "#ffffff",
+                transition: "transform 0.2s ease",
+              }}
+            >
+              <Page
+                pageNumber={index + 1}
+                scale={scale}
+                renderAnnotationLayer={false}
+                renderTextLayer={false}
+                loading={
+                  <div style={{ width: 612 * scale, height: 792 * scale, background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div className="spinner" style={{ width: "24px", height: "24px", borderWidth: "2px" }} />
+                  </div>
+                }
+              />
+              {renderHighlightsForPage(index)}
+            </div>
+          ))}
+        </Document>
+      </div>
     </div>
   );
 }
