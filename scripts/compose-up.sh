@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE="${1:-}"
+shift || true
+
+case "$MODE" in
+    cpu|gpu) ;;
+    *)
+        echo "Usage: $0 <cpu|gpu> [profiles...]" >&2
+        exit 2
+        ;;
+esac
+
+env_args=()
+if [ -f .env ]; then
+    env_args=("--env-file" ".env")
+fi
+
+compose_args=(-p rag -f infra/docker/docker-compose.yml)
+if [ "$MODE" = "gpu" ]; then
+    compose_args+=(-f infra/docker/docker-compose.gpu.yml)
+fi
+
+profile_args=()
+if [ "$#" -eq 0 ]; then
+    profile_args=(--profile basic)
+else
+    for profile in "$@"; do
+        profile_args+=("--profile" "$profile")
+    done
+fi
+
+docker compose "${env_args[@]}" "${compose_args[@]}" "${profile_args[@]}" up -d
