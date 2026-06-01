@@ -32,8 +32,33 @@ PIDS=()
 [ -n "$PID_WEB" ] && PIDS+=("$PID_WEB")
 [ -n "$PID_BACKEND" ] && PIDS+=("$PID_BACKEND")
 
+is_job_running() {
+    local wanted_pid="$1"
+    local running_pid
+
+    for running_pid in $(jobs -pr); do
+        if [ "$running_pid" = "$wanted_pid" ]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 if [ ${#PIDS[@]} -ne 0 ]; then
     trap cleanup SIGINT SIGTERM EXIT
-    wait -n "${PIDS[@]}"
-    echo "One of the background components stopped. Shutting down remaining servers..."
+
+    while true; do
+        for pid in "${PIDS[@]}"; do
+            if ! is_job_running "$pid"; then
+                set +e
+                wait "$pid"
+                stopped_status=$?
+                set -e
+                echo "Background component $pid stopped with status $stopped_status. Shutting down remaining servers..."
+                exit "$stopped_status"
+            fi
+        done
+        sleep 1
+    done
 fi
