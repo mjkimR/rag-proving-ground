@@ -15,18 +15,25 @@ class VectorStoreProvider(ABC):
         pass
 
     @abstractmethod
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the vector store provider."""
         pass
 
     @abstractmethod
-    async def create_vector_store(self, collection_name: str, model_name: str) -> VectorStore:
+    async def create_vector_store(
+        self, collection_name: str, model_name: str, *, distance: str = "cosine"
+    ) -> VectorStore:
         """Create and return a VectorStore instance."""
         pass
 
     @abstractmethod
     async def check_health(self) -> bool:
         """Check connection health of the vector store."""
+        pass
+
+    @abstractmethod
+    async def delete_points(self, collection_name: str, points_selector: Any) -> None:
+        """Delete points from a vector store collection."""
         pass
 
 

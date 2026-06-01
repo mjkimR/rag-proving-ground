@@ -1,7 +1,7 @@
 """LangChain document compressor backed by LiteLLM rerank."""
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 import litellm
 from langchain_core.callbacks import Callbacks
@@ -32,7 +32,8 @@ class LiteLLMRerankCompressor(BaseDocumentCompressor):
         if not documents:
             return []
 
-        response = litellm.rerank(
+        rerank = cast(Any, litellm.rerank)
+        response = rerank(
             model=self.model,
             query=query,
             documents=[document.page_content for document in documents],
@@ -56,7 +57,8 @@ class LiteLLMRerankCompressor(BaseDocumentCompressor):
         if not documents:
             return []
 
-        response = await litellm.arerank(
+        arerank = cast(Any, litellm.arerank)
+        response = await arerank(
             model=self.model,
             query=query,
             documents=[document.page_content for document in documents],

@@ -129,7 +129,7 @@ export const DocumentUpload: React.FC = () => {
         },
       });
 
-      message.success(`Successfully uploaded and parsed document! Hash: ${response.data?.file_md5}`);
+      message.success(`Successfully uploaded and parsed document! Hash: ${response.data?.file_hash}`);
       console.log('Parsed Document Info:', response.data?.document_info);
     } catch (error) {
       console.error('Upload failed:', error);

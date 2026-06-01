@@ -6,8 +6,12 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     KnowledgeBaseDocumentPatch,
     KnowledgeBaseDocumentPut,
     KnowledgeBaseDocumentRead,
+    KnowledgeBaseDocumentReprocessRequest,
 )
-from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
+from app.features.knowledge.knowledge_base_documents.usecases.assets import (
+    DownloadKnowledgeBaseDocumentUseCase,
+    GetParsedKnowledgeBaseDocumentUseCase,
+)
 from app.features.knowledge.knowledge_base_documents.usecases.crud import (
     CreateKnowledgeBaseDocumentUseCase,
     DeleteKnowledgeBaseDocumentUseCase,
@@ -16,6 +20,7 @@ from app.features.knowledge.knowledge_base_documents.usecases.crud import (
     PatchKnowledgeBaseDocumentUseCase,
     PutKnowledgeBaseDocumentUseCase,
 )
+from app.features.knowledge.knowledge_base_documents.usecases.reprocess import ReprocessKnowledgeBaseDocumentUseCase
 from app_layer_base.base.deps.params.page import PaginationParam
 from app_layer_base.base.exceptions.basic import NotFoundException
 from app_layer_base.base.repos.query_options import ListQueryOptions
@@ -86,66 +91,33 @@ async def delete_knowledge_base_document(
     return await use_case.execute(knowledge_base_document_id)
 
 
+@router.post(
+    "/{knowledge_base_document_id}/reprocess",
+    status_code=status.HTTP_200_OK,
+    response_model=KnowledgeBaseDocumentRead,
+)
+async def reprocess_knowledge_base_document(
+    knowledge_base_document_id: UUID,
+    use_case: Annotated[ReprocessKnowledgeBaseDocumentUseCase, Depends()],
+    reprocess_in: KnowledgeBaseDocumentReprocessRequest | None = None,
+):
+    request = reprocess_in or KnowledgeBaseDocumentReprocessRequest()
+    return await use_case.execute(knowledge_base_document_id, mode=request.mode)
+
+
 @router.get("/{knowledge_base_document_id}/download", status_code=status.HTTP_200_OK)
 async def download_knowledge_base_document(
     knowledge_base_document_id: UUID,
-    doc_service: Annotated[KnowledgeBaseDocumentService, Depends()],
+    use_case: Annotated[DownloadKnowledgeBaseDocumentUseCase, Depends()],
 ):
     """Download the original uploaded document from storage."""
-    import urllib.parse
-
-    from app_file_storage import get_storage_client
-    from app_layer_base.core.database.transaction import AsyncTransaction
-    from fastapi.responses import StreamingResponse
-
-    async with AsyncTransaction() as session:
-        doc = await doc_service.repo.get_by_pk(session, knowledge_base_document_id)
-        if not doc or not doc.document_info:
-            raise NotFoundException("Document not found or has no storage info.")
-        original_file_key = doc.document_info.get("original_file_path")
-        filename = doc.document_info.get("filename")
-
-    if not original_file_key:
-        raise NotFoundException("Original file storage key is missing.")
-
-    encoded_filename = urllib.parse.quote(filename or "file")
-    storage_client = get_storage_client()
-
-    async def file_streamer():
-        async for chunk in storage_client.download_file_stream(original_file_key):
-            yield chunk
-
-    return StreamingResponse(
-        file_streamer(),
-        media_type="application/octet-stream",
-        headers={"Content-Disposition": f"attachment; filename*=utf-8''{encoded_filename}"},
-    )
+    return await use_case.execute(knowledge_base_document_id)
 
 
 @router.get("/{knowledge_base_document_id}/parsed", status_code=status.HTTP_200_OK)
 async def get_parsed_document(
     knowledge_base_document_id: UUID,
-    doc_service: Annotated[KnowledgeBaseDocumentService, Depends()],
+    use_case: Annotated[GetParsedKnowledgeBaseDocumentUseCase, Depends()],
 ):
     """Get the parsed elements document structure (parsed_data.json) for a document."""
-    import json
-
-    from app_file_storage import get_storage_client
-    from app_layer_base.core.database.transaction import AsyncTransaction
-    from rag_core.parsers.schemas import ParsedDocument
-
-    async with AsyncTransaction() as session:
-        doc = await doc_service.repo.get_by_pk(session, knowledge_base_document_id)
-        if not doc or not doc.document_info:
-            raise NotFoundException("Document not found or has no storage info.")
-        parsed_data_path = doc.document_info.get("parsed_data_path")
-
-    if not parsed_data_path:
-        raise NotFoundException("Parsed data storage key is missing.")
-
-    storage_client = get_storage_client()
-    if not await storage_client.file_exists(parsed_data_path):
-        raise NotFoundException("Parsed document data not found in storage.")
-
-    data = await storage_client.download_file(parsed_data_path)
-    return ParsedDocument(**json.loads(data.decode("utf-8")))
+    return await use_case.execute(knowledge_base_document_id)

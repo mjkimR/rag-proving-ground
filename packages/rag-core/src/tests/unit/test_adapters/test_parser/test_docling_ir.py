@@ -1,9 +1,9 @@
+import hashlib
 import json
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-import pytest
 from app_file_storage import FileStorageClient
 from rag_core.adapters.parser.cache import ParserCache
 from rag_core.adapters.parser.interface import ParserInput
@@ -103,16 +103,14 @@ def test_docling_cache_round_trip_restores_parsed_document() -> None:
     assert restored.schema_version == "1.0"
 
 
-@pytest.mark.asyncio
-async def test_parser_cache_uses_schema_version_in_result_key() -> None:
+async def test_parser_cache_uses_parsing_config_hash_in_result_key() -> None:
     cache = ParserCache(_InMemoryStorage(), prefix="parser_cache")
 
-    key = cache._result_key("abc", "docling", schema_version="1.0")
+    key = cache._result_key("abc", "hash123")
 
-    assert key == "parser_cache/abc/docling-1.0.json"
+    assert key == "parser_cache/abc/hash123/parsed_data.json"
 
 
-@pytest.mark.asyncio
 async def test_parser_cache_stores_original_file_and_meta_under_hash() -> None:
     storage = _InMemoryStorage()
     cache = ParserCache(storage, prefix="parser_cache")
@@ -123,15 +121,17 @@ async def test_parser_cache_stores_original_file_and_meta_under_hash() -> None:
         metadata={"source": "unit"},
     )
 
-    md5_hash = await cache.store_file(parser_input)
+    content_hash = await cache.store_file(parser_input, "hash123")
 
-    assert not await storage.file_exists(f"parser_cache/{md5_hash}/sample.pdf")
-    meta = json.loads(await storage.download_file(f"parser_cache/{md5_hash}/meta.json"))
+    assert content_hash == hashlib.sha256(b"example").hexdigest()
+    assert not await storage.file_exists(f"parser_cache/{content_hash}/sample.pdf")
+    meta = json.loads(await storage.download_file(f"parser_cache/{content_hash}/hash123/meta.json"))
     assert meta == {
         "content_type": "application/pdf",
+        "hash_algorithm": "sha256",
         "extension": ".pdf",
         "filename": "sample.pdf",
-        "md5_hash": md5_hash,
+        "content_hash": content_hash,
         "metadata": {"source": "unit"},
     }
 
@@ -145,7 +145,6 @@ def test_docling_parser_does_not_mix_generic_content_into_specific_formats() -> 
     assert parser._extract_html(document) is None
 
 
-@pytest.mark.asyncio
 async def test_parser_cache_update_meta_does_nested_merge() -> None:
     storage = _InMemoryStorage()
     cache = ParserCache(storage, prefix="parser_cache")
@@ -154,16 +153,16 @@ async def test_parser_cache_update_meta_does_nested_merge() -> None:
         filename="sample.pdf",
         content_type="application/pdf",
     )
-    md5_hash = await cache.store_file(parser_input)
+    content_hash = await cache.store_file(parser_input, "hash123")
 
     # 1. Update with first provider duration
-    await cache._update_meta(md5_hash, {"parse_durations": {"docling": 1.23}})
-    meta = json.loads(await storage.download_file(f"parser_cache/{md5_hash}/meta.json"))
+    await cache._update_meta(content_hash, "hash123", {"parse_durations": {"docling": 1.23}})
+    meta = json.loads(await storage.download_file(f"parser_cache/{content_hash}/hash123/meta.json"))
     assert meta["parse_durations"] == {"docling": 1.23}
 
     # 2. Update with second provider duration - should MERGE, not OVERWRITE
-    await cache._update_meta(md5_hash, {"parse_durations": {"marker": 4.56}})
-    meta = json.loads(await storage.download_file(f"parser_cache/{md5_hash}/meta.json"))
+    await cache._update_meta(content_hash, "hash123", {"parse_durations": {"marker": 4.56}})
+    meta = json.loads(await storage.download_file(f"parser_cache/{content_hash}/hash123/meta.json"))
     assert meta["parse_durations"] == {"docling": 1.23, "marker": 4.56}
 
 

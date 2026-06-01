@@ -1,3 +1,6 @@
+import asyncio
+from collections.abc import Awaitable
+from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
@@ -6,6 +9,7 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     KnowledgeBaseDocumentCreate,
     KnowledgeBaseDocumentPatch,
     KnowledgeBaseDocumentPut,
+    KnowledgeBaseDocumentStatus,
 )
 from app.features.knowledge.knowledge_base_documents.services import (
     KnowledgeBaseDocumentContextKwargs,
@@ -24,8 +28,7 @@ from app_layer_base.base.usecases.crud import (
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
 from loguru import logger
-from qdrant_client.http import models as qmodels
-from rag_core.adapters.vector_store.instance import get_vector_store_provider
+from rag_core.embeddings import delete_document_vectors, knowledge_vector_collection_name
 
 
 class GetKnowledgeBaseDocumentUseCase(
@@ -99,44 +102,78 @@ class DeleteKnowledgeBaseDocumentUseCase(BaseUseCase):
                 )
 
             kb = await self.kb_service.repo.get_by_pk(session, doc.knowledge_base_id)
+            cleanup_target = KnowledgeDocumentCleanupTarget(
+                document_id=doc.id,
+                file_hash=doc.file_hash,
+                knowledge_base_name=kb.name if kb else "unknown",
+                embed_config_hash=kb.embed_config_hash if kb else None,
+            )
+            doc.status = KnowledgeBaseDocumentStatus.DELETING
+            await session.flush()
 
-            file_md5 = doc.file_md5
-            doc_id_str = str(document_id)
-            kb_name = kb.name if kb else "unknown"
+        cleanup_errors = await cleanup_knowledge_document_assets(cleanup_target)
+        if cleanup_errors:
+            async with AsyncTransaction() as session:
+                await self.service.repo.update_by_pk(
+                    session, document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
+                )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to clean up document assets: {'; '.join(cleanup_errors)}",
+            )
 
-            # 1. Clean up Vector store points
-            if kb and kb.embed_config_hash:
-                try:
-                    collection_name = f"vector_store_{kb.embed_config_hash}"
-                    provider_client = get_vector_store_provider().client
-                    provider_client.delete(
-                        collection_name=collection_name,
-                        points_selector=qmodels.FilterSelector(
-                            filter=qmodels.Filter(
-                                must=[
-                                    qmodels.FieldCondition(
-                                        key="metadata.doc_id",
-                                        match=qmodels.MatchValue(value=doc_id_str),
-                                    )
-                                ]
-                            )
-                        ),
-                    )
-                except Exception as ve:
-                    logger.warning(f"Failed to delete points from vector store: {ve}")
-
-            # 2. Clean up S3/MinIO files
-            try:
-                storage_client = get_storage_client()
-                prefix = f"knowledge/{kb_name}/{file_md5}/"
-                async for file_path in storage_client.list_files(prefix):
-                    await storage_client.delete_file(file_path)
-            except Exception as se:
-                logger.warning(f"Failed to delete assets from storage: {se}")
-
-            # 3. Delete database record
+        async with AsyncTransaction() as session:
             success = await self.service.repo.delete_by_pk(session, document_id)
             return {
                 "status": "success" if success else "failed",
                 "message": "Successfully deleted document and all associated assets.",
             }
+
+
+@dataclass(frozen=True)
+class KnowledgeDocumentCleanupTarget:
+    document_id: UUID
+    file_hash: str
+    knowledge_base_name: str
+    embed_config_hash: str | None = None
+
+
+async def cleanup_knowledge_document_assets(target: KnowledgeDocumentCleanupTarget) -> list[str]:
+    errors: list[str] = []
+    cleanup_tasks: list[Awaitable[str | None]] = []
+    if target.embed_config_hash:
+        cleanup_tasks.append(_cleanup_vector_store_assets(target))
+    cleanup_tasks.append(_cleanup_storage_assets(target))
+
+    results = await asyncio.gather(*cleanup_tasks, return_exceptions=True)
+    for result in results:
+        if isinstance(result, BaseException):
+            logger.opt(exception=result).error(f"Unexpected cleanup failure for doc {target.document_id}.")
+            errors.append(f"unexpected cleanup failure for document {target.document_id}: {result}")
+        elif result is not None:
+            errors.append(result)
+    return errors
+
+
+async def _cleanup_vector_store_assets(target: KnowledgeDocumentCleanupTarget) -> str | None:
+    try:
+        if not target.embed_config_hash:
+            return None
+        collection_name = knowledge_vector_collection_name(target.embed_config_hash)
+        await delete_document_vectors(collection_name, target.document_id)
+    except Exception as exc:
+        logger.exception(f"Failed to delete points from vector store for doc {target.document_id}: {exc}")
+        return f"vector store cleanup failed for document {target.document_id}: {exc}"
+    return None
+
+
+async def _cleanup_storage_assets(target: KnowledgeDocumentCleanupTarget) -> str | None:
+    try:
+        storage_client = get_storage_client()
+        prefix = f"knowledge/{target.knowledge_base_name}/{target.file_hash}/"
+        async for file_path in storage_client.list_files(prefix):
+            await storage_client.delete_file(file_path)
+    except Exception as exc:
+        logger.exception(f"Failed to delete storage assets for doc {target.document_id}: {exc}")
+        return f"storage cleanup failed for document {target.document_id}: {exc}"
+    return None

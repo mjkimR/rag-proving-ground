@@ -50,9 +50,16 @@ async def parse_document(
     *,
     provider: str | None = None,
     ignore_cache: bool = False,
+    parsing_config_hash: str | None = None,
 ) -> Any:
     """Parse a document with the configured parser engine."""
     parser = get_parser(provider=provider)
+
+    if parsing_config_hash is None:
+        from rag_core.parsers import KnowledgeParsingConfig, knowledge_parsing_config_hash
+
+        basic_config = KnowledgeParsingConfig(provider=parser.name)
+        parsing_config_hash = knowledge_parsing_config_hash(basic_config)
 
     if parser_input.content is None:
         start_time = time.perf_counter()
@@ -65,11 +72,11 @@ async def parse_document(
 
     cache = await _get_cache()
 
-    md5_hash = await cache.store_file(parser_input)
+    content_hash = await cache.store_file(parser_input, parsing_config_hash)
 
     if not ignore_cache:
         start_time = time.perf_counter()
-        cached_data = await cache.get_result(md5_hash, parser.name, schema_version=parser.schema_version)
+        cached_data = await cache.get_result(content_hash, parsing_config_hash)
         if cached_data is not None:
             result = parser.from_cache_data(cached_data)
             duration_sec = time.perf_counter() - start_time
@@ -77,7 +84,7 @@ async def parse_document(
             # Retrieve original duration from meta.json if possible
             original_duration = None
             try:
-                meta_key = cache._meta_key(md5_hash)
+                meta_key = cache._meta_key(content_hash, parsing_config_hash)
                 if await cache._client.file_exists(meta_key):
                     meta_bytes = await cache._client.download_file(meta_key)
                     meta = json.loads(meta_bytes.decode("utf-8"))
@@ -97,10 +104,10 @@ async def parse_document(
     duration_sec = time.perf_counter() - start_time
 
     await cache.store_result(
-        md5_hash,
-        parser.name,
+        content_hash,
+        parsing_config_hash,
         parser.to_cache_data(result),
-        schema_version=parser.schema_version,
+        provider=parser.name,
         parse_duration_sec=duration_sec,
     )
 
@@ -119,6 +126,7 @@ async def parse_file(
     metadata: dict[str, Any] | None = None,
     provider: str | None = None,
     ignore_cache: bool = False,
+    parsing_config_hash: str | None = None,
 ) -> Any:
     """Parse file bytes with the configured parser engine."""
     return await parse_document(
@@ -130,6 +138,7 @@ async def parse_file(
         ),
         provider=provider,
         ignore_cache=ignore_cache,
+        parsing_config_hash=parsing_config_hash,
     )
 
 
@@ -138,11 +147,13 @@ async def parse_upload_file(
     *,
     metadata: dict[str, Any] | None = None,
     provider: str | None = None,
+    parsing_config_hash: str | None = None,
 ) -> Any:
     """Parse a FastAPI/Starlette UploadFile with the configured parser engine."""
     return await parse_document(
         await ParserInput.from_upload_file(upload_file, metadata=metadata),
         provider=provider,
+        parsing_config_hash=parsing_config_hash,
     )
 
 
@@ -151,9 +162,11 @@ async def parse_source(
     *,
     metadata: dict[str, Any] | None = None,
     provider: str | None = None,
+    parsing_config_hash: str | None = None,
 ) -> Any:
     """Parse a URI or local source reference with the configured parser engine."""
     return await parse_document(
         ParserInput(source=source, metadata=metadata or {}),
         provider=provider,
+        parsing_config_hash=parsing_config_hash,
     )

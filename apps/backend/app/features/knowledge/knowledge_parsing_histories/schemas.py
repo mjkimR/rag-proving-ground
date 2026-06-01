@@ -2,6 +2,7 @@ from uuid import UUID
 
 from app_layer_base.base.schemas.mixin import TimestampSchemaMixin, UUIDSchemaMixin
 from pydantic import BaseModel, ConfigDict, Field
+from rag_core.parsers import KnowledgeParsingConfig
 
 
 class KnowledgeParsingHistoryBase(BaseModel):
@@ -9,7 +10,7 @@ class KnowledgeParsingHistoryBase(BaseModel):
     document_id: UUID = Field(description="The parent document ID.")
     provider: str | None = Field(default=None, description="Parsing provider (e.g. docling)")
     status: str = Field(description="SUCCESS or FAILED")
-    parsing_config: dict | None = Field(default=None, description="The parsing configurations used.")
+    parsing_config: KnowledgeParsingConfig | None = Field(default=None, description="The parsing configurations used.")
     error_message: str | None = Field(default=None, description="Error details if failed.")
     duration_seconds: float | None = Field(default=None, description="Duration in seconds.")
 

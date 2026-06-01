@@ -22,34 +22,33 @@ class ParserCache:
     # Public API
     # ------------------------------------------------------------------
 
-    async def store_file(self, parser_input: ParserInput) -> str:
+    async def store_file(self, parser_input: ParserInput, parsing_config_hash: str) -> str:
         if parser_input.content is None:
             raise ValueError("Parser cache requires file content.")
 
-        md5_hash = hashlib.md5(parser_input.content).hexdigest()
+        content_hash = hashlib.sha256(parser_input.content).hexdigest()
 
         meta: dict[str, Any] = {
-            "md5_hash": md5_hash,
+            "content_hash": content_hash,
+            "hash_algorithm": "sha256",
             "filename": parser_input.filename,
             "content_type": parser_input.content_type,
             "metadata": parser_input.metadata,
             "extension": self._extension(parser_input.filename),
         }
         await self._client.upload_file(
-            self._meta_key(md5_hash),
+            self._meta_key(content_hash, parsing_config_hash),
             json.dumps(meta, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8"),
         )
 
-        return md5_hash
+        return content_hash
 
     async def get_result(
         self,
-        md5_hash: str,
-        provider: str,
-        *,
-        schema_version: str | None = None,
+        content_hash: str,
+        parsing_config_hash: str,
     ) -> dict[str, Any] | None:
-        key = self._result_key(md5_hash, provider, schema_version=schema_version)
+        key = self._result_key(content_hash, parsing_config_hash)
         if not await self._client.file_exists(key):
             return None
 
@@ -58,14 +57,14 @@ class ParserCache:
 
     async def store_result(
         self,
-        md5_hash: str,
-        provider: str,
+        content_hash: str,
+        parsing_config_hash: str,
         result: dict[str, Any],
         *,
-        schema_version: str | None = None,
+        provider: str,
         parse_duration_sec: float | None = None,
     ) -> None:
-        key = self._result_key(md5_hash, provider, schema_version=schema_version)
+        key = self._result_key(content_hash, parsing_config_hash)
         await self._client.upload_file(
             key,
             json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8"),
@@ -73,23 +72,20 @@ class ParserCache:
         meta_updates: dict[str, Any] = {"converted_at": datetime.now(UTC).isoformat()}
         if parse_duration_sec is not None:
             meta_updates["parse_durations"] = {provider: parse_duration_sec}
-        await self._update_meta(md5_hash, meta_updates)
+        await self._update_meta(content_hash, parsing_config_hash, meta_updates)
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _meta_key(self, md5_hash: str) -> str:
-        return f"{self._prefix}/{md5_hash}/meta.json"
+    def _meta_key(self, content_hash: str, parsing_config_hash: str) -> str:
+        return f"{self._prefix}/{content_hash}/{parsing_config_hash}/meta.json"
 
-    def _result_key(self, md5_hash: str, provider: str, *, schema_version: str | None = None) -> str:
-        name = provider
-        if schema_version:
-            name = f"{provider}-{self._safe_filename_part(schema_version)}"
-        return f"{self._prefix}/{md5_hash}/{name}.json"
+    def _result_key(self, content_hash: str, parsing_config_hash: str) -> str:
+        return f"{self._prefix}/{content_hash}/{parsing_config_hash}/parsed_data.json"
 
-    async def _update_meta(self, md5_hash: str, values: dict[str, Any]) -> None:
-        key = self._meta_key(md5_hash)
+    async def _update_meta(self, content_hash: str, parsing_config_hash: str, values: dict[str, Any]) -> None:
+        key = self._meta_key(content_hash, parsing_config_hash)
         if not await self._client.file_exists(key):
             return
 
