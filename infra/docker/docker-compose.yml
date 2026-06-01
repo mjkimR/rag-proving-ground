@@ -6,14 +6,13 @@ services:
       - "14004:4000"
     volumes:
       - ../../models.yaml:/app/config.yaml
-    env_file:
-      - ../../.env
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@rag-meta-db:5432/litellm"
     command: [ "--config", "/app/config.yaml", "--port", "4000" ]
-    restart: unless-stopped
 
-  minio:
+  rag-storage-object:
     image: minio/minio:latest
-    container_name: minio
+    container_name: rag-storage-object
     ports:
       - "19000:9000"
       - "19001:9001"
@@ -21,17 +20,29 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     volumes:
-      - minio_data:/data
+      - storage_object_data:/data
     command: server /data --console-address ":9001"
 
-  qdrant:
+  rag-vector-db:
     image: qdrant/qdrant:latest
-    container_name: qdrant
+    container_name: rag-vector-db
     ports:
       - "16333:6333"
       - "16334:6334"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - vector_db_data:/qdrant/storage
+
+  rag-meta-db:
+    image: postgres:16-alpine
+    container_name: rag-meta-db
+    ports:
+      - "15431:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-rag}
+    volumes:
+      - meta_db_data:/var/lib/postgresql/data
 
   docling:
     image: quay.io/docling-project/docling-serve-cpu:latest
@@ -45,19 +56,7 @@ services:
       - parser
       - basic
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: postgres
-    ports:
-      - "15431:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-rag}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
 volumes:
-  minio_data:
-  qdrant_data:
-  postgres_data:
+  storage_object_data:
+  vector_db_data:
+  meta_db_data:

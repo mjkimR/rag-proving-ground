@@ -3,7 +3,7 @@
 This repository is a **Modular RAG Experimentation and Serving Scaffold** — a monorepo for building,
 evaluating, and serving Retrieval-Augmented Generation (RAG) pipelines.
 
-- **API App**: `apps/api` (Python, FastAPI) — parsing and chunking REST endpoints
+- **API App**: `apps/backend` (Python, FastAPI) — parsing and chunking REST endpoints
 - **Web App**: `apps/web` (React 19, Vite, TypeScript, CopilotKit) — frontend UI
 - **Core Library**: `packages/rag-core` (Python) — shared parsing, chunking, embedding, and AI utilities
 - **Graph Library**: `packages/graphs` (Python, LangGraph) — LangGraph-based RAG pipeline definitions
@@ -80,7 +80,7 @@ rag-proving-ground/
 
 ## Architecture & Code Style
 
-### Python Workspace (`packages/rag-core`, `packages/graphs`, `apps/api`)
+### Python Workspace (`packages/rag-core`, `packages/graphs`, `apps/backend`)
 
 - **Package manager**: `uv`. Never use `pip install` directly. Use `uv add` to add dependencies.
 - **Python version**: `>=3.13`. Use modern Python idioms (`match`, `type X = ...`, etc.).
