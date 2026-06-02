@@ -11,7 +11,8 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   getKnowledgeBasesApiV1KnowledgeBasesGet,
   createKnowledgeBaseApiV1KnowledgeBasesPost,
-  deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete
+  deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete,
+  getModelCatalogOptionsApiV1ModelCatalogOptionsGet
 } from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
 
@@ -32,6 +33,15 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
     queryKey: ['kbList'],
     queryFn: () => getKnowledgeBasesApiV1KnowledgeBasesGet({ throwOnError: true }),
   });
+
+  // Fetch dynamic configuration options
+  const { data: configOptions, isLoading: configLoading } = useQuery({
+    queryKey: ['configOptions'],
+    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+  });
+
+  const embeddingModels = configOptions?.data?.embedding_models || [];
+  const parserProviders = configOptions?.data?.parser_providers || [];
 
   const items = kbList?.data?.items || [];
 
@@ -162,10 +172,12 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           className="font-outfit shadow-button"
           onClick={() => {
             setCreateModalVisible(true);
+            const defaultEmbed = embeddingModels.includes('text-embedding-3-small') ? 'text-embedding-3-small' : (embeddingModels[0] || '');
+            const defaultParser = parserProviders.includes('docling') ? 'docling' : (parserProviders[0] || '');
             form.setFieldsValue({
-              embedding_model: 'text-embedding-3-small',
+              embedding_model: defaultEmbed,
               distance_metric: 'cosine',
-              parsing_provider: 'docling',
+              parsing_provider: defaultParser,
               chunk_size: 1024,
               chunk_overlap: 200,
               merge_max_chars: 4096,
@@ -438,9 +450,12 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
                   rules={[{ required: true }]}
                   tooltip="The default parser provider used for file ingestion. Docling is highly accurate with PDFs, tables, and complex documents."
                 >
-                  <Select size="large">
-                    <Select.Option value="docling">Docling (Deep Layout)</Select.Option>
-                    <Select.Option value="marker">Marker (Text Markdown)</Select.Option>
+                  <Select size="large" loading={configLoading}>
+                    {parserProviders.map((provider) => (
+                      <Select.Option key={provider} value={provider}>
+                        {provider.charAt(0).toUpperCase() + provider.slice(1)} {provider === 'docling' ? '(Deep Layout)' : ''}
+                      </Select.Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -451,11 +466,12 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
                   rules={[{ required: true }]}
                   tooltip="The vectorizer model used to compute chunk embeddings. Must match LiteLLM configurations."
                 >
-                  <Select size="large">
-                    <Select.Option value="text-embedding-3-small">text-embedding-3-small</Select.Option>
-                    <Select.Option value="text-embedding-3-large">text-embedding-3-large</Select.Option>
-                    <Select.Option value="text-embedding-ada-002">text-embedding-ada-002</Select.Option>
-                    <Select.Option value="bge-large-en-v1.5">bge-large-en-v1.5</Select.Option>
+                  <Select size="large" loading={configLoading}>
+                    {embeddingModels.map((model) => (
+                      <Select.Option key={model} value={model}>
+                        {model}
+                      </Select.Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>

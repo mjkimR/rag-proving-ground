@@ -745,6 +745,36 @@ export type KnowledgeParsingConfig = {
 };
 
 /**
+ * ModelCatalogOptions
+ */
+export type ModelCatalogOptions = {
+    /**
+     * Embedding Models
+     *
+     * List of available embedding models
+     */
+    embedding_models: Array<string>;
+    /**
+     * Llm Models
+     *
+     * List of available LLM models
+     */
+    llm_models: Array<string>;
+    /**
+     * Reranker Models
+     *
+     * List of available reranker models
+     */
+    reranker_models: Array<string>;
+    /**
+     * Parser Providers
+     *
+     * List of available parser providers
+     */
+    parser_providers: Array<string>;
+};
+
+/**
  * PaginatedList[JobProcessHistoryRead]
  */
 export type PaginatedListJobProcessHistoryRead = {
@@ -1826,3 +1856,19 @@ export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetRe
 };
 
 export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponse = GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses[keyof GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses];
+
+export type GetModelCatalogOptionsApiV1ModelCatalogOptionsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/model_catalog/options';
+};
+
+export type GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: ModelCatalogOptions;
+};
+
+export type GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponse = GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses[keyof GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses];

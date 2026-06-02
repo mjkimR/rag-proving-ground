@@ -3,11 +3,18 @@ import {
   Modal, Form, Input, Select, InputNumber, Switch, Tabs, Radio, Alert, Space, Typography
 } from 'antd';
 import { Settings, Info } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch } from '@/generated/api/sdk.gen';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch,
+  getModelCatalogOptionsApiV1ModelCatalogOptionsGet
+} from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseRead, KnowledgeBaseConfigApplyMode } from '@/generated/api/types.gen';
 
 const { Text, Paragraph } = Typography;
+
+const PARSER_LABELS: Record<string, string> = {
+  docling: 'Docling (Recommended)',
+};
 
 interface KnowledgeBaseSettingsModalProps {
   visible: boolean;
@@ -23,6 +30,16 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
   onSuccess
 }) => {
   const queryClient = useQueryClient();
+
+  // Fetch dynamic configuration options
+  const { data: configOptions, isLoading: configLoading } = useQuery({
+    queryKey: ['configOptions'],
+    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+    enabled: visible,
+  });
+
+  const embeddingModels = configOptions?.data?.embedding_models || [];
+  const parserProviders = configOptions?.data?.parser_providers || [];
   const [form] = Form.useForm();
   const [activeTab, setActiveTab] = useState('embedding');
   const [confirmVisible, setConfirmVisible] = useState(false);
@@ -191,11 +208,12 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
                       rules={[{ required: true, message: 'Please select or enter an embedding model' }]}
                       tooltip="Must match a LiteLLM embedding model configured on your proxy backend."
                     >
-                      <Select>
-                        <Select.Option value="text-embedding-3-small">text-embedding-3-small (Default)</Select.Option>
-                        <Select.Option value="text-embedding-3-large">text-embedding-3-large</Select.Option>
-                        <Select.Option value="text-embedding-ada-002">text-embedding-ada-002</Select.Option>
-                        <Select.Option value="bge-large-en-v1.5">bge-large-en-v1.5</Select.Option>
+                      <Select loading={configLoading}>
+                        {embeddingModels.map((model) => (
+                          <Select.Option key={model} value={model}>
+                            {model} {model === 'text-embedding-3-small' ? '(Default)' : ''}
+                          </Select.Option>
+                        ))}
                       </Select>
                     </Form.Item>
 
@@ -226,9 +244,12 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
                       label="Parsing Provider"
                       rules={[{ required: true }]}
                     >
-                      <Select style={{ width: '200px' }}>
-                        <Select.Option value="docling">Docling (Recommended)</Select.Option>
-                        <Select.Option value="marker">Marker</Select.Option>
+                      <Select style={{ width: '200px' }} loading={configLoading}>
+                        {parserProviders.map((provider) => (
+                          <Select.Option key={provider} value={provider}>
+                            {PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))}
+                          </Select.Option>
+                        ))}
                       </Select>
                     </Form.Item>
                   </div>

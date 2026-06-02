@@ -11,6 +11,7 @@ import {
   patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch,
   deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete,
   getJobProcessHistoriesApiV1JobProcessHistoriesGet,
+  getModelCatalogOptionsApiV1ModelCatalogOptionsGet,
 } from '@/generated/api/sdk.gen';
 import {
   FileText, Trash2, Download, Eye, AlertCircle, UploadCloud, Settings2, Settings,
@@ -24,6 +25,10 @@ import { RetrievalTestTab } from './RetrievalTestTab';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
+
+const PARSER_LABELS: Record<string, string> = {
+  docling: 'Docling (Layout + Tables Analysis)',
+};
 
 interface KnowledgeBaseDetailProps {
   kb: KnowledgeBaseRead;
@@ -42,6 +47,16 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('1');
+
+  // Fetch dynamic configuration options
+  const { data: configOptions, isLoading: configLoading } = useQuery({
+    queryKey: ['configOptions'],
+    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+  });
+
+  const embeddingModels = configOptions?.data?.embedding_models || [];
+  const parserProviders = configOptions?.data?.parser_providers || [];
+
   const [parserProvider, setParserProvider] = useState('docling');
   const [isUploading, setIsUploading] = useState(false);
   const [selectedDocForSettings, setSelectedDocForSettings] = useState<KnowledgeBaseDocumentRead | null>(null);
@@ -115,6 +130,12 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
       });
     }
   }, [kb, settingsForm]);
+
+  useEffect(() => {
+    if (parserProviders.length > 0 && !parserProviders.includes(parserProvider)) {
+      setParserProvider(parserProviders[0]);
+    }
+  }, [parserProviders, parserProvider]);
 
   // --- MUTATION: Upload Document ---
   const handleUpload = async (file: File) => {
@@ -463,14 +484,18 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                       <Space size="middle">
                         <Text strong style={{ fontSize: '13px' }}>Ingestion Parser:</Text>
                         <Select
-                          defaultValue="docling"
+                          value={parserProvider}
                           style={{ width: 150 }}
                           onChange={(val) => setParserProvider(val)}
                           className="font-outfit"
                           size="middle"
+                          loading={configLoading}
                         >
-                          <Option value="docling">Docling Parser</Option>
-                          <Option value="marker">Marker Parser</Option>
+                          {parserProviders.map((provider) => (
+                            <Option key={provider} value={provider}>
+                              {provider.charAt(0).toUpperCase() + provider.slice(1)} Parser
+                            </Option>
+                          ))}
                         </Select>
                       </Space>
                     </Col>
@@ -688,9 +713,12 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                     label="Parsing Provider"
                     rules={[{ required: true }]}
                   >
-                    <Select size="large" style={{ width: '260px' }}>
-                      <Select.Option value="docling">Docling (Layout + Tables Analysis)</Select.Option>
-                      <Select.Option value="marker">Marker (Markdown Text Conversion)</Select.Option>
+                    <Select size="large" style={{ width: '260px' }} loading={configLoading}>
+                      {parserProviders.map((provider) => (
+                        <Select.Option key={provider} value={provider}>
+                          {PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))}
+                        </Select.Option>
+                      ))}
                     </Select>
                   </Form.Item>
 
@@ -779,11 +807,12 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                         label="Embedding Model"
                         rules={[{ required: true }]}
                       >
-                        <Select size="large">
-                          <Select.Option value="text-embedding-3-small">text-embedding-3-small</Select.Option>
-                          <Select.Option value="text-embedding-3-large">text-embedding-3-large</Select.Option>
-                          <Select.Option value="text-embedding-ada-002">text-embedding-ada-002</Select.Option>
-                          <Select.Option value="bge-large-en-v1.5">bge-large-en-v1.5</Select.Option>
+                        <Select size="large" loading={configLoading}>
+                          {embeddingModels.map((model) => (
+                            <Select.Option key={model} value={model}>
+                              {model}
+                            </Select.Option>
+                          ))}
                         </Select>
                       </Form.Item>
                     </Col>

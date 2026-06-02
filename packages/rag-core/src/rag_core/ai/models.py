@@ -2,8 +2,11 @@
 
 import json
 import logging
+import os
+from functools import lru_cache
 from typing import Any
 
+import yaml
 from langchain_core.documents import BaseDocumentCompressor
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
@@ -119,3 +122,83 @@ def _json_safe_key(value: Any) -> str:
             f"str(). type={type(value).__qualname__} value={value!r}"
         )
     return str(value)
+
+
+@lru_cache(maxsize=1)
+def get_model_options() -> dict[str, list[str]]:
+    """Parse models.yaml and return categorized lists of models."""
+    yaml_path = os.environ.get("MODELS_YAML_PATH")
+    if not yaml_path:
+        search_paths = [
+            "models.yaml",
+            "../models.yaml",
+            "../../models.yaml",
+        ]
+        for p in search_paths:
+            if os.path.exists(p):
+                yaml_path = p
+                break
+
+    if not yaml_path or not os.path.exists(yaml_path):
+        logger.warning("models.yaml not found, returning fallback defaults")
+        return {
+            "embedding_models": ["vllm-embedding"],
+            "llm_models": ["gpt-oss-20b"],
+            "reranker_models": ["vllm-reranker"],
+        }
+
+    try:
+        with open(yaml_path, encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+    except Exception as e:
+        logger.error(f"Failed to parse models.yaml: {e}")
+        return {
+            "embedding_models": ["vllm-embedding"],
+            "llm_models": ["gpt-oss-20b"],
+            "reranker_models": ["vllm-reranker"],
+        }
+
+    model_list = config.get("model_list", []) or []
+    embedding_models = []
+    llm_models = []
+    reranker_models = []
+
+    for entry in model_list:
+        name = entry.get("model_name")
+        if not name:
+            continue
+
+        metadata = entry.get("metadata") or {}
+        role = metadata.get("role") or metadata.get("type")
+
+        if not role and "tags" in metadata:
+            tags = metadata.get("tags") or []
+            if "embedding" in tags:
+                role = "embedding"
+            elif "reranker" in tags:
+                role = "reranker"
+            elif "llm" in tags or "chat" in tags:
+                role = "llm"
+
+        if not role:
+            # Name heuristics
+            name_lower = name.lower()
+            if "embedding" in name_lower:
+                role = "embedding"
+            elif "reranker" in name_lower or "rerank" in name_lower:
+                role = "reranker"
+            else:
+                role = "llm"
+
+        if role == "embedding":
+            embedding_models.append(name)
+        elif role == "reranker":
+            reranker_models.append(name)
+        else:
+            llm_models.append(name)
+
+    return {
+        "embedding_models": embedding_models,
+        "llm_models": llm_models,
+        "reranker_models": reranker_models,
+    }
