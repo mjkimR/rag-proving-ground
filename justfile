@@ -74,6 +74,11 @@ test +paths="":
 kill:
     @bash ./scripts/kill-dev.sh
 
+# Open the web UI in the browser
+browser:
+    @bash ./scripts/open-browser.sh
+
+
 # Start the background worker for async document processing
 worker:
     @bash ./scripts/worker-run.sh
