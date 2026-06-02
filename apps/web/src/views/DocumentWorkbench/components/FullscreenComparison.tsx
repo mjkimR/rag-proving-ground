@@ -1,4 +1,5 @@
-import { PreviewMode, modeLabels } from "../types";
+import { modeLabels } from "../types";
+import type { PreviewMode } from "../types";
 import { HtmlPreview } from "../../../components/HtmlPreview";
 import { MarkdownPreview } from "../../../components/MarkdownPreview";
 import { PdfPreview } from "../../../components/PdfPreview";

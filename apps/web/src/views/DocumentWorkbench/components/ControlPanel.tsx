@@ -1,6 +1,7 @@
-import { ChangeEvent } from "react";
 import { Maximize2 } from "lucide-react";
-import { PreviewMode, modeLabels } from "../types";
+import { modeLabels } from "../types";
+import type { ChangeEvent } from "react";
+import type { PreviewMode } from "../types";
 
 type ControlPanelProps = {
   setIsFullscreen: (val: boolean) => void;

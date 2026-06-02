@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Card, Table, Button, Space, Typography, Upload, Select, Spin, Tag, Empty, Modal, Badge,
-  Tooltip, Row, Col, Tabs, Form, Input, InputNumber, Switch, Radio, Alert, message, Divider, List
+  Tooltip, Row, Col, Tabs, Form, Input, InputNumber, Switch, Radio, Alert, message
 } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -10,18 +10,14 @@ import {
   deleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDelete,
   patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch,
   deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete,
-  getKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGet,
-  getKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGet,
-  getKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGet
+  getJobProcessHistoriesApiV1JobProcessHistoriesGet,
 } from '@/generated/api/sdk.gen';
 import {
   FileText, Trash2, Download, Eye, AlertCircle, UploadCloud, Settings2, Settings,
-  ArrowLeft, RefreshCw, Cpu, Sparkles, Sliders, Calendar, Layers, ShieldCheck,
-  CheckCircle, XCircle, Info, Clock, AlertTriangle, FileCode2
+  ArrowLeft, RefreshCw, Cpu, Sliders, Info, Clock
 } from 'lucide-react';
-import {
-  KnowledgeBaseRead, KnowledgeBaseDocumentRead, KnowledgeParsingConfig,
-  ChunkingConfig, KnowledgeBaseConfigApplyMode
+import type {
+  KnowledgeBaseRead, KnowledgeBaseDocumentRead, KnowledgeBaseConfigApplyMode, JobProcessHistoryRead
 } from '@/generated/api/types.gen';
 import { DocumentSettingsModal } from './DocumentSettingsModal';
 
@@ -71,8 +67,8 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
   // --- QUERIES FOR HISTORY (TAB 3) ---
   const { data: parseHistory, isLoading: parsingHistLoading, refetch: refetchParseHist } = useQuery({
     queryKey: ['parsingHistory', kb.id],
-    queryFn: () => getKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGet({
-      query: { limit: 20 },
+    queryFn: () => getJobProcessHistoriesApiV1JobProcessHistoriesGet({
+      query: { resource_type: 'knowledge_base_document', stage: 'parsing', limit: 20 },
       throwOnError: true,
     }),
     enabled: activeTab === '3',
@@ -80,8 +76,8 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
 
   const { data: chunkHistory, isLoading: chunkingHistLoading, refetch: refetchChunkHist } = useQuery({
     queryKey: ['chunkingHistory', kb.id],
-    queryFn: () => getKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGet({
-      query: { limit: 20 },
+    queryFn: () => getJobProcessHistoriesApiV1JobProcessHistoriesGet({
+      query: { resource_type: 'knowledge_base_document', stage: 'chunking', limit: 20 },
       throwOnError: true,
     }),
     enabled: activeTab === '3',
@@ -89,8 +85,8 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
 
   const { data: embedHistory, isLoading: embeddingHistLoading, refetch: refetchEmbedHist } = useQuery({
     queryKey: ['embeddingHistory', kb.id],
-    queryFn: () => getKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGet({
-      query: { limit: 20 },
+    queryFn: () => getJobProcessHistoriesApiV1JobProcessHistoriesGet({
+      query: { resource_type: 'knowledge_base_document', stage: 'embedding', limit: 20 },
       throwOnError: true,
     }),
     enabled: activeTab === '3',
@@ -326,6 +322,11 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
     }
   };
 
+  const getHistoryMetric = (record: JobProcessHistoryRead, key: string) => {
+    const value = record.metrics?.[key];
+    return typeof value === 'number' ? value : undefined;
+  };
+
   // Helpers to calculate stats inside documents
   const docs = fileList?.data?.items || [];
   const completedDocs = docs.filter(d => d.status === 'COMPLETED').length;
@@ -337,7 +338,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* 1. Detail Header Panel */}
-      <Card bordered={false} className="glass-card header-panel" style={{ borderRadius: '16px', padding: '6px' }}>
+      <Card variant="borderless" className="glass-card header-panel" style={{ borderRadius: '16px', padding: '6px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
           
           <Space direction="vertical" size={2}>
@@ -450,7 +451,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 
                 {/* Drag and Drop Uploader */}
-                <Card bordered={false} className="glass-card" style={{ borderRadius: '16px' }}>
+                <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
                   <Row align="middle" justify="space-between" gutter={[16, 16]}>
                     <Col>
                       <Title level={5} className="font-outfit" style={{ margin: 0, fontWeight: 700 }}>
@@ -510,7 +511,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                 </Card>
 
                 {/* Documents list table */}
-                <Card bordered={false} className="glass-card" style={{ borderRadius: '16px' }}>
+                <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <Text strong style={{ fontSize: '15px' }}>Database Contents</Text>
                     {failedDocs > 0 && (
@@ -654,7 +655,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
               </span>
             ),
             children: (
-              <Card bordered={false} className="glass-card" style={{ borderRadius: '16px' }}>
+              <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
                 <div style={{ marginBottom: '20px' }}>
                   <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Strategy Configurations</Title>
                   <Paragraph type="secondary" style={{ margin: '4px 0 0 0' }}>
@@ -764,7 +765,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
 
                   <Title level={5} style={{ margin: '24px 0 12px 0', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>Vector Database Physical Indexing</Title>
                   <Alert
-                    message="Index Restructure Warning"
+                    title="Index Restructure Warning"
                     description="Embedding adjustments require creating a physically separate namespace/collection inside Qdrant. Restructuring this will necessitate re-embedding all existing files."
                     type="warning"
                     showIcon
@@ -825,7 +826,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
               </span>
             ),
             children: (
-              <Card bordered={false} className="glass-card" style={{ borderRadius: '16px' }}>
+              <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
                 <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
                   <div>
                     <Title level={4} style={{ margin: 0, fontWeight: 700 }}>Database Processing Logs</Title>
@@ -865,7 +866,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                             { title: 'Provider', dataIndex: 'provider', render: (p) => <Tag color="purple">{p}</Tag> },
                             {
                               title: 'Status',
-                              dataIndex: 'status',
+                              dataIndex: 'outcome',
                               render: (s) => (
                                 <Tag color={s === 'SUCCESS' || s === 'COMPLETED' ? 'success' : 'error'} style={{ fontWeight: 600 }}>
                                   {s}
@@ -904,11 +905,14 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                           pagination={{ pageSize: 8 }}
                           columns={[
                             { title: 'Date', dataIndex: 'created_at', render: (d) => formatDate(d) },
-                            { title: 'Strategy', dataIndex: 'strategy', render: (s) => <Tag color="blue">{s}</Tag> },
-                            { title: 'Chunks Created', dataIndex: 'chunk_count', render: (c) => c ?? '-' },
+                            { title: 'Stage', dataIndex: 'stage', render: (s) => <Tag color="blue">{s}</Tag> },
+                            {
+                              title: 'Chunks Created',
+                              render: (_, record: JobProcessHistoryRead) => getHistoryMetric(record, 'chunk_count') ?? '-'
+                            },
                             {
                               title: 'Status',
-                              dataIndex: 'status',
+                              dataIndex: 'outcome',
                               render: (s) => (
                                 <Tag color={s === 'SUCCESS' || s === 'COMPLETED' ? 'success' : 'error'} style={{ fontWeight: 600 }}>
                                   {s}
@@ -948,10 +952,20 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                           columns={[
                             { title: 'Date', dataIndex: 'created_at', render: (d) => formatDate(d) },
                             { title: 'Model Name', dataIndex: 'model_name', render: (m) => <Tag color="pink">{m}</Tag> },
-                            { title: 'Vectors Indexed', dataIndex: 'vector_count', render: (v) => <Badge count={v} showZero color="#4f46e5" style={{ fontWeight: 700 }} /> },
+                            {
+                              title: 'Vectors Indexed',
+                              render: (_, record: JobProcessHistoryRead) => (
+                                <Badge
+                                  count={getHistoryMetric(record, 'vector_count') ?? 0}
+                                  showZero
+                                  color="#4f46e5"
+                                  style={{ fontWeight: 700 }}
+                                />
+                              )
+                            },
                             {
                               title: 'Status',
-                              dataIndex: 'status',
+                              dataIndex: 'outcome',
                               render: (s) => (
                                 <Tag color={s === 'SUCCESS' || s === 'COMPLETED' ? 'success' : 'error'} style={{ fontWeight: 600 }}>
                                   {s}
@@ -1020,7 +1034,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
           
           {configLoadType === 'reembed' && (
             <Alert
-              message="Full Collection Re-Embedding Required"
+              title="Full Collection Re-Embedding Required"
               description="Restructuring vector model dimensions or distance metrics requires building a new physics vector namespace. All files inside this database MUST be re-embedded."
               type="error"
               showIcon
@@ -1029,7 +1043,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
 
           {configLoadType === 'high' && (
             <Alert
-              message="High Workload Detected"
+              title="High Workload Detected"
               description="Altering default parsing providers requires parsing workers to download raw documents and run OCR / element extractions again, which takes processing bandwidth."
               type="warning"
               showIcon
@@ -1038,7 +1052,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
 
           {configLoadType === 'low' && (
             <Alert
-              message="Low Load Strategy Adjustment"
+              title="Low Load Strategy Adjustment"
               description="Only character split bounds or breadcrumbs adjusted. Fast propagation because worker nodes bypass layout extraction and process cached document trees."
               type="success"
               showIcon

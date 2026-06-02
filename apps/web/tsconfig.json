@@ -13,6 +13,13 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleDetection": "force",
+    "noUncheckedSideEffectImports": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {

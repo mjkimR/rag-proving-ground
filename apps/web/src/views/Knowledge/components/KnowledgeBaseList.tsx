@@ -7,7 +7,7 @@ import {
   createKnowledgeBaseApiV1KnowledgeBasesPost,
   deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete
 } from '@/generated/api/sdk.gen';
-import { KnowledgeBaseRead } from '@/generated/api/types.gen';
+import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
 
 interface KnowledgeBaseListProps {
   selectedId: string | null;
@@ -99,7 +99,7 @@ export const KnowledgeBaseList: React.FC<KnowledgeBaseListProps> = ({
 
   return (
     <Card
-      bordered={false}
+      variant="borderless"
       className="glass-card"
       title={<span className="font-outfit" style={{ fontSize: '15px', fontWeight: 700 }}>Knowledge Bases</span>}
     >

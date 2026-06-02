@@ -5,7 +5,7 @@ import { getKnowledgeBasesApiV1KnowledgeBasesGet, healthApiHealthGet } from '@/g
 import { Database, FileText, Activity, Server, AlertCircle } from 'lucide-react';
 import { useThemeStore } from '@/stores/themeStore';
 
-const { Title, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
 export const Dashboard: React.FC = () => {
   const { setActiveTab, setSelectedKnowledgeName, setSelectedKnowledgeId } = useThemeStore();
@@ -41,49 +41,49 @@ export const Dashboard: React.FC = () => {
       <Row gutter={[18, 18]}>
         {/* Metric 1: Total KB */}
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} hoverable className="glass-card">
+          <Card variant="borderless" hoverable className="glass-card">
             <Statistic
               title={<span className="font-outfit" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Knowledge Bases</span>}
               value={kbList?.data?.items ? kbList.data.items.length : 0}
               loading={kbLoading}
               prefix={<Database size={22} color="var(--accent-gradient)" style={{ marginRight: '8px', verticalAlign: 'middle' }} />}
-              valueStyle={{ fontWeight: 800, fontSize: '28px', fontFamily: 'Outfit' }}
+              styles={{ content: { fontWeight: 800, fontSize: '28px', fontFamily: 'Outfit' } }}
             />
           </Card>
         </Col>
 
         {/* Metric 2: System Health */}
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} hoverable className="glass-card">
+          <Card variant="borderless" hoverable className="glass-card">
             <Statistic
               title={<span className="font-outfit" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>System Status</span>}
               value={status.text}
               prefix={<Activity size={22} color={status.color === 'green' ? '#10b981' : '#f59e0b'} style={{ marginRight: '8px', verticalAlign: 'middle' }} />}
-              valueStyle={{ fontWeight: 800, fontSize: '24px', fontFamily: 'Outfit', color: status.color === 'green' ? '#10b981' : '#f59e0b' }}
+              styles={{ content: { fontWeight: 800, fontSize: '24px', fontFamily: 'Outfit', color: status.color === 'green' ? '#10b981' : '#f59e0b' } }}
             />
           </Card>
         </Col>
 
         {/* Metric 3: Active Parser */}
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} hoverable className="glass-card">
+          <Card variant="borderless" hoverable className="glass-card">
             <Statistic
               title={<span className="font-outfit" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Parser Engine</span>}
               value="Docling SDK"
               prefix={<Server size={22} color="#8b5cf6" style={{ marginRight: '8px', verticalAlign: 'middle' }} />}
-              valueStyle={{ fontWeight: 800, fontSize: '24px', fontFamily: 'Outfit', color: '#8b5cf6' }}
+              styles={{ content: { fontWeight: 800, fontSize: '24px', fontFamily: 'Outfit', color: '#8b5cf6' } }}
             />
           </Card>
         </Col>
 
         {/* Metric 4: Platform Version */}
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} hoverable className="glass-card">
+          <Card variant="borderless" hoverable className="glass-card">
             <Statistic
               title={<span className="font-outfit" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Platform Version</span>}
               value="v0.1.0-alpha"
               prefix={<FileText size={22} color="#f59e0b" style={{ marginRight: '8px', verticalAlign: 'middle' }} />}
-              valueStyle={{ fontWeight: 800, fontSize: '24px', fontFamily: 'Outfit' }}
+              styles={{ content: { fontWeight: 800, fontSize: '24px', fontFamily: 'Outfit' } }}
             />
           </Card>
         </Col>
@@ -94,12 +94,12 @@ export const Dashboard: React.FC = () => {
         <Col xs={24} lg={16}>
           <Card
             title={<span className="font-outfit" style={{ fontSize: '16px', fontWeight: 700 }}>Your Knowledge Bases</span>}
-            bordered={false}
+            variant="borderless"
             className="glass-card"
           >
             {kbError ? (
               <Alert
-                message="Error loading knowledge bases"
+                title="Error loading knowledge bases"
                 description={kbError.toString()}
                 type="error"
                 showIcon
@@ -161,7 +161,7 @@ export const Dashboard: React.FC = () => {
         <Col xs={24} lg={8}>
           <Card
             title={<span className="font-outfit" style={{ fontSize: '16px', fontWeight: 700 }}>System Health Info</span>}
-            bordered={false}
+            variant="borderless"
             className="glass-card"
             style={{ height: '100%' }}
           >
@@ -170,7 +170,7 @@ export const Dashboard: React.FC = () => {
             </Paragraph>
 
             <Alert
-              message={status.text === 'Online' ? 'Active & Ready' : 'Warning'}
+              title={status.text === 'Online' ? 'Active & Ready' : 'Warning'}
               description={status.desc}
               type={status.text === 'Online' ? 'success' : 'warning'}
               showIcon

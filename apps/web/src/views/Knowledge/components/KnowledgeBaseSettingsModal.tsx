@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Modal, Form, Input, Select, InputNumber, Switch, Tabs, Radio, Alert, Button, Space, Typography, Badge
+  Modal, Form, Input, Select, InputNumber, Switch, Tabs, Radio, Alert, Space, Typography
 } from 'antd';
-import { Settings, Info, Cpu, Database, Eye } from 'lucide-react';
+import { Settings, Info } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch } from '@/generated/api/sdk.gen';
-import { KnowledgeBaseRead, KnowledgeBaseConfigApplyMode } from '@/generated/api/types.gen';
+import type { KnowledgeBaseRead, KnowledgeBaseConfigApplyMode } from '@/generated/api/types.gen';
 
-const { Text, Paragraph, Title } = Typography;
+const { Text, Paragraph } = Typography;
 
 interface KnowledgeBaseSettingsModalProps {
   visible: boolean;
@@ -171,7 +171,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
                 children: (
                   <div style={{ padding: '8px 4px' }}>
                     <Alert
-                      message="Vector Database Physical Indexing"
+                      title="Vector Database Physical Indexing"
                       description="Embedding configurations establish a physical collection inside Qdrant. Modifying these values requires all documents to be re-embedded."
                       type="warning"
                       showIcon
@@ -318,7 +318,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: '12px' }}>
           {loadType === 'reembed' && (
             <Alert
-              message="Re-Embedding Required"
+              title="Re-Embedding Required"
               description="You changed embedding model/distance settings. All existing documents in this knowledge base must be re-embedded to match the new vector structure."
               type="error"
               showIcon
@@ -327,7 +327,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
 
           {loadType === 'high' && (
             <Alert
-              message="High Load Processing Detected"
+              title="High Load Processing Detected"
               description="Parsing configurations changed. Re-parsing PDF files runs heavy layout extraction and OCR, which will take time to process."
               type="warning"
               showIcon
@@ -336,7 +336,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
 
           {loadType === 'low' && (
             <Alert
-              message="Low Load Processing Detected"
+              title="Low Load Processing Detected"
               description="Only chunking configs changed. Reprocessing will bypass parsing and execute rapidly using existing cached layouts."
               type="success"
               showIcon

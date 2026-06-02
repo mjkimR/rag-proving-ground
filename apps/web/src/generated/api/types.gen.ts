@@ -220,6 +220,94 @@ export type HttpValidationError = {
 };
 
 /**
+ * JobProcessHistoryRead
+ */
+export type JobProcessHistoryRead = {
+    /**
+     * Name
+     *
+     * Optional display name for the history event.
+     */
+    name?: string | null;
+    /**
+     * Resource Type
+     *
+     * Logical resource type, for example knowledge_base_document.
+     */
+    resource_type: string;
+    /**
+     * Resource Id
+     *
+     * Resource UUID. This is intentionally not a foreign key.
+     */
+    resource_id: string;
+    /**
+     * Stage
+     *
+     * Processing stage, for example parsing, chunking, embedding, or indexing.
+     */
+    stage: string;
+    /**
+     * Outcome
+     *
+     * Result of this historical event, for example SUCCESS, FAILED, or SKIPPED.
+     */
+    outcome: string;
+    /**
+     * Provider
+     *
+     * Optional provider name used for the stage.
+     */
+    provider?: string | null;
+    /**
+     * Model Name
+     *
+     * Optional model name used for the stage.
+     */
+    model_name?: string | null;
+    /**
+     * Config
+     *
+     * Effective configuration snapshot used for the stage.
+     */
+    config?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Metrics
+     *
+     * Stage-specific event metrics.
+     */
+    metrics?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Error Message
+     *
+     * Safe error detail for failed events.
+     */
+    error_message?: string | null;
+    /**
+     * Duration Seconds
+     *
+     * Stage duration in seconds.
+     */
+    duration_seconds?: number | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
  * KnowledgeBaseConfigApplyMode
  */
 export type KnowledgeBaseConfigApplyMode = 'NEW_ONLY' | 'INHERITED_ONLY' | 'FORCE_ALL';
@@ -434,7 +522,7 @@ export type KnowledgeBaseDocumentReprocessRequest = {
 /**
  * KnowledgeBaseDocumentStatus
  */
-export type KnowledgeBaseDocumentStatus = 'READY' | 'PARSING' | 'CHUNKING' | 'EMBEDDING' | 'FAILED' | 'COMPLETED' | 'PENDING_REPARSE' | 'PENDING_RECHUNK' | 'PENDING_REEMBED' | 'DELETING';
+export type KnowledgeBaseDocumentStatus = 'READY' | 'QUEUED' | 'PARSING' | 'CHUNKING' | 'EMBEDDING' | 'FAILED' | 'COMPLETED' | 'PENDING_REPARSE' | 'PENDING_RECHUNK' | 'PENDING_REEMBED' | 'DELETING';
 
 /**
  * KnowledgeBasePatch
@@ -544,70 +632,6 @@ export type KnowledgeBaseRead = {
 export type KnowledgeBaseStatus = 'READY' | 'RUNNING' | 'FAILED' | 'COMPLETED' | 'DELETING';
 
 /**
- * KnowledgeChunkingHistoryRead
- */
-export type KnowledgeChunkingHistoryRead = {
-    /**
-     * Name
-     *
-     * The name of the knowledge_chunking_history.
-     */
-    name?: string | null;
-    /**
-     * Document Id
-     *
-     * The parent document ID.
-     */
-    document_id: string;
-    /**
-     * Strategy
-     *
-     * The chunking strategy used (e.g. recursive, semantic).
-     */
-    strategy: string;
-    /**
-     * Chunk Count
-     *
-     * Number of chunks generated.
-     */
-    chunk_count?: number;
-    /**
-     * Status
-     *
-     * SUCCESS or FAILED
-     */
-    status: string;
-    /**
-     * The chunking config used.
-     */
-    chunking_config?: ChunkingConfig | null;
-    /**
-     * Error Message
-     *
-     * Error message if failed.
-     */
-    error_message?: string | null;
-    /**
-     * Duration Seconds
-     *
-     * Duration in seconds.
-     */
-    duration_seconds?: number | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
-     * Id
-     */
-    id: string;
-};
-
-/**
  * KnowledgeEmbeddingConfig
  *
  * Embedding settings that define a physical vector index.
@@ -626,70 +650,6 @@ export type KnowledgeEmbeddingConfig = {
 };
 
 /**
- * KnowledgeEmbeddingHistoryRead
- */
-export type KnowledgeEmbeddingHistoryRead = {
-    /**
-     * Name
-     *
-     * The name of the knowledge_embedding_history.
-     */
-    name?: string | null;
-    /**
-     * Document Id
-     *
-     * The parent document ID.
-     */
-    document_id: string;
-    /**
-     * Model Name
-     *
-     * The embedding model used.
-     */
-    model_name: string;
-    /**
-     * Vector Count
-     *
-     * The number of vectors indexed.
-     */
-    vector_count?: number;
-    /**
-     * Status
-     *
-     * SUCCESS or FAILED
-     */
-    status: string;
-    /**
-     * The embedding config used.
-     */
-    embedding_config?: KnowledgeEmbeddingConfig | null;
-    /**
-     * Error Message
-     *
-     * Error message if failed.
-     */
-    error_message?: string | null;
-    /**
-     * Duration Seconds
-     *
-     * Duration in seconds.
-     */
-    duration_seconds?: number | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
-     * Id
-     */
-    id: string;
-};
-
-/**
  * KnowledgeParsingConfig
  *
  * Parser settings that define a reusable parsed document artifact.
@@ -705,61 +665,35 @@ export type KnowledgeParsingConfig = {
 };
 
 /**
- * KnowledgeParsingHistoryRead
+ * PaginatedList[JobProcessHistoryRead]
  */
-export type KnowledgeParsingHistoryRead = {
+export type PaginatedListJobProcessHistoryRead = {
     /**
-     * Name
+     * Items
+     */
+    items: Array<JobProcessHistoryRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
      *
-     * The name of the knowledge_parsing_history.
+     * Check if the current page is the last page
      */
-    name?: string | null;
+    readonly last: boolean | null;
     /**
-     * Document Id
-     *
-     * The parent document ID.
+     * First
      */
-    document_id: string;
-    /**
-     * Provider
-     *
-     * Parsing provider (e.g. docling)
-     */
-    provider?: string | null;
-    /**
-     * Status
-     *
-     * SUCCESS or FAILED
-     */
-    status: string;
-    /**
-     * The parsing configurations used.
-     */
-    parsing_config?: KnowledgeParsingConfig | null;
-    /**
-     * Error Message
-     *
-     * Error details if failed.
-     */
-    error_message?: string | null;
-    /**
-     * Duration Seconds
-     *
-     * Duration in seconds.
-     */
-    duration_seconds?: number | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
-     * Id
-     */
-    id: string;
+    readonly first: boolean;
 };
 
 /**
@@ -802,102 +736,6 @@ export type PaginatedListKnowledgeBaseRead = {
      * Items
      */
     items: Array<KnowledgeBaseRead>;
-    /**
-     * Total Count
-     */
-    total_count?: number | null;
-    /**
-     * Offset
-     */
-    offset?: number;
-    /**
-     * Limit
-     */
-    limit?: number | null;
-    /**
-     * Last
-     *
-     * Check if the current page is the last page
-     */
-    readonly last: boolean | null;
-    /**
-     * First
-     */
-    readonly first: boolean;
-};
-
-/**
- * PaginatedList[KnowledgeChunkingHistoryRead]
- */
-export type PaginatedListKnowledgeChunkingHistoryRead = {
-    /**
-     * Items
-     */
-    items: Array<KnowledgeChunkingHistoryRead>;
-    /**
-     * Total Count
-     */
-    total_count?: number | null;
-    /**
-     * Offset
-     */
-    offset?: number;
-    /**
-     * Limit
-     */
-    limit?: number | null;
-    /**
-     * Last
-     *
-     * Check if the current page is the last page
-     */
-    readonly last: boolean | null;
-    /**
-     * First
-     */
-    readonly first: boolean;
-};
-
-/**
- * PaginatedList[KnowledgeEmbeddingHistoryRead]
- */
-export type PaginatedListKnowledgeEmbeddingHistoryRead = {
-    /**
-     * Items
-     */
-    items: Array<KnowledgeEmbeddingHistoryRead>;
-    /**
-     * Total Count
-     */
-    total_count?: number | null;
-    /**
-     * Offset
-     */
-    offset?: number;
-    /**
-     * Limit
-     */
-    limit?: number | null;
-    /**
-     * Last
-     *
-     * Check if the current page is the last page
-     */
-    readonly last: boolean | null;
-    /**
-     * First
-     */
-    readonly first: boolean;
-};
-
-/**
- * PaginatedList[KnowledgeParsingHistoryRead]
- */
-export type PaginatedListKnowledgeParsingHistoryRead = {
-    /**
-     * Items
-     */
-    items: Array<KnowledgeParsingHistoryRead>;
     /**
      * Total Count
      */
@@ -1151,6 +989,28 @@ export type ValidationError = {
 };
 
 /**
+ * PaginatedList[JobProcessHistoryRead]
+ */
+export type PaginatedListJobProcessHistoryReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<JobProcessHistoryRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
  * PaginatedList[KnowledgeBaseDocumentRead]
  */
 export type PaginatedListKnowledgeBaseDocumentReadWritable = {
@@ -1180,72 +1040,6 @@ export type PaginatedListKnowledgeBaseReadWritable = {
      * Items
      */
     items: Array<KnowledgeBaseRead>;
-    /**
-     * Total Count
-     */
-    total_count?: number | null;
-    /**
-     * Offset
-     */
-    offset?: number;
-    /**
-     * Limit
-     */
-    limit?: number | null;
-};
-
-/**
- * PaginatedList[KnowledgeChunkingHistoryRead]
- */
-export type PaginatedListKnowledgeChunkingHistoryReadWritable = {
-    /**
-     * Items
-     */
-    items: Array<KnowledgeChunkingHistoryRead>;
-    /**
-     * Total Count
-     */
-    total_count?: number | null;
-    /**
-     * Offset
-     */
-    offset?: number;
-    /**
-     * Limit
-     */
-    limit?: number | null;
-};
-
-/**
- * PaginatedList[KnowledgeEmbeddingHistoryRead]
- */
-export type PaginatedListKnowledgeEmbeddingHistoryReadWritable = {
-    /**
-     * Items
-     */
-    items: Array<KnowledgeEmbeddingHistoryRead>;
-    /**
-     * Total Count
-     */
-    total_count?: number | null;
-    /**
-     * Offset
-     */
-    offset?: number;
-    /**
-     * Limit
-     */
-    limit?: number | null;
-};
-
-/**
- * PaginatedList[KnowledgeParsingHistoryRead]
- */
-export type PaginatedListKnowledgeParsingHistoryReadWritable = {
-    /**
-     * Items
-     */
-    items: Array<KnowledgeParsingHistoryRead>;
     /**
      * Total Count
      */
@@ -1521,7 +1315,7 @@ export type UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadP
     /**
      * Successful Response
      */
-    201: unknown;
+    202: unknown;
 };
 
 export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetData = {
@@ -1778,7 +1572,7 @@ export type ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBa
     /**
      * Successful Response
      */
-    200: KnowledgeBaseDocumentRead;
+    202: KnowledgeBaseDocumentRead;
 };
 
 export type ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostResponse = ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostResponses[keyof ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostResponses];
@@ -1839,10 +1633,26 @@ export type GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdP
     200: unknown;
 };
 
-export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetData = {
+export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Resource Type
+         */
+        resource_type?: string | null;
+        /**
+         * Resource Id
+         */
+        resource_id?: string | null;
+        /**
+         * Stage
+         */
+        stage?: string | null;
+        /**
+         * Outcome
+         */
+        outcome?: string | null;
         /**
          * Offset
          *
@@ -1856,189 +1666,53 @@ export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetData = 
          */
         limit?: number;
     };
-    url: '/api/v1/knowledge_parsing_histories';
+    url: '/api/v1/job_process_histories';
 };
 
-export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetErrors = {
+export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetError = GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetErrors[keyof GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetErrors];
+export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetError = GetJobProcessHistoriesApiV1JobProcessHistoriesGetErrors[keyof GetJobProcessHistoriesApiV1JobProcessHistoriesGetErrors];
 
-export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponses = {
+export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetResponses = {
     /**
      * Successful Response
      */
-    200: PaginatedListKnowledgeParsingHistoryRead;
+    200: PaginatedListJobProcessHistoryRead;
 };
 
-export type GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponse = GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponses[keyof GetKnowledgeParsingHistoriesApiV1KnowledgeParsingHistoriesGetResponses];
+export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetResponse = GetJobProcessHistoriesApiV1JobProcessHistoriesGetResponses[keyof GetJobProcessHistoriesApiV1JobProcessHistoriesGetResponses];
 
-export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetData = {
+export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetData = {
     body?: never;
     path: {
         /**
-         * Knowledge Parsing History Id
+         * Job Process History Id
          */
-        knowledge_parsing_history_id: string;
+        job_process_history_id: string;
     };
     query?: never;
-    url: '/api/v1/knowledge_parsing_histories/{knowledge_parsing_history_id}';
+    url: '/api/v1/job_process_histories/{job_process_history_id}';
 };
 
-export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetErrors = {
+export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetError = GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetErrors[keyof GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetErrors];
+export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetError = GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetErrors[keyof GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetErrors];
 
-export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponses = {
+export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses = {
     /**
      * Successful Response
      */
-    200: KnowledgeParsingHistoryRead;
+    200: JobProcessHistoryRead;
 };
 
-export type GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponse = GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponses[keyof GetKnowledgeParsingHistoryApiV1KnowledgeParsingHistoriesKnowledgeParsingHistoryIdGetResponses];
-
-export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Offset
-         *
-         * offset for pagination
-         */
-        offset?: number;
-        /**
-         * Limit
-         *
-         * limit for pagination
-         */
-        limit?: number;
-    };
-    url: '/api/v1/knowledge_chunking_histories';
-};
-
-export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetError = GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetErrors[keyof GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetErrors];
-
-export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: PaginatedListKnowledgeChunkingHistoryRead;
-};
-
-export type GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponse = GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponses[keyof GetKnowledgeChunkingHistoriesApiV1KnowledgeChunkingHistoriesGetResponses];
-
-export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetData = {
-    body?: never;
-    path: {
-        /**
-         * Knowledge Chunking History Id
-         */
-        knowledge_chunking_history_id: string;
-    };
-    query?: never;
-    url: '/api/v1/knowledge_chunking_histories/{knowledge_chunking_history_id}';
-};
-
-export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetError = GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetErrors[keyof GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetErrors];
-
-export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: KnowledgeChunkingHistoryRead;
-};
-
-export type GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponse = GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponses[keyof GetKnowledgeChunkingHistoryApiV1KnowledgeChunkingHistoriesKnowledgeChunkingHistoryIdGetResponses];
-
-export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Offset
-         *
-         * offset for pagination
-         */
-        offset?: number;
-        /**
-         * Limit
-         *
-         * limit for pagination
-         */
-        limit?: number;
-    };
-    url: '/api/v1/knowledge_embedding_histories';
-};
-
-export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetError = GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetErrors[keyof GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetErrors];
-
-export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: PaginatedListKnowledgeEmbeddingHistoryRead;
-};
-
-export type GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponse = GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponses[keyof GetKnowledgeEmbeddingHistoriesApiV1KnowledgeEmbeddingHistoriesGetResponses];
-
-export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetData = {
-    body?: never;
-    path: {
-        /**
-         * Knowledge Embedding History Id
-         */
-        knowledge_embedding_history_id: string;
-    };
-    query?: never;
-    url: '/api/v1/knowledge_embedding_histories/{knowledge_embedding_history_id}';
-};
-
-export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetError = GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetErrors[keyof GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetErrors];
-
-export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: KnowledgeEmbeddingHistoryRead;
-};
-
-export type GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponse = GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponses[keyof GetKnowledgeEmbeddingHistoryApiV1KnowledgeEmbeddingHistoriesKnowledgeEmbeddingHistoryIdGetResponses];
+export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponse = GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses[keyof GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses];

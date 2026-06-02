@@ -1,5 +1,6 @@
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { PreviewMode } from "./types";
+import { useEffect, useMemo, useState } from "react";
+import type { ChangeEvent } from "react";
+import type { PreviewMode } from "./types";
 import { ControlPanel } from "./components/ControlPanel";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { FullscreenComparison } from "./components/FullscreenComparison";

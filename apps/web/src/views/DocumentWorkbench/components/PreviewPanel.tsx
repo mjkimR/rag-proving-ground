@@ -4,7 +4,7 @@ import { MarkdownPreview } from "../../../components/MarkdownPreview";
 import { OfficePreview } from "../../../components/OfficePreview";
 import { PdfPreview } from "../../../components/PdfPreview";
 import { ElementsExplorer } from "../../../components/ElementsExplorer";
-import { PreviewMode } from "../types";
+import type { PreviewMode } from "../types";
 
 function PreviewCopilotAction({ activeSummary }: { activeSummary: string }) {
   useCopilotAction({

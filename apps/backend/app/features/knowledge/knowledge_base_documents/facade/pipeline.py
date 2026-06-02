@@ -5,19 +5,16 @@ import time
 from typing import Annotated
 from uuid import UUID
 
+from app.features.history.job_process_histories.schemas import JobProcessHistoryCreate
+from app.features.history.job_process_histories.services import JobProcessHistoryService
 from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
-from app.features.knowledge.knowledge_chunking_histories.schemas import KnowledgeChunkingHistoryCreate
-from app.features.knowledge.knowledge_chunking_histories.services import KnowledgeChunkingHistoryService
-from app.features.knowledge.knowledge_embedding_histories.schemas import KnowledgeEmbeddingHistoryCreate
-from app.features.knowledge.knowledge_embedding_histories.services import KnowledgeEmbeddingHistoryService
-from app.features.knowledge.knowledge_parsing_histories.schemas import KnowledgeParsingHistoryCreate
-from app.features.knowledge.knowledge_parsing_histories.services import KnowledgeParsingHistoryService
 from app_file_storage import get_storage_client
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
 from loguru import logger
+from pydantic import BaseModel
 from rag_core.adapters.parser.instance import parse_file
 from rag_core.chunkers import ChunkedDocument, ChunkingConfig, chunk_document
 from rag_core.embeddings import (
@@ -34,21 +31,19 @@ from rag_core.parsers import (
     resolve_knowledge_parsing_config,
 )
 
+KNOWLEDGE_DOCUMENT_RESOURCE_TYPE = "knowledge_base_document"
+
 
 class KnowledgeDocumentPipelineService:
     def __init__(
         self,
         kb_service: Annotated[KnowledgeBaseService, Depends()],
         doc_service: Annotated[KnowledgeBaseDocumentService, Depends()],
-        parse_history_service: Annotated[KnowledgeParsingHistoryService, Depends()],
-        chunk_history_service: Annotated[KnowledgeChunkingHistoryService, Depends()],
-        embed_history_service: Annotated[KnowledgeEmbeddingHistoryService, Depends()],
+        history_service: Annotated[JobProcessHistoryService, Depends()],
     ) -> None:
         self.kb_service = kb_service
         self.doc_service = doc_service
-        self.parse_history_service = parse_history_service
-        self.chunk_history_service = chunk_history_service
-        self.embed_history_service = embed_history_service
+        self.history_service = history_service
 
     async def parse_or_load_cached(
         self,
@@ -139,16 +134,19 @@ class KnowledgeDocumentPipelineService:
             duration = time.time() - start_time
             logger.exception(f"Parsing failed for document '{filename}': {exc}")
             async with AsyncTransaction() as session:
-                parse_history = KnowledgeParsingHistoryCreate(
+                parse_history = JobProcessHistoryCreate(
                     name=f"Parse failure: {filename}",
-                    document_id=document_id,
+                    resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
+                    resource_id=document_id,
+                    stage="parsing",
+                    outcome="FAILED",
                     provider=parsing_provider,
-                    status="FAILED",
-                    parsing_config=resolved_config,
+                    config=_history_config(resolved_config),
+                    metrics=None,
                     error_message=str(exc),
                     duration_seconds=duration,
                 )
-                await self.parse_history_service.create(session, parse_history)
+                await self.history_service.record(session, parse_history)
                 await self.doc_service.repo.update_by_pk(
                     session, document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
                 )
@@ -188,17 +186,18 @@ class KnowledgeDocumentPipelineService:
                     doc_info["chunk_count"] = len(chunks)
                     db_doc.document_info = doc_info
                 if record_history:
-                    chunk_history = KnowledgeChunkingHistoryCreate(
+                    chunk_history = JobProcessHistoryCreate(
                         name=f"{history_name_prefix} success: {filename}",
-                        document_id=document_id,
-                        strategy="semantic",
-                        chunk_count=len(chunks),
-                        status="SUCCESS",
-                        chunking_config=resolved_config,
+                        resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
+                        resource_id=document_id,
+                        stage="chunking",
+                        outcome="SUCCESS",
+                        config=_history_config(resolved_config),
+                        metrics={"chunk_count": len(chunks)},
                         error_message=None,
                         duration_seconds=duration,
                     )
-                    await self.chunk_history_service.create(session, chunk_history)
+                    await self.history_service.record(session, chunk_history)
                 await self.doc_service.repo.update_by_pk(
                     session, document_id, {"status": KnowledgeBaseDocumentStatus.EMBEDDING}
                 )
@@ -207,17 +206,18 @@ class KnowledgeDocumentPipelineService:
             duration = time.time() - start_time
             logger.exception(f"Chunking failed for document '{filename}': {exc}")
             async with AsyncTransaction() as session:
-                chunk_history = KnowledgeChunkingHistoryCreate(
+                chunk_history = JobProcessHistoryCreate(
                     name=f"{history_name_prefix} failure: {filename}",
-                    document_id=document_id,
-                    strategy="semantic",
-                    chunk_count=0,
-                    status="FAILED",
-                    chunking_config=resolved_config,
+                    resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
+                    resource_id=document_id,
+                    stage="chunking",
+                    outcome="FAILED",
+                    config=_history_config(resolved_config),
+                    metrics={"chunk_count": 0},
                     error_message=str(exc),
                     duration_seconds=duration,
                 )
-                await self.chunk_history_service.create(session, chunk_history)
+                await self.history_service.record(session, chunk_history)
                 await self.doc_service.repo.update_by_pk(
                     session, document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
                 )
@@ -276,17 +276,19 @@ class KnowledgeDocumentPipelineService:
             duration = time.time() - start_time
 
             async with AsyncTransaction() as session:
-                embed_history = KnowledgeEmbeddingHistoryCreate(
+                embed_history = JobProcessHistoryCreate(
                     name=f"{history_name_prefix} success: {filename}",
-                    document_id=document_id,
+                    resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
+                    resource_id=document_id,
+                    stage="embedding",
+                    outcome="SUCCESS",
                     model_name=embedding_model_name,
-                    vector_count=len(lc_docs),
-                    status="SUCCESS",
-                    embedding_config=embedding_config,
+                    config=_history_config(embedding_config),
+                    metrics={"vector_count": len(lc_docs)},
                     error_message=None,
                     duration_seconds=duration,
                 )
-                await self.embed_history_service.create(session, embed_history)
+                await self.history_service.record(session, embed_history)
                 await self.doc_service.repo.update_by_pk(
                     session, document_id, {"status": KnowledgeBaseDocumentStatus.COMPLETED}
                 )
@@ -294,17 +296,19 @@ class KnowledgeDocumentPipelineService:
             duration = time.time() - start_time
             logger.exception(f"Embedding failed for document '{filename}': {exc}")
             async with AsyncTransaction() as session:
-                embed_history = KnowledgeEmbeddingHistoryCreate(
+                embed_history = JobProcessHistoryCreate(
                     name=f"{history_name_prefix} failure: {filename}",
-                    document_id=document_id,
+                    resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
+                    resource_id=document_id,
+                    stage="embedding",
+                    outcome="FAILED",
                     model_name=embedding_model_name,
-                    vector_count=0,
-                    status="FAILED",
-                    embedding_config=embedding_config,
+                    config=_history_config(embedding_config),
+                    metrics={"vector_count": 0},
                     error_message=str(exc),
                     duration_seconds=duration,
                 )
-                await self.embed_history_service.create(session, embed_history)
+                await self.history_service.record(session, embed_history)
                 await self.doc_service.repo.update_by_pk(
                     session, document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
                 )
@@ -340,16 +344,22 @@ class KnowledgeDocumentPipelineService:
                     }
                 )
                 db_doc.document_info = doc_info
-            parse_history = KnowledgeParsingHistoryCreate(
+            parse_history = JobProcessHistoryCreate(
                 name=f"Parse {'cache hit' if cache_hit else 'success'}: {filename}",
-                document_id=document_id,
+                resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
+                resource_id=document_id,
+                stage="parsing",
+                outcome="SUCCESS",
                 provider=provider,
-                status="SUCCESS",
-                parsing_config=parsing_config,
+                config=_history_config(parsing_config),
+                metrics={
+                    "element_count": len(parsed_doc.elements),
+                    "cache_hit": cache_hit,
+                },
                 error_message=None,
                 duration_seconds=duration,
             )
-            await self.parse_history_service.create(session, parse_history)
+            await self.history_service.record(session, parse_history)
             await self.doc_service.repo.update_by_pk(
                 session, document_id, {"status": KnowledgeBaseDocumentStatus.CHUNKING}
             )
@@ -361,6 +371,14 @@ def resolve_chunking_config(config: dict | ChunkingConfig | None) -> ChunkingCon
     if config is None:
         return ChunkingConfig()
     return ChunkingConfig.model_validate(config)
+
+
+def _history_config(config: BaseModel | dict | None) -> dict | None:
+    if config is None:
+        return None
+    if isinstance(config, BaseModel):
+        return config.model_dump(mode="json")
+    return dict(config)
 
 
 def knowledge_original_file_key(knowledge_base_name: str, file_hash: str, filename: str) -> str:

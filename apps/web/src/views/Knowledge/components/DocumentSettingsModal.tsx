@@ -2,17 +2,17 @@ import React, { useEffect, useState } from 'react';
 import {
   Modal, Form, Select, Input, InputNumber, Switch, Button, Checkbox, Space, Typography, Tag, Divider, Alert
 } from 'antd';
-import { FileText, RotateCw, Settings2, Trash2 } from 'lucide-react';
+import { FileText, RotateCw, Settings2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import {
   patchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatch,
   reprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPost
 } from '@/generated/api/sdk.gen';
-import {
+import type {
   KnowledgeBaseDocumentRead, ChunkingConfig, KnowledgeParsingConfig, KnowledgeBaseDocumentReprocessMode
 } from '@/generated/api/types.gen';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 interface DocumentSettingsModalProps {
   visible: boolean;
@@ -316,7 +316,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
           </Divider>
 
           <Alert
-            message="Need to apply config updates immediately?"
+            title="Need to apply config updates immediately?"
             description="If you have already overridden the config or changed default configurations, you can trigger reprocessing for this document below."
             type="info"
             showIcon

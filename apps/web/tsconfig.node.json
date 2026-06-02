@@ -5,7 +5,16 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
-    "strict": true
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleDetection": "force",
+    "noUncheckedSideEffectImports": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["vite.config.ts"]
+  "include": [
+    "vite.config.ts"
+  ]
 }

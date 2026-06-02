@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import {
-  Card, Table, Button, Input, Tag, Space, Typography, Tooltip, Modal, Form,
+  Card, Table, Button, Input, Tag, Space, Typography, Modal, Form,
   Select, InputNumber, Radio, Switch, Row, Col, Badge, Empty, message
 } from 'antd';
 import {
-  Plus, Trash2, Database, Settings, ArrowRight, Search, Sparkles, Cpu,
+  Plus, Trash2, Database, ArrowRight, Search, Sparkles, Cpu,
   Layers, HardDrive, AlertTriangle, Calendar
 } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   getKnowledgeBasesApiV1KnowledgeBasesGet,
   createKnowledgeBaseApiV1KnowledgeBasesPost,
   deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete
 } from '@/generated/api/sdk.gen';
-import { KnowledgeBaseRead } from '@/generated/api/types.gen';
+import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -22,7 +22,6 @@ interface KnowledgeBaseHubProps {
 }
 
 export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) => {
-  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -184,7 +183,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
       {/* 2. Stats Grid */}
       <Row gutter={[20, 20]}>
         <Col xs={24} sm={8}>
-          <Card bordered={false} className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
+          <Card variant="borderless" className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ padding: '12px', background: 'rgba(79, 70, 229, 0.1)', borderRadius: '12px', color: '#4f46e5' }}>
                 <HardDrive size={24} />
@@ -197,7 +196,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card bordered={false} className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
+          <Card variant="borderless" className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', color: '#10b981' }}>
                 <Layers size={24} />
@@ -210,7 +209,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card bordered={false} className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
+          <Card variant="borderless" className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ padding: '12px', background: 'rgba(236, 72, 153, 0.1)', borderRadius: '12px', color: '#ec4899' }}>
                 <Cpu size={24} />
@@ -227,7 +226,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
       </Row>
 
       {/* 3. Table View Card */}
-      <Card bordered={false} className="glass-card" style={{ borderRadius: '16px', overflow: 'hidden' }}>
+      <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <Text strong style={{ fontSize: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             Available Databases <Badge count={filteredItems.length} showZero color="var(--colorPrimary)" style={{ fontWeight: 700 }} />

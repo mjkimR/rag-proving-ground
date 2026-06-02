@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Drawer, Spin, Empty, Typography } from 'antd';
+import { Drawer, Spin, Empty } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import {
   getKnowledgeBasesApiV1KnowledgeBasesGet,
@@ -10,11 +10,10 @@ import { ElementsExplorer } from '@/components/ElementsExplorer';
 import { PdfPreview } from '@/components/PdfPreview';
 import { KnowledgeBaseHub } from './components/KnowledgeBaseHub';
 import { KnowledgeBaseDetail } from './components/KnowledgeBaseDetail';
-import { KnowledgeBaseRead } from '@/generated/api/types.gen';
+import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
 
 export const Knowledge: React.FC = () => {
   const {
-    selectedKnowledgeName,
     setSelectedKnowledgeName,
     selectedKnowledgeId,
     setSelectedKnowledgeId

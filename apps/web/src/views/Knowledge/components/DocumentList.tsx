@@ -11,7 +11,7 @@ import {
 import {
   FileText, Trash2, Download, Eye, AlertCircle, UploadCloud, Settings2, Settings
 } from 'lucide-react';
-import { KnowledgeBaseDocumentRead, KnowledgeParsingConfig, ChunkingConfig } from '@/generated/api/types.gen';
+import type { KnowledgeBaseDocumentRead, KnowledgeParsingConfig, ChunkingConfig } from '@/generated/api/types.gen';
 import { DocumentSettingsModal } from './DocumentSettingsModal';
 
 const { Title, Text } = Typography;
@@ -122,7 +122,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       {/* Header & Upload panel */}
-      <Card bordered={false} className="glass-card">
+      <Card variant="borderless" className="glass-card">
         <Row align="middle" justify="space-between" gutter={[16, 16]}>
           <Col>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -190,7 +190,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 
       {/* Documents List Table */}
       <Card
-        bordered={false}
+        variant="borderless"
         className="glass-card"
         title={<span className="font-outfit" style={{ fontSize: '15px', fontWeight: 700 }}>Knowledge Documents</span>}
       >

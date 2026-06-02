@@ -1,14 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { ZoomIn, ZoomOut, RotateCcw, AlertCircle } from "lucide-react";
 
-// Configure worker src with ESM support for secure pdfjs-dist version 5.x
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 type PdfPreviewProps = {
   fileName: string;
@@ -87,7 +84,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
   // Scroll to activeElement bounding box when activeElement changes
   useEffect(() => {
     if (docLoaded && numPages && numPages > 0 && activeElement && activeElement.page_id && activeElement.bbox) {
-      const { targetIndex, width: pdfPageWidthPoints, height: pdfPageHeightPoints } = getPageInfo(activeElement);
+      const { targetIndex, height: pdfPageHeightPoints } = getPageInfo(activeElement);
 
       if (targetIndex < 0 || targetIndex >= numPages) {
         console.warn(`Highlight target page ${targetIndex} is out of bounds (0 - ${numPages - 1})`);
@@ -123,6 +120,8 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
 
       return () => clearTimeout(timer);
     }
+
+    return undefined;
   }, [activeElement, docLoaded, numPages, parsedDoc]);
 
   if (!fileUrl) {
@@ -302,7 +301,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
             </div>
           }
         >
-          {Array.from(new Array(numPages || 0), (el, index) => (
+          {Array.from(new Array(numPages || 0), (_, index) => (
             <div
               key={`page_${index + 1}`}
               data-page-index={index}

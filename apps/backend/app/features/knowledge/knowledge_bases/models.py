@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
+from app.common.database import JSON_VARIANT
 from app_layer_base.base.models.mixin import Base, TimestampMixin, UUIDMixin
-from sqlalchemy import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -12,10 +12,10 @@ class KnowledgeBase(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "knowledge_bases"
     name: Mapped[str] = mapped_column(unique=True)
     status: Mapped[str] = mapped_column(default="READY")
-    embedding_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    embedding_config: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
     embed_config_hash: Mapped[str | None] = mapped_column(nullable=True)
-    default_chunking_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    default_parsing_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    default_chunking_config: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
+    default_parsing_config: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
 
     # Relationships
     documents: Mapped[list["KnowledgeBaseDocument"]] = relationship(
