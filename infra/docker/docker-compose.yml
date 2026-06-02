@@ -33,7 +33,7 @@ services:
       - vector_db_data:/qdrant/storage
 
   rag-meta-db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg18
     container_name: rag-meta-db
     ports:
       - "15431:5432"
@@ -42,7 +42,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-rag}
     volumes:
-      - meta_db_data:/var/lib/postgresql/data
+      - meta_db_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-rag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   docling:
     image: quay.io/docling-project/docling-serve-cpu:latest
@@ -64,6 +69,11 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   storage_object_data:
