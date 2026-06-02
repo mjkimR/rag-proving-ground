@@ -35,7 +35,7 @@ def get_lifespan():
         async with lifespan_http_client(app), lifespan_file_storage(app), lifespan_vector_store(app):
             await broker.connect()
             yield
-            await broker.close()
+            await broker.stop()
         logger.info("End of app lifespan")
 
     return lifespan
