@@ -14,12 +14,13 @@ import {
 } from '@/generated/api/sdk.gen';
 import {
   FileText, Trash2, Download, Eye, AlertCircle, UploadCloud, Settings2, Settings,
-  ArrowLeft, RefreshCw, Cpu, Sliders, Info, Clock
+  ArrowLeft, RefreshCw, Cpu, Sliders, Info, Clock, Search
 } from 'lucide-react';
 import type {
   KnowledgeBaseRead, KnowledgeBaseDocumentRead, KnowledgeBaseConfigApplyMode, JobProcessHistoryRead
 } from '@/generated/api/types.gen';
 import { DocumentSettingsModal } from './DocumentSettingsModal';
+import { RetrievalTestTab } from './RetrievalTestTab';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -44,7 +45,6 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
   const [parserProvider, setParserProvider] = useState('docling');
   const [isUploading, setIsUploading] = useState(false);
   const [selectedDocForSettings, setSelectedDocForSettings] = useState<KnowledgeBaseDocumentRead | null>(null);
-
   // Configuration settings form states
   const [settingsForm] = Form.useForm();
   const [configConfirmVisible, setConfigConfirmVisible] = useState(false);
@@ -995,6 +995,18 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                   ]}
                 />
               </Card>
+            )
+          },
+          {
+            key: '4',
+            label: (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 12px', fontWeight: 600 }}>
+                <Search size={16} />
+                <span>Retrieval Test</span>
+              </span>
+            ),
+            children: (
+              <RetrievalTestTab kb={kb} />
             )
           }
         ]}

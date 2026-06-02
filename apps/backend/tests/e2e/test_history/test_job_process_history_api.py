@@ -12,8 +12,8 @@ pytestmark = pytest.mark.real_commit
 
 
 async def test_job_process_history_filters_by_resource_stage_and_outcome(
-        client: AsyncClient,
-        make_db: Callable[..., Awaitable[Any]],
+    client: AsyncClient,
+    make_db: Callable[..., Awaitable[Any]],
 ) -> None:
     resource_id = uuid4()
     target = await make_db(

@@ -627,6 +627,86 @@ export type KnowledgeBaseRead = {
 };
 
 /**
+ * KnowledgeBaseSearchRequest
+ */
+export type KnowledgeBaseSearchRequest = {
+    /**
+     * Query
+     *
+     * The search query.
+     */
+    query: string;
+    /**
+     * Limit
+     *
+     * The maximum number of search results to return.
+     */
+    limit?: number;
+};
+
+/**
+ * KnowledgeBaseSearchResponse
+ */
+export type KnowledgeBaseSearchResponse = {
+    /**
+     * Query
+     *
+     * The original search query.
+     */
+    query: string;
+    /**
+     * Results
+     *
+     * The list of search results.
+     */
+    results: Array<KnowledgeBaseSearchResultItem>;
+    /**
+     * Total
+     *
+     * The total number of results found.
+     */
+    total: number;
+};
+
+/**
+ * KnowledgeBaseSearchResultItem
+ */
+export type KnowledgeBaseSearchResultItem = {
+    /**
+     * Chunk Id
+     *
+     * The unique identifier for the chunk.
+     */
+    chunk_id: string;
+    /**
+     * Doc Id
+     *
+     * The unique identifier for the document containing the chunk.
+     */
+    doc_id: string;
+    /**
+     * Content
+     *
+     * The text content of the chunk.
+     */
+    content: string;
+    /**
+     * Score
+     *
+     * The similarity score.
+     */
+    score: number;
+    /**
+     * Metadata
+     *
+     * Metadata associated with the chunk.
+     */
+    metadata?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
  * KnowledgeBaseStatus
  */
 export type KnowledgeBaseStatus = 'READY' | 'RUNNING' | 'FAILED' | 'COMPLETED' | 'DELETING';
@@ -1360,6 +1440,36 @@ export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocuments
 };
 
 export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponse = GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses[keyof GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses];
+
+export type SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostData = {
+    body: KnowledgeBaseSearchRequest;
+    path: {
+        /**
+         * Knowledge Base Id
+         */
+        knowledge_base_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_bases/{knowledge_base_id}/search';
+};
+
+export type SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostError = SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostErrors[keyof SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostErrors];
+
+export type SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseSearchResponse;
+};
+
+export type SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostResponse = SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostResponses[keyof SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostResponses];
 
 export type GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetData = {
     body?: never;

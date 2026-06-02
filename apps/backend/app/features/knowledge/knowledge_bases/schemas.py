@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Any
 
 from app_layer_base.base.schemas.mixin import TimestampSchemaMixin, UUIDSchemaMixin
 from pydantic import BaseModel, ConfigDict, Field
@@ -56,3 +57,22 @@ class KnowledgeBaseRead(UUIDSchemaMixin, TimestampSchemaMixin, KnowledgeBaseBase
     status: KnowledgeBaseStatus = Field(description="Current status of the knowledge base.")
     embed_config_hash: str | None = Field(default=None, description="Hash signature of the embedding config.")
     model_config = ConfigDict(from_attributes=True)
+
+
+class KnowledgeBaseSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=2000, description="The search query.")
+    limit: int = Field(default=5, ge=1, le=100, description="The maximum number of search results to return.")
+
+
+class KnowledgeBaseSearchResultItem(BaseModel):
+    chunk_id: str = Field(description="The unique identifier for the chunk.")
+    doc_id: str = Field(description="The unique identifier for the document containing the chunk.")
+    content: str = Field(description="The text content of the chunk.")
+    score: float = Field(description="The similarity score.")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Metadata associated with the chunk.")
+
+
+class KnowledgeBaseSearchResponse(BaseModel):
+    query: str = Field(description="The original search query.")
+    results: list[KnowledgeBaseSearchResultItem] = Field(description="The list of search results.")
+    total: int = Field(description="The total number of results found.")

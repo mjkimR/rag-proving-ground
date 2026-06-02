@@ -9,6 +9,8 @@ from app.features.knowledge.knowledge_bases.schemas import (
     KnowledgeBasePatch,
     KnowledgeBasePut,
     KnowledgeBaseRead,
+    KnowledgeBaseSearchRequest,
+    KnowledgeBaseSearchResponse,
 )
 from app.features.knowledge.knowledge_bases.usecases.crud import (
     CreateKnowledgeBaseUseCase,
@@ -18,6 +20,7 @@ from app.features.knowledge.knowledge_bases.usecases.crud import (
     PatchKnowledgeBaseUseCase,
     PutKnowledgeBaseUseCase,
 )
+from app.features.knowledge.knowledge_bases.usecases.search import SearchKnowledgeBaseUseCase
 from app_layer_base.base.deps.params.page import PaginationParam
 from app_layer_base.base.exceptions.basic import NotFoundException
 from app_layer_base.base.repos.query_options import ListQueryOptions
@@ -114,3 +117,13 @@ async def get_knowledge_base_documents(
     )
     async with AsyncTransaction() as session:
         return await doc_service.repo.get_multi(session, query_options=query_options)
+
+
+@router.post("/{knowledge_base_id}/search", response_model=KnowledgeBaseSearchResponse)
+async def search_knowledge_base(
+    knowledge_base_id: UUID,
+    use_case: Annotated[SearchKnowledgeBaseUseCase, Depends()],
+    search_request: KnowledgeBaseSearchRequest,
+):
+    """Retrieve similar document chunks for a query from a specific knowledge base."""
+    return await use_case.execute(knowledge_base_id, search_request)

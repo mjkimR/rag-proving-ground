@@ -11,8 +11,8 @@ pytestmark = pytest.mark.real_commit
 
 
 async def test_job_process_history_persists_event(
-        session: AsyncSession,
-        make_db: Callable[..., Awaitable[Any]],
+    session: AsyncSession,
+    make_db: Callable[..., Awaitable[Any]],
 ) -> None:
     service = JobProcessHistoryService(JobProcessHistoryRepository())
     resource_id = uuid4()
