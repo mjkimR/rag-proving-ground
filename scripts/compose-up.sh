@@ -27,6 +27,9 @@ if [ "$#" -eq 0 ]; then
     profile_args=(--profile basic)
 else
     for profile in "$@"; do
+        if [ "$profile" = "serve" ]; then
+            compose_args+=(-f infra/docker/docker-compose.serve.yml)
+        fi
         profile_args+=("--profile" "$profile")
     done
 fi

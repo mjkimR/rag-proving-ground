@@ -5,8 +5,9 @@ default:
 # Initialize workspace modules (all, backend, or web)
 init module="all":
     #!/usr/bin/env bash
+    set -euo pipefail
     source ./scripts/_lib.sh
-    target=$(resolve_module "{{ module }}")
+    target=$(resolve_module "{{ module }}") || exit $?
 
     if should_run "$target" "backend"; then
         echo "Initializing Python backend workspace..."
@@ -19,11 +20,16 @@ init module="all":
         npm --prefix "$path" install
     fi
 
+# Backward-compatible alias for documentation and older workflows
+init-dev:
+    @just init all
+
 # Run linters and formatters (all, backend, or web)
 lint module="all":
     #!/usr/bin/env bash
+    set -euo pipefail
     source ./scripts/_lib.sh
-    target=$(resolve_module "{{ module }}")
+    target=$(resolve_module "{{ module }}") || exit $?
 
     if should_run "$target" "backend"; then
         echo "Linting Python codebase..."
@@ -41,8 +47,9 @@ lint module="all":
 # Run static type checks (all, backend, or web)
 check module="all":
     #!/usr/bin/env bash
+    set -euo pipefail
     source ./scripts/_lib.sh
-    target=$(resolve_module "{{ module }}")
+    target=$(resolve_module "{{ module }}") || exit $?
 
     if should_run "$target" "backend"; then
         echo "Type checking Python backend..."
@@ -59,7 +66,7 @@ check module="all":
 dev module="all":
     @bash ./scripts/dev-run.sh "{{ module }}"
 
-# Run backend tests. Can specify target paths (e.g. just test packages/rag-core/src/tests/unit)
+# Run Python tests from pyproject testpaths. Can specify target paths (e.g. just test packages/rag-core/src/tests/unit)
 test +paths="":
     @bash ./scripts/run-tests.sh {{ paths }}
 

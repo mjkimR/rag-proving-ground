@@ -9,7 +9,10 @@ resolve_module() {
         backend|back|api) echo "backend" ;;
         web|front|frontend|ui) echo "web" ;;
         all) echo "all" ;;
-        *) echo "$1" ;;
+        *)
+            echo "Unknown module '$1'. Expected one of: $AVAILABLE_MODULES" >&2
+            exit 2
+            ;;
     esac
 }
 
@@ -17,7 +20,10 @@ resolve_module_path() {
     case "$1" in
         backend) echo "apps/backend" ;;
         web) echo "apps/web" ;;
-        *) echo "apps/$1" ;;
+        *)
+            echo "Unknown module path '$1'. Expected one of: backend web" >&2
+            exit 2
+            ;;
     esac
 }
 

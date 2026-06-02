@@ -2,7 +2,7 @@
 set -euo pipefail
 source "$(dirname "$0")/_lib.sh"
 
-target=$(resolve_module "${1:-all}")
+target=$(resolve_module "${1:-all}") || exit $?
 
 PID_WEB=""
 PID_BACKEND=""
