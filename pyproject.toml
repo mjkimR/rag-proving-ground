@@ -6,13 +6,13 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "aiobotocore>=3.7.0",
+    "aegra-cli>=0.9.17",
     "rag-core",
     "rag-graphs",
 ]
 
 [dependency-groups]
 dev = [
-    "aegra-cli>=0.9.17",
     "ruff>=0.15.14",
     "autorag>=0.3.2",
     "pyright>=1.1.409",

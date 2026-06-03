@@ -5,10 +5,12 @@ interface ThemeState {
   activeTab: string;
   selectedKnowledgeName: string | null;
   selectedKnowledgeId: string | null;
+  selectedAssistantId: string | null;
   toggleDarkMode: () => void;
   setActiveTab: (tab: string) => void;
   setSelectedKnowledgeName: (name: string | null) => void;
   setSelectedKnowledgeId: (id: string | null) => void;
+  setSelectedAssistantId: (id: string | null) => void;
 }
 
 export const useThemeStore = create<ThemeState>((set) => {
@@ -27,6 +29,7 @@ export const useThemeStore = create<ThemeState>((set) => {
     activeTab: 'dashboard',
     selectedKnowledgeName: null,
     selectedKnowledgeId: null,
+    selectedAssistantId: null,
     toggleDarkMode: () =>
       set((state) => {
         const nextDark = !state.isDarkMode;
@@ -41,5 +44,6 @@ export const useThemeStore = create<ThemeState>((set) => {
     setActiveTab: (tab) => set({ activeTab: tab }),
     setSelectedKnowledgeName: (name) => set({ selectedKnowledgeName: name }),
     setSelectedKnowledgeId: (id) => set({ selectedKnowledgeId: id }),
+    setSelectedAssistantId: (id) => set({ selectedAssistantId: id }),
   };
 });

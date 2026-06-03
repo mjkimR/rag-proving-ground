@@ -5664,6 +5664,7 @@ name = "rag-experiment"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aegra-cli" },
     { name = "aiobotocore" },
     { name = "rag-core" },
     { name = "rag-graphs" },
@@ -5671,7 +5672,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "aegra-cli" },
     { name = "autorag" },
     { name = "polyfactory" },
     { name = "pyright" },
@@ -5684,6 +5684,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aegra-cli", specifier = ">=0.9.17" },
     { name = "aiobotocore", specifier = ">=3.7.0" },
     { name = "rag-core", editable = "packages/rag-core" },
     { name = "rag-graphs", editable = "packages/graphs" },
@@ -5691,7 +5692,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "aegra-cli", specifier = ">=0.9.17" },
     { name = "autorag", specifier = ">=0.3.2" },
     { name = "polyfactory", specifier = ">=3.2.0" },
     { name = "pyright", specifier = ">=1.1.409" },

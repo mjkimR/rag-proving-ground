@@ -10,6 +10,7 @@ import {
   RefreshCw,
   FileText,
   Menu as MenuIcon,
+  MessageSquare,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { healthApiHealthGet } from '../generated/api/sdk.gen';
@@ -59,6 +60,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       key: 'workbench',
       icon: <FileText size={18} />,
       label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Showcase Workbench</span>,
+    },
+    {
+      key: 'chat',
+      icon: <MessageSquare size={18} />,
+      label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Agent Chat</span>,
     },
   ];
 
@@ -208,7 +214,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 ? 'Knowledge Base Management'
                 : activeTab === 'workbench'
                   ? 'Showcase Workbench'
-                  : 'Dashboard Overview'}
+                  : activeTab === 'chat'
+                    ? 'Agent Chat Proving'
+                    : 'Dashboard Overview'}
             </h2>
           </div>
 
