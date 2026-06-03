@@ -20,7 +20,7 @@ def _message_content(message: BaseMessage) -> str:
     return str(content)
 
 
-def respond(state: MessagesState, config: RunnableConfig) -> dict[str, list[AIMessage]]:
+async def respond(state: MessagesState, config: RunnableConfig) -> dict[str, list[AIMessage]]:
     model_name: str | None = config.get("configurable", {}).get("model_name")
     if model_name is not None:
         allowed = get_model_options()["llm_models"]
@@ -29,7 +29,7 @@ def respond(state: MessagesState, config: RunnableConfig) -> dict[str, list[AIMe
 
     llm = get_llm_model(model_name)
     messages: list[Any] = state.get("messages", [])
-    response = llm.invoke(messages)
+    response = await llm.ainvoke(messages, config=config)
     # Ensure we return an AIMessage
     if isinstance(response, AIMessage):
         return {"messages": [response]}

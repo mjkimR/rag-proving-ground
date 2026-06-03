@@ -39,6 +39,7 @@ def get_llm_model(model_name: str | None = None, **kwargs: Any) -> BaseChatModel
         _LLM_MODEL_CACHE[cache_key] = ChatLiteLLM(
             **model_kwargs,
             api_key=settings.api_key.get_secret_value(),
+            streaming=True,
         )
     cached_model = _LLM_MODEL_CACHE[cache_key]
     if not bind_kwargs:

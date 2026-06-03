@@ -68,7 +68,7 @@ export function App() {
   const copilotWrapper = (content: React.ReactNode) => {
     if (!copilotRuntimeUrl) return content;
     return (
-      <CopilotKit runtimeUrl={copilotRuntimeUrl}>
+      <CopilotKit runtimeUrl={copilotRuntimeUrl} agent="simple_chat">
         <CopilotSidebar
           defaultOpen={false}
           instructions="Help inspect uploaded documents, summarize previews, and trigger available frontend tools when useful."
