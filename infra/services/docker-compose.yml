@@ -45,7 +45,7 @@ services:
       - meta_db_data:/var/lib/postgresql
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-rag}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-rag}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -71,7 +71,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -81,3 +81,7 @@ volumes:
   vector_db_data:
   meta_db_data:
   redis_data:
+
+networks:
+  default:
+    name: rag-network

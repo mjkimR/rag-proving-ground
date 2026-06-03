@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PORTS=(8389 5173)
+PORTS=(8389 5173 2026)
 
 kill_port() {
     local port="$1"

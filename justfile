@@ -96,7 +96,8 @@ up-gpu +profiles="":
 
 # Stop all backend services
 down:
-    docker compose -p rag -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.gpu.yml down --remove-orphans
+    docker compose -p rag -f infra/services/docker-compose.yml -f infra/services/docker-compose.gpu.yml down --remove-orphans
+
 
 # Start local model serving (Ollama & TEI)
 models-up:
@@ -105,10 +106,6 @@ models-up:
 # Stop local model serving (Ollama & TEI)
 models-down:
     docker compose -f infra/models/docker-compose.yml down --remove-orphans
-
-# Restart Aegra serving container to reload graph changes
-restart-serve:
-    @bash ./scripts/restart-serve.sh
 
 # Run database migrations to upgrade schema
 db-upgrade revision="head":

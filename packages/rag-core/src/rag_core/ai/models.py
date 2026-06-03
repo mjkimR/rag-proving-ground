@@ -2,11 +2,9 @@
 
 import json
 import logging
-import os
 from functools import lru_cache
 from typing import Any
 
-import yaml
 from app_http_client import get_http_sync_client
 from langchain_core.documents import BaseDocumentCompressor
 from langchain_core.embeddings import Embeddings
@@ -126,8 +124,12 @@ def _json_safe_key(value: Any) -> str:
 
 
 @lru_cache(maxsize=1)
-def get_model_options() -> dict[str, list[str]]:
-    """Parse models from LiteLLM gateway API or fallback to models.yaml and return categorized lists."""
+def _fetch_model_options_from_gateway() -> dict[str, list[str]]:
+    """Fetch model options from the LiteLLM gateway API.
+
+    Raises:
+        Exception: If the fetch or parsing fails, ensuring failures are not cached.
+    """
     settings = get_litellm_settings()
     info_url = f"{_gateway_base_url(settings.base_url)}/model/info"
 
@@ -135,99 +137,21 @@ def get_model_options() -> dict[str, list[str]]:
     if settings.api_key:
         headers["Authorization"] = f"Bearer {settings.api_key.get_secret_value()}"
 
-    try:
-        client = get_http_sync_client()
-        response = client.get(info_url, headers=headers, timeout=5.0)
-        if response.status_code == 200:
-            data = response.json()
-            model_list = data
-            if isinstance(data, dict) and "data" in data:
-                model_list = data["data"]
-            elif isinstance(data, dict) and "model_list" in data:
-                model_list = data["model_list"]
+    client = get_http_sync_client()
+    response = client.get(info_url, headers=headers, timeout=5.0)
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to fetch model info from LiteLLM gateway. Status code: {response.status_code}")
 
-            if isinstance(model_list, list):
-                embedding_models = []
-                llm_models = []
-                reranker_models = []
+    data = response.json()
+    model_list = data
+    if isinstance(data, dict) and "data" in data:
+        model_list = data["data"]
+    elif isinstance(data, dict) and "model_list" in data:
+        model_list = data["model_list"]
 
-                for entry in model_list:
-                    name = entry.get("model_name")
-                    if not name:
-                        continue
+    if not isinstance(model_list, list):
+        raise ValueError(f"Unexpected model list format from LiteLLM gateway: {type(model_list).__name__}")
 
-                    metadata = entry.get("metadata") or {}
-                    role = metadata.get("role") or metadata.get("type")
-
-                    if not role and "tags" in metadata:
-                        tags = metadata.get("tags") or []
-                        if "embedding" in tags:
-                            role = "embedding"
-                        elif "reranker" in tags:
-                            role = "reranker"
-                        elif "llm" in tags or "chat" in tags:
-                            role = "llm"
-
-                    if not role:
-                        # Name heuristics
-                        name_lower = name.lower()
-                        if "embedding" in name_lower:
-                            role = "embedding"
-                        elif "reranker" in name_lower or "rerank" in name_lower:
-                            role = "reranker"
-                        else:
-                            role = "llm"
-
-                    if role == "embedding":
-                        embedding_models.append(name)
-                    elif role == "reranker":
-                        reranker_models.append(name)
-                    else:
-                        llm_models.append(name)
-
-                logger.info("Successfully fetched model options dynamically from LiteLLM gateway.")
-                return {
-                    "embedding_models": embedding_models,
-                    "llm_models": llm_models,
-                    "reranker_models": reranker_models,
-                }
-    except Exception as e:
-        logger.warning(
-            f"Failed to fetch model info from LiteLLM gateway ({info_url}): {e}. Falling back to models.yaml."
-        )
-
-    yaml_path = os.environ.get("MODELS_YAML_PATH")
-    if not yaml_path:
-        search_paths = [
-            "models.yaml",
-            "../models.yaml",
-            "../../models.yaml",
-        ]
-        for p in search_paths:
-            if os.path.exists(p):
-                yaml_path = p
-                break
-
-    if not yaml_path or not os.path.exists(yaml_path):
-        logger.warning("models.yaml not found, returning fallback defaults")
-        return {
-            "embedding_models": ["vllm-embedding"],
-            "llm_models": ["gpt-oss-20b"],
-            "reranker_models": ["vllm-reranker"],
-        }
-
-    try:
-        with open(yaml_path, encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-    except Exception as e:
-        logger.error(f"Failed to parse models.yaml: {e}")
-        return {
-            "embedding_models": ["vllm-embedding"],
-            "llm_models": ["gpt-oss-20b"],
-            "reranker_models": ["vllm-reranker"],
-        }
-
-    model_list = config.get("model_list", []) or []
     embedding_models = []
     llm_models = []
     reranker_models = []
@@ -266,8 +190,31 @@ def get_model_options() -> dict[str, list[str]]:
         else:
             llm_models.append(name)
 
+    logger.info("Successfully fetched model options dynamically from LiteLLM gateway.")
     return {
         "embedding_models": embedding_models,
         "llm_models": llm_models,
         "reranker_models": reranker_models,
     }
+
+
+def get_model_options() -> dict[str, list[str]]:
+    """Retrieve categorized list of available models from the LiteLLM gateway.
+
+    If the fetch fails, it returns a fallback placeholder dictionary to ensure
+    downstream compatibility without caching the failure.
+    """
+    try:
+        return _fetch_model_options_from_gateway()
+    except Exception as e:
+        settings = get_litellm_settings()
+        info_url = f"{_gateway_base_url(settings.base_url)}/model/info"
+        logger.warning(
+            f"Failed to fetch model info from LiteLLM gateway ({info_url}): {e}. "
+            f"Returning fallback 'no-model' placeholders."
+        )
+        return {
+            "embedding_models": ["no-model"],
+            "llm_models": ["no-model"],
+            "reranker_models": ["no-model"],
+        }

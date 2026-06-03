@@ -7,7 +7,7 @@ evaluating, and serving Retrieval-Augmented Generation (RAG) pipelines.
 - **Web App**: `apps/web` (React 19, Vite, TypeScript, CopilotKit) - frontend UI
 - **Core Library**: `packages/rag-core` (Python) - shared parsing, chunking, embedding, vector store, and AI utilities
 - **Graph Library**: `packages/graphs` (Python, LangGraph) - LangGraph-based RAG pipeline definitions
-- **Infra**: `infra/docker/` - Docker Compose services
+- **Infra**: `infra/` - Orchestration configurations (`infra/services/` for resources, `infra/models/` for local models, `infra/app/` for app deployment)
 - **Experiments**: `experiments/` - AutoRAG evaluation runs, baselines, and notebooks
 
 ---
@@ -91,7 +91,10 @@ rag-proving-ground/
 │   │       └── config.py         # Pydantic settings
 │   └── graphs/                   # LangGraph RAG pipeline definitions
 │       └── src/rag_graphs/
-├── infra/docker/                 # Docker Compose files
+├── infra/
+│   ├── services/                 # Infrastructure services (Postgres, Qdrant, MinIO, Redis, Docling)
+│   ├── models/                   # Model serving runtime services (Ollama, TEI)
+│   └── app/                      # Application Docker orchestration placeholder
 ├── experiments/                  # AutoRAG configs, baselines, notebooks
 ├── scripts/                      # Shell helper scripts used by justfile
 ├── models.yaml                   # LiteLLM model routing config

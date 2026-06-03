@@ -4,9 +4,30 @@ source "$(dirname "$0")/_lib.sh"
 
 target=$(resolve_module "${1:-all}") || exit $?
 
+# Safely load .env file into environment variables
+if [ -f .env ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Skip comments and empty lines
+        if [[ "$line" =~ ^[[:space:]]*# ]] || [[ -z "${line//[[:space:]]/}" ]]; then
+            continue
+        fi
+        if [[ "$line" =~ ^([^=]+)=(.*)$ ]]; then
+            key="${BASH_REMATCH[1]}"
+            val="${BASH_REMATCH[2]}"
+            # Strip outer single/double quotes if present
+            val="${val%\"}"
+            val="${val#\"}"
+            val="${val%\'}"
+            val="${val#\'}"
+            export "$key"="$val"
+        fi
+    done < .env
+fi
+
 PID_WEB=""
 PID_BACKEND=""
 PID_WORKER=""
+PID_AEGRA=""
 
 if should_run "$target" "web"; then
     path=$(resolve_module_path "web")
@@ -24,6 +45,18 @@ if should_run "$target" "backend"; then
     echo "Starting document processing worker ($path)..."
     uv run --directory "$path" faststream run app.worker.main:app --workers 1 &
     PID_WORKER=$!
+
+    echo "Starting Aegra server..."
+    # Override DATABASE_URL to target the aegra DB, and map other services to localhost
+    DATABASE_URL="postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@localhost:15431/aegra" \
+    POSTGRES_HOST=localhost \
+    POSTGRES_PORT=15431 \
+    POSTGRES_DB=aegra \
+    REDIS_URL=redis://localhost:16379/0 \
+    PYTHONPATH=packages/graphs/src:packages/rag-core/src \
+    PORT=2026 \
+    uv run aegra serve -c apps/serve/aegra.json &
+    PID_AEGRA=$!
 fi
 
 # Set up clean up for processes on script termination
@@ -32,12 +65,14 @@ cleanup() {
     [ -n "$PID_WEB" ] && kill "$PID_WEB" 2>/dev/null || true
     [ -n "$PID_BACKEND" ] && kill "$PID_BACKEND" 2>/dev/null || true
     [ -n "$PID_WORKER" ] && kill "$PID_WORKER" 2>/dev/null || true
+    [ -n "$PID_AEGRA" ] && kill "$PID_AEGRA" 2>/dev/null || true
 }
 
 PIDS=()
 [ -n "$PID_WEB" ] && PIDS+=("$PID_WEB")
 [ -n "$PID_BACKEND" ] && PIDS+=("$PID_BACKEND")
 [ -n "$PID_WORKER" ] && PIDS+=("$PID_WORKER")
+[ -n "$PID_AEGRA" ] && PIDS+=("$PID_AEGRA")
 
 is_job_running() {
     local wanted_pid="$1"

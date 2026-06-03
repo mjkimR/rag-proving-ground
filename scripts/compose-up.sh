@@ -17,9 +17,9 @@ if [ -f .env ]; then
     env_args=("--env-file" ".env")
 fi
 
-compose_args=(-p rag -f infra/docker/docker-compose.yml)
+compose_args=(-p rag -f infra/services/docker-compose.yml)
 if [ "$MODE" = "gpu" ]; then
-    compose_args+=(-f infra/docker/docker-compose.gpu.yml)
+    compose_args+=(-f infra/services/docker-compose.gpu.yml)
 fi
 
 profile_args=()
@@ -28,7 +28,7 @@ if [ "$#" -eq 0 ]; then
 else
     for profile in "$@"; do
         if [ "$profile" = "serve" ]; then
-            compose_args+=(-f infra/docker/docker-compose.serve.yml)
+            compose_args+=(-f infra/services/docker-compose.serve.yml)
         fi
         profile_args+=("--profile" "$profile")
     done

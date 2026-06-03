@@ -149,9 +149,13 @@ rag-proving-ground/
 │   └── graphs/                   # LangGraph RAG pipeline definitions
 │       └── src/rag_graphs/
 ├── infra/
-│   └── docker/
-│       ├── docker-compose.yml
-│       └── docker-compose.gpu.yml
+│   ├── services/                 # Databases, vector store, redis, minio, docling compose settings
+│   │   ├── docker-compose.yml
+│   │   └── docker-compose.gpu.yml
+│   ├── models/                   # Local model runtimes (Ollama, TEI)
+│   │   └── docker-compose.yml
+│   └── app/                      # Application docker settings placeholder
+│       └── docker-compose.yml
 ├── experiments/
 │   ├── autorag/                  # AutoRAG evaluation configs and results
 │   ├── baselines/                # Baseline pipeline scripts
