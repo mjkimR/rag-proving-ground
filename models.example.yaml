@@ -45,10 +45,10 @@ model_list:
     metadata:
       role: reranker
 
-  - model_name: qwen3.5-4b
+  - model_name: qwen3-vl-4b
     litellm_params:
-      model: ollama/qwen3.5:4b
-      api_base: http://host.docker.internal:11434
+      model: openai/qwen/qwen3-vl-4b
+      api_base: http://host.docker.internal:1234/v1
       api_key: "none"
     metadata:
       role: llm
