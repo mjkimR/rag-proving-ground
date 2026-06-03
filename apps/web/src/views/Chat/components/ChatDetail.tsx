@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Space, Spin, Alert, Typography, Tooltip } from 'antd';
+import { Button, Input, Space, Spin, Alert, Typography, Tooltip, Select } from 'antd';
 import { ArrowLeft, Send, RotateCcw, AlertTriangle, User, Bot } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useThemeStore } from '@/stores/themeStore';
 import { MarkdownPreview } from '@/components/MarkdownPreview';
+import { getModelCatalogOptionsApiV1ModelCatalogOptionsGet } from '@/generated/api/sdk.gen';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -28,8 +30,20 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
   const [isInitializing, setIsInitializing] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: modelOptions } = useQuery({
+    queryKey: ['modelOptions'],
+    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+  });
+
+  useEffect(() => {
+    if (modelOptions?.data?.llm_models && modelOptions.data.llm_models.length > 0 && !selectedModel) {
+      setSelectedModel(modelOptions.data.llm_models[0]);
+    }
+  }, [modelOptions, selectedModel]);
 
   // Initialize new thread on mount
   useEffect(() => {
@@ -94,6 +108,11 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
             messages: [{ type: 'human', content: userText }],
           },
           stream_mode: ['messages-tuple'],
+          config: {
+            configurable: {
+              model_name: selectedModel || null,
+            },
+          },
         }),
       });
 
@@ -219,20 +238,32 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
           </div>
         </Space>
 
-        <Tooltip title="Reset Conversation">
-          <Button
-            shape="circle"
-            icon={<RotateCcw size={16} />}
-            onClick={createNewThread}
-            disabled={isStreaming}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid var(--border-color)',
-            }}
-          />
-        </Tooltip>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {modelOptions?.data?.llm_models && (
+            <Select
+              value={selectedModel}
+              onChange={(value) => setSelectedModel(value)}
+              style={{ width: 180 }}
+              options={modelOptions.data.llm_models.map((m) => ({ label: m, value: m }))}
+              placeholder="Select Model"
+              disabled={isStreaming}
+            />
+          )}
+          <Tooltip title="Reset Conversation">
+            <Button
+              shape="circle"
+              icon={<RotateCcw size={16} />}
+              onClick={createNewThread}
+              disabled={isStreaming}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid var(--border-color)',
+              }}
+            />
+          </Tooltip>
+        </div>
       </div>
 
       {errorMsg && (

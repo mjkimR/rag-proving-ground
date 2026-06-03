@@ -4,6 +4,6 @@
     "../../packages/rag-core/src"
   ],
   "graphs": {
-    "agent": "../../packages/graphs/src/rag_graphs/graph.py:graph"
+    "simple_chat": "../../packages/graphs/src/rag_graphs/simple_chat.py:graph"
   }
 }

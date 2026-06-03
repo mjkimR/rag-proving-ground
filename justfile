@@ -99,6 +99,11 @@ up-gpu +profiles="":
 down:
     docker compose -p rag -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.gpu.yml down --remove-orphans
 
+# Restart Aegra serving container to reload graph changes
+restart-serve:
+    @bash ./scripts/restart-serve.sh
+
+
 # Run database migrations to upgrade schema
 db-upgrade revision="head":
     @uv --directory apps/backend run alembic upgrade {{ revision }}

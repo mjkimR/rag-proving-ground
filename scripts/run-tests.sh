@@ -5,6 +5,7 @@ source "$(dirname "$0")/_lib.sh"
 PATHS=("$@")
 DEFAULT_TEST_PATHS=(
     "packages/rag-core/tests"
+    "packages/graphs/tests"
     "apps/backend/tests"
 )
 
