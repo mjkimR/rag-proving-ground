@@ -7,6 +7,7 @@ from functools import lru_cache
 from typing import Any
 
 import yaml
+from app_http_client import get_http_sync_client
 from langchain_core.documents import BaseDocumentCompressor
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
@@ -126,7 +127,75 @@ def _json_safe_key(value: Any) -> str:
 
 @lru_cache(maxsize=1)
 def get_model_options() -> dict[str, list[str]]:
-    """Parse models.yaml and return categorized lists of models."""
+    """Parse models from LiteLLM gateway API or fallback to models.yaml and return categorized lists."""
+    settings = get_litellm_settings()
+    info_url = f"{_gateway_base_url(settings.base_url)}/model/info"
+
+    headers = {}
+    if settings.api_key:
+        headers["Authorization"] = f"Bearer {settings.api_key.get_secret_value()}"
+
+    try:
+        client = get_http_sync_client()
+        response = client.get(info_url, headers=headers, timeout=5.0)
+        if response.status_code == 200:
+            data = response.json()
+            model_list = data
+            if isinstance(data, dict) and "data" in data:
+                model_list = data["data"]
+            elif isinstance(data, dict) and "model_list" in data:
+                model_list = data["model_list"]
+
+            if isinstance(model_list, list):
+                embedding_models = []
+                llm_models = []
+                reranker_models = []
+
+                for entry in model_list:
+                    name = entry.get("model_name")
+                    if not name:
+                        continue
+
+                    metadata = entry.get("metadata") or {}
+                    role = metadata.get("role") or metadata.get("type")
+
+                    if not role and "tags" in metadata:
+                        tags = metadata.get("tags") or []
+                        if "embedding" in tags:
+                            role = "embedding"
+                        elif "reranker" in tags:
+                            role = "reranker"
+                        elif "llm" in tags or "chat" in tags:
+                            role = "llm"
+
+                    if not role:
+                        # Name heuristics
+                        name_lower = name.lower()
+                        if "embedding" in name_lower:
+                            role = "embedding"
+                        elif "reranker" in name_lower or "rerank" in name_lower:
+                            role = "reranker"
+                        else:
+                            role = "llm"
+
+                    if role == "embedding":
+                        embedding_models.append(name)
+                    elif role == "reranker":
+                        reranker_models.append(name)
+                    else:
+                        llm_models.append(name)
+
+                logger.info("Successfully fetched model options dynamically from LiteLLM gateway.")
+                return {
+                    "embedding_models": embedding_models,
+                    "llm_models": llm_models,
+                    "reranker_models": reranker_models,
+                }
+    except Exception as e:
+        logger.warning(
+            f"Failed to fetch model info from LiteLLM gateway ({info_url}): {e}. Falling back to models.yaml."
+        )
+
     yaml_path = os.environ.get("MODELS_YAML_PATH")
     if not yaml_path:
         search_paths = [

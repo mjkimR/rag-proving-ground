@@ -1,19 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Space, Spin, Alert, Typography, Tooltip, Select } from 'antd';
-import { ArrowLeft, Send, RotateCcw, AlertTriangle, User, Bot } from 'lucide-react';
+import { Spin, Alert } from 'antd';
+import { AlertTriangle, Bot } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useThemeStore } from '@/stores/themeStore';
-import { MarkdownPreview } from '@/components/MarkdownPreview';
 import { getModelCatalogOptionsApiV1ModelCatalogOptionsGet } from '@/generated/api/sdk.gen';
-
-const { Title, Text } = Typography;
-const { TextArea } = Input;
-
-interface Message {
-  id: string;
-  type: 'human' | 'ai';
-  content: string;
-}
+import { ChatHeader } from './ChatHeader';
+import { ChatInput } from './ChatInput';
+import { ChatMessageItem, type Message } from './ChatMessageItem';
 
 interface ChatDetailProps {
   assistantId: string;
@@ -97,6 +90,7 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
     setMessages(newMessages);
     setIsStreaming(true);
 
+    let runId: string | null = null;
     try {
       // 2. Call stream endpoint
       const response = await fetch(`${AEGRA_API_URL}/threads/${threadId}/runs/stream`, {
@@ -145,7 +139,16 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
           } else if (trimmed.startsWith('data: ')) {
             const dataStr = trimmed.slice(6).trim();
 
-            if (currentEvent === 'messages') {
+            if (currentEvent === 'metadata') {
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed && parsed.run_id) {
+                  runId = parsed.run_id;
+                }
+              } catch (e) {
+                console.error('Failed to parse metadata event:', e);
+              }
+            } else if (currentEvent === 'messages') {
               try {
                 const parsed = JSON.parse(dataStr);
                 // parsed is [ AIMessageChunk, RunContext ]
@@ -176,22 +179,63 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
               } catch (e) {
                 console.error('Failed to parse message event payload:', e);
               }
+            } else if (currentEvent === 'error') {
+              try {
+                const parsed = JSON.parse(dataStr);
+                let errMsg = parsed.message || parsed.error || 'An error occurred during execution.';
+
+                if (runId && threadId) {
+                  try {
+                    const runRes = await fetch(`${AEGRA_API_URL}/threads/${threadId}/runs/${runId}`);
+                    if (runRes.ok) {
+                      const runData = await runRes.json();
+                      if (runData.error_message || runData.error) {
+                        errMsg = runData.error_message || runData.error;
+                      }
+                    }
+                  } catch (fetchErr) {
+                    console.error('Failed to fetch detailed run error:', fetchErr);
+                  }
+                }
+
+                setMessages((prev) => [
+                  ...prev,
+                  { id: `error-${Date.now()}`, type: 'error', content: errMsg },
+                ]);
+              } catch (e) {
+                setMessages((prev) => [
+                  ...prev,
+                  { id: `error-${Date.now()}`, type: 'error', content: 'An error occurred during execution.' },
+                ]);
+              }
             }
           }
         }
       }
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || 'An error occurred during streaming execution.');
+      let errMsg = err.message || 'An error occurred during streaming execution.';
+
+      if (runId && threadId) {
+        try {
+          const runRes = await fetch(`${AEGRA_API_URL}/threads/${threadId}/runs/${runId}`);
+          if (runRes.ok) {
+            const runData = await runRes.json();
+            if (runData.error_message || runData.error) {
+              errMsg = runData.error_message || runData.error;
+            }
+          }
+        } catch (fetchErr) {
+          console.error('Failed to fetch detailed run error in catch block:', fetchErr);
+        }
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `error-${Date.now()}`, type: 'error', content: errMsg },
+      ]);
     } finally {
       setIsStreaming(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
     }
   };
 
@@ -208,63 +252,16 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 180px)', padding: '0 24px' }}>
-      {/* Top Navigation Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingBottom: '16px',
-          borderBottom: '1px solid var(--border-color, #dde3ea)',
-          marginBottom: '16px',
-        }}
-      >
-        <Space size="middle">
-          <Button
-            type="text"
-            icon={<ArrowLeft size={16} />}
-            onClick={onBack}
-            style={{ borderRadius: '8px' }}
-          >
-            Back
-          </Button>
-          <div>
-            <Title level={4} className="font-outfit" style={{ margin: 0, fontWeight: 700 }}>
-              Chat: <span style={{ color: '#4f46e5' }}>{assistantId}</span>
-            </Title>
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              Thread Ref: {threadId || 'No active thread'}
-            </Text>
-          </div>
-        </Space>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {modelOptions?.data?.llm_models && (
-            <Select
-              value={selectedModel}
-              onChange={(value) => setSelectedModel(value)}
-              style={{ width: 180 }}
-              options={modelOptions.data.llm_models.map((m) => ({ label: m, value: m }))}
-              placeholder="Select Model"
-              disabled={isStreaming}
-            />
-          )}
-          <Tooltip title="Reset Conversation">
-            <Button
-              shape="circle"
-              icon={<RotateCcw size={16} />}
-              onClick={createNewThread}
-              disabled={isStreaming}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid var(--border-color)',
-              }}
-            />
-          </Tooltip>
-        </div>
-      </div>
+      <ChatHeader
+        assistantId={assistantId}
+        threadId={threadId}
+        onBack={onBack}
+        llmModels={modelOptions?.data?.llm_models}
+        selectedModel={selectedModel}
+        setSelectedModel={setSelectedModel}
+        isStreaming={isStreaming}
+        onReset={createNewThread}
+      />
 
       {errorMsg && (
         <Alert
@@ -299,71 +296,9 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
             <span style={{ fontSize: '12px' }}>Type below to trigger the Aegra bypass graph execution.</span>
           </div>
         ) : (
-          messages.map((msg) => {
-            const isHuman = msg.type === 'human';
-            return (
-              <div
-                key={msg.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: isHuman ? 'flex-end' : 'flex-start',
-                  width: '100%',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: isHuman ? 'row-reverse' : 'row',
-                    alignItems: 'flex-start',
-                    maxWidth: '80%',
-                    gap: '10px',
-                  }}
-                >
-                  {/* Avatar Icon */}
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      background: isHuman
-                        ? 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)'
-                        : isDarkMode ? '#1f2937' : '#e5e7eb',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: isHuman ? '#ffffff' : isDarkMode ? '#ffffff' : '#4b5563',
-                      boxShadow: isHuman ? '0 2px 8px rgba(79,70,229,0.15)' : 'none',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {isHuman ? <User size={16} /> : <Bot size={16} />}
-                  </div>
-
-                  {/* Speech Bubble */}
-                  <div
-                    style={{
-                      background: isHuman
-                        ? 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)'
-                        : isDarkMode ? '#111827' : '#ffffff',
-                      color: isHuman ? '#ffffff' : 'inherit',
-                      padding: '12px 16px',
-                      borderRadius: isHuman ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
-                      border: isHuman ? 'none' : '1px solid var(--border-color, #e5e7eb)',
-                      boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
-                      fontSize: '14px',
-                      lineHeight: '1.5',
-                    }}
-                  >
-                    {isHuman ? (
-                      <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
-                    ) : (
-                      <MarkdownPreview markdown={msg.content} />
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })
+          messages.map((msg) => (
+            <ChatMessageItem key={msg.id} msg={msg} isDarkMode={isDarkMode} />
+          ))
         )}
 
         {isStreaming && (
@@ -404,42 +339,13 @@ export const ChatDetail: React.FC<ChatDetailProps> = ({ assistantId, onBack }) =
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Message Area */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-        <TextArea
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Send a message to the graph..."
-          autoSize={{ minRows: 1, maxRows: 4 }}
-          disabled={isStreaming}
-          style={{
-            borderRadius: '12px',
-            padding: '12px 16px',
-            border: '1px solid var(--border-color, #dde3ea)',
-            background: isDarkMode ? '#111827' : '#ffffff',
-            boxShadow: 'none',
-            fontSize: '14px',
-          }}
-        />
-        <Button
-          type="primary"
-          icon={<Send size={16} />}
-          onClick={handleSend}
-          disabled={!inputValue.trim() || isStreaming}
-          style={{
-            height: '46px',
-            width: '46px',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
-            border: 'none',
-            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)',
-          }}
-        />
-      </div>
+      <ChatInput
+        inputValue={inputValue}
+        setInputValue={setInputValue}
+        onSend={handleSend}
+        isStreaming={isStreaming}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };
