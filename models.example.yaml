@@ -3,35 +3,71 @@ model_list:
     litellm_params:
       model: openai/gpt-4o
       api_key: "os.environ/OPENAI_API_KEY"
+    metadata:
+      role: llm
 
   - model_name: text-embedding-3-small
     litellm_params:
       model: openai/text-embedding-3-small
       api_key: "os.environ/OPENAI_API_KEY"
+    metadata:
+      role: embedding
 
   - model_name: gpt-oss-20b
     litellm_params:
       model: openai/openai/gpt-oss-20b
-      api_base:
+      api_base: http://proxy.aica-gpu.nhncloud.com:30121/v1
       api_key: "os.environ/VLLM_API_KEY"
+    metadata:
+      role: llm
 
   - model_name: gpt-oss-120b
     litellm_params:
       model: openai/openai/gpt-oss-120b
-      api_base:
+      api_base: http://proxy.aica-gpu.nhncloud.com:30120/v1
       api_key: "os.environ/VLLM_API_KEY"
+    metadata:
+      role: llm
 
   - model_name: vllm-embedding
     litellm_params:
       model: hosted_vllm/ko-embedding
-      api_base:
+      api_base: http://proxy.aica-gpu.nhncloud.com:30123/v1
       api_key: "os.environ/VLLM_API_KEY"
+    metadata:
+      role: embedding
 
   - model_name: vllm-reranker
     litellm_params:
       model: huggingface/ko-reranker
-      api_base:
+      api_base: http://proxy.aica-gpu.nhncloud.com:30124
       api_key: "os.environ/VLLM_API_KEY"
+    metadata:
+      role: reranker
+
+  - model_name: qwen3.5-4b
+    litellm_params:
+      model: ollama/qwen3.5:4b
+      api_base: http://host.docker.internal:11434
+      api_key: "none"
+    metadata:
+      role: llm
+
+  - model_name: bge-m3
+    litellm_params:
+      model: huggingface/BAAI/bge-m3
+      api_base: http://host.docker.internal:18080
+      api_key: "none"
+    metadata:
+      role: embedding
+
+  - model_name: bge-reranker-v2-m3
+    litellm_params:
+      model: huggingface/BAAI/bge-reranker-v2-m3
+      api_base: http://host.docker.internal:18081
+      api_key: "none"
+    metadata:
+      role: reranker
 
 router_settings:
   routing_strategy: simple-shuffle

@@ -78,7 +78,6 @@ kill:
 browser:
     @bash ./scripts/open-browser.sh
 
-
 # Start the background worker for async document processing
 worker:
     @bash ./scripts/worker-run.sh
@@ -99,10 +98,17 @@ up-gpu +profiles="":
 down:
     docker compose -p rag -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.gpu.yml down --remove-orphans
 
+# Start local model serving (Ollama & TEI)
+models-up:
+    docker compose -f infra/models/docker-compose.yml up -d
+
+# Stop local model serving (Ollama & TEI)
+models-down:
+    docker compose -f infra/models/docker-compose.yml down --remove-orphans
+
 # Restart Aegra serving container to reload graph changes
 restart-serve:
     @bash ./scripts/restart-serve.sh
-
 
 # Run database migrations to upgrade schema
 db-upgrade revision="head":

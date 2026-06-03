@@ -1,0 +1,55 @@
+services:
+  # 1. Ollama (LLM Serving - GPU Enabled)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: local-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ~/.ai_models/ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    # Healthcheck to verify the Ollama server is up and responding
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Sidecar container to automatically pull the model once Ollama is healthy
+  ollama-pull-model:
+    image: ollama/ollama:latest
+    container_name: local-ollama-pull-model
+    restart: "no"
+    volumes:
+      - ~/.ai_models/ollama:/root/.ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command: -c "ollama pull qwen3.5:4b"
+
+  # 3. TEI Embedding (CPU Enabled - BAAI/bge-m3)
+  tei-embedding:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+    container_name: local-tei-embedding
+    ports:
+      - "18080:80"
+    volumes:
+      - ~/.ai_models/tei/embedding:/data
+    command: --model-id BAAI/bge-m3
+
+  # 4. TEI Reranker (CPU Enabled - BAAI/bge-reranker-v2-m3)
+  tei-reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.5
+    container_name: local-tei-reranker
+    ports:
+      - "18081:80"
+    volumes:
+      - ~/.ai_models/tei/reranker:/data
+    command: --model-id BAAI/bge-reranker-v2-m3
