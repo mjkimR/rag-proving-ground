@@ -83,6 +83,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMod
             boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
             fontSize: '14px',
             lineHeight: '1.5',
+            width: 'fit-content',
+            maxWidth: '100%',
           }}
         >
           {isHuman ? (
@@ -95,7 +97,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMod
               <span style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', fontSize: '12px' }}>{msg.content}</span>
             </div>
           ) : (
-            <MarkdownPreview markdown={msg.content} />
+            <MarkdownPreview markdown={msg.content} className="chat-markdown-preview" />
           )}
         </div>
       </div>

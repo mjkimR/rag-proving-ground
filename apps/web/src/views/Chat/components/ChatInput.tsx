@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Input, Button } from 'antd';
 import { Send } from 'lucide-react';
 
@@ -19,6 +19,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isStreaming,
   isDarkMode,
 }) => {
+  const inputRef = useRef<any>(null);
+
+  // Auto-focus the input field when streaming finishes or on mount
+  useEffect(() => {
+    if (isStreaming) return;
+
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isStreaming]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -29,6 +41,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
       <TextArea
+        ref={inputRef}
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}

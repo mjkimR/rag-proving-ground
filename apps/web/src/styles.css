@@ -881,4 +881,53 @@ textarea {
   box-shadow: 0 12px 28px rgba(79, 70, 229, 0.1) !important;
 }
 
+.chat-markdown-preview {
+  color: inherit;
+  line-height: 1.6;
+  height: auto;
+  overflow: visible;
+  padding: 0;
+}
+
+.chat-markdown-preview p {
+  margin: 0 0 8px 0;
+}
+
+.chat-markdown-preview p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-markdown-preview ul,
+.chat-markdown-preview ol {
+  margin: 0 0 8px 0;
+  padding-left: 20px;
+}
+
+.chat-markdown-preview li {
+  margin-bottom: 4px;
+}
+
+.chat-markdown-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.chat-markdown-preview th,
+.chat-markdown-preview td {
+  border: 1px solid var(--border-color, #dde3ea);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.chat-markdown-preview th {
+  background-color: rgba(0, 0, 0, 0.02);
+  font-weight: 600;
+}
+
+.dark-theme .chat-markdown-preview th {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
 
