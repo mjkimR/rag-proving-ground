@@ -66,7 +66,7 @@ check module="all":
 dev module="all":
     @bash ./scripts/dev-run.sh "{{ module }}"
 
-# Run Python tests from pyproject testpaths. Can specify target paths (e.g. just test packages/rag-core/src/tests/unit)
+# Run Python tests from pyproject testpaths. Can specify target paths (e.g. just test packages/rag-core/tests/unit)
 test +paths="":
     @bash ./scripts/run-tests.sh {{ paths }}
 

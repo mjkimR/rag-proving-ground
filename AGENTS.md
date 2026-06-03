@@ -126,7 +126,7 @@ New parser providers must follow the established adapter pattern:
 - Register the implementation in `registry.py`.
 - Expose it through `factory.py`.
 - Resolve the active provider through `instance.py`, which reads the parser provider setting.
-- Add focused unit tests under `packages/rag-core/src/tests/unit/test_adapters/test_parser/`.
+- Add focused unit tests under `packages/rag-core/tests/unit/test_adapters/test_parser/`.
 
 #### Vector Store Adapter Pattern (`packages/rag-core/src/rag_core/adapters/vector_store/`)
 
@@ -169,11 +169,11 @@ Pytest is configured in the workspace `pyproject.toml`.
 
 ```bash
 just test
-just test packages/rag-core/src/tests/unit
+just test packages/rag-core/tests/unit
 just test apps/backend/tests
 ```
 
-- With no paths, `just test` runs the default test roots in `scripts/run-tests.sh` (`packages/rag-core/src/tests`
+- With no paths, `just test` runs the default test roots in `scripts/run-tests.sh` (`packages/rag-core/tests`
   and `apps/backend/tests` today). Default empty roots are reported and skipped.
 - **Framework**: `pytest` with `pytest-asyncio` (`asyncio_mode = "auto"`).
 - **Mocking**: `pytest-mock`.

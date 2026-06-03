@@ -104,7 +104,7 @@ just check web      # Run type check for React web frontend only
 
 # Running Tests
 just test                                                   # Run all pytest tests
-just test packages/rag-core/src/tests/unit/test_adapters/  # Run specific test files or directories
+just test packages/rag-core/tests/unit/test_adapters/  # Run specific test files or directories
 
 # Running Dev Servers
 just dev-backend  # Start FastAPI backend in reloading mode (port 8389)

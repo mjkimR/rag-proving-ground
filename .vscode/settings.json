@@ -6,8 +6,14 @@
         "./packages/graphs/src"
     ],
     "python.testing.pytestArgs": [
-        "packages/rag-core/src/tests"
+        "packages/rag-core/tests",
+        "apps/backend/tests"
     ],
+    "files.associations": {
+        "justfile": "just",
+        ".env*": "dotenv",
+        "docker-compose*.yml": "dockercompose"
+    },
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.analysis.typeCheckingMode": "basic",
