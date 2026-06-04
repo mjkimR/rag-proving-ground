@@ -8,6 +8,7 @@ import { Dashboard } from './views/Dashboard';
 import { Knowledge } from './views/Knowledge';
 import { DocumentWorkbench } from './views/DocumentWorkbench';
 import { Chat } from './views/Chat';
+import { Playground } from './views/Playground';
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 
@@ -35,6 +36,8 @@ const ContentSwitcher: React.FC = () => {
   switch (activeTab) {
     case 'knowledge':
       return <Knowledge />;
+    case 'playground':
+      return <Playground />;
     case 'workbench':
       return <DocumentWorkbench copilotEnabled={Boolean(copilotRuntimeUrl)} />;
     case 'chat':

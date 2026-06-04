@@ -6,6 +6,8 @@ const { Title, Text } = Typography;
 
 interface ChatHeaderProps {
   assistantId: string;
+  assistantName?: string | null;
+  assistantGraphId?: string | null;
   threadId: string | null;
   onBack: () => void;
   llmModels?: string[];
@@ -17,6 +19,8 @@ interface ChatHeaderProps {
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   assistantId,
+  assistantName,
+  assistantGraphId,
   threadId,
   onBack,
   llmModels,
@@ -47,10 +51,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </Button>
         <div>
           <Title level={4} className="font-outfit" style={{ margin: 0, fontWeight: 700 }}>
-            Chat: <span style={{ color: '#4f46e5' }}>{assistantId}</span>
+            Chat: <span style={{ color: '#4f46e5' }}>{assistantName || assistantId}</span>
           </Title>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            Thread Ref: {threadId || 'No active thread'}
+            Graph: {assistantGraphId || 'unknown'} · Thread Ref: {threadId || 'No active thread'}
           </Text>
         </div>
       </Space>

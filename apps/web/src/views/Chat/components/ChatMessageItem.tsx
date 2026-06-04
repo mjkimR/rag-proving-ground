@@ -1,11 +1,12 @@
 import React from 'react';
-import { User, Bot, AlertTriangle } from 'lucide-react';
+import { User, Bot, AlertTriangle, Brain } from 'lucide-react';
 import { MarkdownPreview } from '@/components/MarkdownPreview';
 
 export interface Message {
   id: string;
   type: 'human' | 'ai' | 'error';
   content: string;
+  thinking?: string;
 }
 
 interface ChatMessageItemProps {
@@ -16,6 +17,7 @@ interface ChatMessageItemProps {
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMode }) => {
   const isHuman = msg.type === 'human';
   const isError = msg.type === 'error';
+  const hasThinking = !isHuman && !isError && Boolean(msg.thinking?.trim());
 
   return (
     <div
@@ -97,7 +99,58 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMod
               <span style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', fontSize: '12px' }}>{msg.content}</span>
             </div>
           ) : (
-            <MarkdownPreview markdown={msg.content} className="chat-markdown-preview" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: msg.content ? '12px' : '0' }}>
+              {hasThinking && (
+                <details
+                  open={!msg.content}
+                  style={{
+                    border: isDarkMode ? '1px solid #263244' : '1px solid #dbe4ef',
+                    borderRadius: '10px',
+                    background: isDarkMode ? '#0b1220' : '#f8fafc',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <summary
+                    style={{
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 10px',
+                      color: isDarkMode ? '#bfdbfe' : '#1d4ed8',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      userSelect: 'none',
+                    }}
+                  >
+                    <Brain size={14} />
+                    Thinking
+                  </summary>
+                  <div
+                    style={{
+                      borderTop: isDarkMode ? '1px solid #263244' : '1px solid #dbe4ef',
+                      padding: '10px',
+                      color: isDarkMode ? '#cbd5e1' : '#334155',
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      fontSize: '12px',
+                      lineHeight: 1.55,
+                      whiteSpace: 'pre-wrap',
+                      maxHeight: '240px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {msg.thinking}
+                  </div>
+                </details>
+              )}
+              {msg.content ? (
+                <MarkdownPreview markdown={msg.content} className="chat-markdown-preview" />
+              ) : hasThinking ? null : (
+                <span style={{ color: isDarkMode ? '#9ca3af' : '#6b7280', fontStyle: 'italic' }}>
+                  Waiting for response...
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>

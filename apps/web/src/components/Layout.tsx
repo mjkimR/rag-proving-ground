@@ -11,6 +11,7 @@ import {
   FileText,
   Menu as MenuIcon,
   MessageSquare,
+  GitMerge,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { healthApiHealthGet } from '../generated/api/sdk.gen';
@@ -55,6 +56,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       key: 'knowledge',
       icon: <Database size={18} />,
       label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Knowledge Bases</span>,
+    },
+    {
+      key: 'playground',
+      icon: <GitMerge size={18} />,
+      label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Playground</span>,
     },
     {
       key: 'workbench',
@@ -212,6 +218,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <h2 className="font-outfit" style={{ margin: 0, fontSize: '20px', fontWeight: 700, textTransform: 'capitalize' }}>
               {activeTab === 'knowledge'
                 ? 'Knowledge Base Management'
+                : activeTab === 'playground'
+                  ? 'Retrieval Playground'
                 : activeTab === 'workbench'
                   ? 'Showcase Workbench'
                   : activeTab === 'chat'

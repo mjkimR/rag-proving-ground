@@ -693,9 +693,27 @@ export type KnowledgeBaseSearchResultItem = {
     /**
      * Score
      *
-     * The similarity score.
+     * The final ranking score.
      */
     score: number;
+    /**
+     * Knowledge Base Id
+     *
+     * The knowledge base that produced the chunk.
+     */
+    knowledge_base_id: string;
+    /**
+     * Vector Score
+     *
+     * The original vector search score.
+     */
+    vector_score: number;
+    /**
+     * Rerank Score
+     *
+     * The reranker relevance score when reranking is used.
+     */
+    rerank_score?: number | null;
     /**
      * Metadata
      *
@@ -772,6 +790,40 @@ export type ModelCatalogOptions = {
      * List of available parser providers
      */
     parser_providers: Array<string>;
+};
+
+/**
+ * MultiKnowledgeBaseSearchRequest
+ */
+export type MultiKnowledgeBaseSearchRequest = {
+    /**
+     * Query
+     *
+     * The search query.
+     */
+    query: string;
+    /**
+     * Knowledge Base Ids
+     *
+     * Knowledge bases to search. Duplicate IDs are removed while preserving request order.
+     */
+    knowledge_base_ids: Array<string>;
+    /**
+     * Limit
+     *
+     * The maximum number of search results to return.
+     */
+    limit?: number;
+    /**
+     * Candidate Limit
+     *
+     * Initial vector candidates to retrieve per knowledge base before final merging and reranking.
+     */
+    candidate_limit?: number | null;
+    /**
+     * Reranker options for merged results.
+     */
+    reranker_config?: RerankerConfig | null;
 };
 
 /**
@@ -1071,6 +1123,26 @@ export type Provenance = {
 };
 
 /**
+ * RerankerConfig
+ *
+ * Safe client-controlled reranker options.
+ */
+export type RerankerConfig = {
+    /**
+     * Model
+     *
+     * Reranker model name. Uses the runtime default when omitted.
+     */
+    model?: string | null;
+    /**
+     * Top N
+     *
+     * Maximum number of reranked results to return.
+     */
+    top_n?: number | null;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -1279,6 +1351,31 @@ export type CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses = {
 };
 
 export type CreateKnowledgeBaseApiV1KnowledgeBasesPostResponse = CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses[keyof CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses];
+
+export type SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostData = {
+    body: MultiKnowledgeBaseSearchRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge_bases/search';
+};
+
+export type SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostError = SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostErrors[keyof SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostErrors];
+
+export type SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBaseSearchResponse;
+};
+
+export type SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostResponse = SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostResponses[keyof SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostResponses];
 
 export type DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteData = {
     body?: never;

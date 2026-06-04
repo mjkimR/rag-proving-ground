@@ -6,11 +6,14 @@ interface ThemeState {
   selectedKnowledgeName: string | null;
   selectedKnowledgeId: string | null;
   selectedAssistantId: string | null;
+  selectedAssistantName: string | null;
+  selectedAssistantGraphId: string | null;
   toggleDarkMode: () => void;
   setActiveTab: (tab: string) => void;
   setSelectedKnowledgeName: (name: string | null) => void;
   setSelectedKnowledgeId: (id: string | null) => void;
   setSelectedAssistantId: (id: string | null) => void;
+  setSelectedAssistant: (assistant: { id: string; name: string; graphId: string } | null) => void;
 }
 
 export const useThemeStore = create<ThemeState>((set) => {
@@ -30,6 +33,8 @@ export const useThemeStore = create<ThemeState>((set) => {
     selectedKnowledgeName: null,
     selectedKnowledgeId: null,
     selectedAssistantId: null,
+    selectedAssistantName: null,
+    selectedAssistantGraphId: null,
     toggleDarkMode: () =>
       set((state) => {
         const nextDark = !state.isDarkMode;
@@ -45,5 +50,11 @@ export const useThemeStore = create<ThemeState>((set) => {
     setSelectedKnowledgeName: (name) => set({ selectedKnowledgeName: name }),
     setSelectedKnowledgeId: (id) => set({ selectedKnowledgeId: id }),
     setSelectedAssistantId: (id) => set({ selectedAssistantId: id }),
+    setSelectedAssistant: (assistant) =>
+      set({
+        selectedAssistantId: assistant?.id ?? null,
+        selectedAssistantName: assistant?.name ?? null,
+        selectedAssistantGraphId: assistant?.graphId ?? null,
+      }),
   };
 });

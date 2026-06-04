@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Card, Row, Col, Input, InputNumber, Spin, Empty, Space, Badge, Tag, Tooltip, Typography, message } from 'antd';
+import { Card, Row, Col, Input, InputNumber, Spin, Empty, Typography, message } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 import { searchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPost } from '@/generated/api/sdk.gen';
-import type { KnowledgeBaseRead, KnowledgeBaseSearchResultItem, KnowledgeBaseSearchResponse } from '@/generated/api/types.gen';
-import { Info } from 'lucide-react';
+import type { KnowledgeBaseRead, KnowledgeBaseSearchResponse } from '@/generated/api/types.gen';
+import { SearchResultCards } from './SearchResultCards';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -34,13 +34,6 @@ export const RetrievalTestTab: React.FC<RetrievalTestTabProps> = ({ kb }) => {
       message.error(e instanceof Error ? e.message : 'Retrieval search failed.');
     }
   });
-
-  const getScoreColor = (score: number) => {
-    if (score > 0.8) return 'success';
-    if (score > 0.6) return 'processing';
-    if (score > 0.4) return 'warning';
-    return 'error';
-  };
 
   return (
     <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
@@ -112,81 +105,7 @@ export const RetrievalTestTab: React.FC<RetrievalTestTabProps> = ({ kb }) => {
             </Text>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {searchMutation.data.data?.results?.map((result: KnowledgeBaseSearchResultItem, idx: number) => {
-              const metadata = result.metadata as Record<string, any> | undefined;
-              const pageIds = metadata?.page_ids;
-
-              return (
-                <Card
-                  key={result.chunk_id}
-                  size="small"
-                  variant="borderless"
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '12px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-                    <Space size="middle" align="center" style={{ flexWrap: 'wrap' }}>
-                      <Badge
-                        count={`Chunk #${idx + 1}`}
-                        style={{ backgroundColor: 'var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}
-                      />
-                      <Text type="secondary" style={{ fontSize: '12px' }}>
-                        Document ID: <span style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.03)', padding: '2px 6px', borderRadius: '4px' }}>{result.doc_id || 'N/A'}</span>
-                      </Text>
-                      {Array.isArray(pageIds) && pageIds.length > 0 && (
-                        <Text type="secondary" style={{ fontSize: '12px' }}>
-                          Pages: <span style={{ fontWeight: 600 }}>{pageIds.join(', ')}</span>
-                        </Text>
-                      )}
-                    </Space>
-                    <Tag
-                      color={getScoreColor(result.score)}
-                      style={{ fontWeight: 700, borderRadius: '6px', padding: '2px 8px', fontSize: '13px', margin: 0 }}
-                    >
-                      Score: {(result.score * 100).toFixed(1)}%
-                    </Tag>
-                  </div>
-
-                  <div style={{
-                    background: 'rgba(0,0,0,0.01)',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    border: '1px dashed var(--border-color)',
-                    maxHeight: '300px',
-                    overflowY: 'auto'
-                  }}>
-                    <pre style={{
-                      margin: 0,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      fontFamily: 'inherit',
-                      fontSize: '13px',
-                      color: 'var(--text-primary)',
-                      lineHeight: '1.6'
-                    }}>
-                      {result.content}
-                    </pre>
-                  </div>
-
-                  {metadata && Object.keys(metadata).length > 0 && (
-                    <div style={{ marginTop: '12px', borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: '10px' }}>
-                      <Tooltip title={JSON.stringify(metadata, null, 2)}>
-                        <Text type="secondary" style={{ fontSize: '11px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Info size={12} />
-                          <span>Hover to view metadata</span>
-                        </Text>
-                      </Tooltip>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
+          <SearchResultCards results={searchMutation.data.data?.results || []} />
         </div>
       )}
     </Card>

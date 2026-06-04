@@ -21,7 +21,7 @@ interface Assistant {
 }
 
 interface ChatHubProps {
-  onSelect: (assistant: { id: string; name: string }) => void;
+  onSelect: (assistant: { id: string; name: string; graphId: string }) => void;
 }
 
 const AEGRA_API_URL = import.meta.env.VITE_AEGRA_URL || 'http://localhost:2026';
@@ -182,7 +182,7 @@ export const ChatHub: React.FC<ChatHubProps> = ({ onSelect }) => {
                   <Button
                     type="primary"
                     icon={<MessageSquare size={16} />}
-                    onClick={() => onSelect({ id: assistant.assistant_id, name: assistant.name })}
+                    onClick={() => onSelect({ id: assistant.assistant_id, name: assistant.name, graphId: assistant.graph_id })}
                     style={{
                       width: '100%',
                       height: '42px',

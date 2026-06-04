@@ -2,22 +2,17 @@
 
 from typing import Any
 
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, MessagesState, StateGraph
 from rag_core.ai.models import get_llm_model, get_model_options
 from typing_extensions import TypedDict
 
+from rag_graphs.util.messages import message_content, sanitize_messages_for_llm
+
 
 class GraphConfig(TypedDict):
     model_name: str | None
-
-
-def _message_content(message: BaseMessage) -> str:
-    content = message.content
-    if isinstance(content, str):
-        return content
-    return str(content)
 
 
 async def respond(state: MessagesState, config: RunnableConfig) -> dict[str, list[AIMessage]]:
@@ -29,12 +24,12 @@ async def respond(state: MessagesState, config: RunnableConfig) -> dict[str, lis
 
     llm = get_llm_model(model_name)
     messages: list[Any] = state.get("messages", [])
-    response = await llm.ainvoke(messages, config=config)
+    response = await llm.ainvoke(sanitize_messages_for_llm(messages), config=config)
     # Ensure we return an AIMessage
     if isinstance(response, AIMessage):
         return {"messages": [response]}
     # If not AIMessage (e.g. BaseMessage), convert or wraps it
-    content = _message_content(response)
+    content = message_content(response)
     return {"messages": [AIMessage(content=content)]}
 
 

@@ -15,6 +15,8 @@ from langchain_litellm import ChatLiteLLM, LiteLLMEmbeddings
 from rag_core.ai.reranker import LiteLLMRerankCompressor
 from rag_core.config import get_litellm_settings
 
+logging.getLogger("LiteLLM").setLevel(logging.CRITICAL)
+
 logger = logging.getLogger(__name__)
 
 _LLM_MODEL_CACHE: dict[str, BaseChatModel] = {}
