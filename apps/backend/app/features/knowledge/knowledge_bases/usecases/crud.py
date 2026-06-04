@@ -19,6 +19,7 @@ from app.features.knowledge.knowledge_bases.schemas import (
     KnowledgeBaseStatus,
 )
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseContextKwargs, KnowledgeBaseService
+from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.base.usecases.crud import (
@@ -252,8 +253,13 @@ async def _update_knowledge_base_with_document_transitions(
             await session.flush()
 
     if partial:
-        return await kb_service.patch(session, obj_pk, cast(KnowledgeBasePatch, obj_data), context=context)
-    return await kb_service.put(session, obj_pk, cast(KnowledgeBasePut, obj_data), context=context)
+        updated_kb = await kb_service.patch(session, obj_pk, cast(KnowledgeBasePatch, obj_data), context=context)
+    else:
+        updated_kb = await kb_service.put(session, obj_pk, cast(KnowledgeBasePut, obj_data), context=context)
+
+    if updated_kb and change_set.has_changes:
+        await refresh_knowledge_base_status(session, kb_service, doc_service, updated_kb.id)
+    return updated_kb
 
 
 def _detect_config_changes(

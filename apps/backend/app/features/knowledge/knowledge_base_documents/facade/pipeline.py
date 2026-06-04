@@ -10,6 +10,7 @@ from app.features.history.job_process_histories.services import JobProcessHistor
 from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
+from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status_for_document
 from app_file_storage import get_storage_client
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
@@ -30,6 +31,7 @@ from rag_core.parsers import (
     knowledge_parsing_config_hash,
     resolve_knowledge_parsing_config,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 KNOWLEDGE_DOCUMENT_RESOURCE_TYPE = "knowledge_base_document"
 
@@ -69,9 +71,7 @@ class KnowledgeDocumentPipelineService:
             else:
                 db_parsing_config_hash = None
 
-            await self.doc_service.repo.update_by_pk(
-                session, document_id, {"status": KnowledgeBaseDocumentStatus.PARSING}
-            )
+            await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.PARSING)
 
         logger.info(
             f"Ingest Phase 1: Parsing document '{filename}' (ID: {document_id}) using provider: {parsing_provider}"
@@ -147,9 +147,7 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, parse_history)
-                await self.doc_service.repo.update_by_pk(
-                    session, document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
-                )
+                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Ingestion failed at Parsing stage: {exc}",
@@ -169,9 +167,7 @@ class KnowledgeDocumentPipelineService:
         resolved_config = resolve_chunking_config(chunking_config)
 
         async with AsyncTransaction() as session:
-            await self.doc_service.repo.update_by_pk(
-                session, document_id, {"status": KnowledgeBaseDocumentStatus.CHUNKING}
-            )
+            await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.CHUNKING)
 
         logger.info(f"Chunking document '{filename}' (ID: {document_id})")
         start_time = time.time()
@@ -198,9 +194,7 @@ class KnowledgeDocumentPipelineService:
                         duration_seconds=duration,
                     )
                     await self.history_service.record(session, chunk_history)
-                await self.doc_service.repo.update_by_pk(
-                    session, document_id, {"status": KnowledgeBaseDocumentStatus.EMBEDDING}
-                )
+                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.EMBEDDING)
             return chunks
         except Exception as exc:
             duration = time.time() - start_time
@@ -218,9 +212,7 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, chunk_history)
-                await self.doc_service.repo.update_by_pk(
-                    session, document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
-                )
+                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"{failure_detail_prefix} failed at Chunking stage: {exc}",
@@ -289,9 +281,7 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, embed_history)
-                await self.doc_service.repo.update_by_pk(
-                    session, document_id, {"status": KnowledgeBaseDocumentStatus.COMPLETED}
-                )
+                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.COMPLETED)
         except Exception as exc:
             duration = time.time() - start_time
             logger.exception(f"Embedding failed for document '{filename}': {exc}")
@@ -309,9 +299,7 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, embed_history)
-                await self.doc_service.repo.update_by_pk(
-                    session, document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
-                )
+                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"{failure_detail_prefix} failed at Embedding stage: {exc}",
@@ -360,9 +348,16 @@ class KnowledgeDocumentPipelineService:
                 duration_seconds=duration,
             )
             await self.history_service.record(session, parse_history)
-            await self.doc_service.repo.update_by_pk(
-                session, document_id, {"status": KnowledgeBaseDocumentStatus.CHUNKING}
-            )
+            await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.CHUNKING)
+
+    async def _set_document_status(
+        self,
+        session: AsyncSession,
+        document_id: UUID,
+        document_status: KnowledgeBaseDocumentStatus,
+    ) -> None:
+        await self.doc_service.repo.update_by_pk(session, document_id, {"status": document_status})
+        await refresh_knowledge_base_status_for_document(session, self.kb_service, self.doc_service, document_id)
 
 
 def resolve_chunking_config(config: dict | ChunkingConfig | None) -> ChunkingConfig:

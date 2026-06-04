@@ -5,6 +5,7 @@ import pytest
 from app.features.knowledge.knowledge_base_documents.repos import KnowledgeBaseDocumentRepository
 from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 from app.features.knowledge.knowledge_bases.repos import KnowledgeBaseRepository
+from app.features.knowledge.knowledge_bases.schemas import KnowledgeBaseStatus
 from httpx import AsyncClient
 
 from tests.utils import assert_status_code
@@ -52,6 +53,7 @@ async def test_knowledge_base_crud_and_document_listing(
         json={"default_chunking_config": {"chunk_size": 256, "chunk_overlap": 25}},
     )
     assert_status_code(patch_kb_response, 200)
+    assert patch_kb_response.json()["status"] == KnowledgeBaseStatus.RUNNING
 
     get_doc_response = await client.get(f"/api/v1/knowledge_base_documents/{doc.id}")
     assert_status_code(get_doc_response, 200)

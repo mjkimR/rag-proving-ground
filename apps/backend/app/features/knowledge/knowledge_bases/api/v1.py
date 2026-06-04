@@ -11,6 +11,7 @@ from app.features.knowledge.knowledge_bases.schemas import (
     KnowledgeBaseRead,
     KnowledgeBaseSearchRequest,
     KnowledgeBaseSearchResponse,
+    MultiKnowledgeBaseSearchRequest,
 )
 from app.features.knowledge.knowledge_bases.usecases.crud import (
     CreateKnowledgeBaseUseCase,
@@ -20,7 +21,10 @@ from app.features.knowledge.knowledge_bases.usecases.crud import (
     PatchKnowledgeBaseUseCase,
     PutKnowledgeBaseUseCase,
 )
-from app.features.knowledge.knowledge_bases.usecases.search import SearchKnowledgeBaseUseCase
+from app.features.knowledge.knowledge_bases.usecases.search import (
+    SearchKnowledgeBaseUseCase,
+    SearchMultiKnowledgeBaseUseCase,
+)
 from app_layer_base.base.deps.params.page import PaginationParam
 from app_layer_base.base.exceptions.basic import NotFoundException
 from app_layer_base.base.repos.query_options import ListQueryOptions
@@ -47,6 +51,15 @@ async def get_knowledge_bases(
 ):
     query_options = ListQueryOptions(offset=pagination.offset, limit=pagination.limit)
     return await use_case.execute(query_options=query_options)
+
+
+@router.post("/search", response_model=KnowledgeBaseSearchResponse)
+async def search_multi_knowledge_bases(
+    use_case: Annotated[SearchMultiKnowledgeBaseUseCase, Depends()],
+    search_request: MultiKnowledgeBaseSearchRequest,
+):
+    """Retrieve similar document chunks across one or more knowledge bases."""
+    return await use_case.execute(search_request)
 
 
 @router.get("/{knowledge_base_id}", response_model=KnowledgeBaseRead)

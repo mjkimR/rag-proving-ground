@@ -8,6 +8,7 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
+from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
 from app.worker.broker import broker
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
@@ -55,7 +56,7 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
 
             # Update status to QUEUED to signify processing is requested
             doc.status = KnowledgeBaseDocumentStatus.QUEUED
-            await session.flush()
+            await refresh_knowledge_base_status(session, self.kb_service, self.doc_service, doc.knowledge_base_id)
 
         # Publish reprocess message to Redis
         try:

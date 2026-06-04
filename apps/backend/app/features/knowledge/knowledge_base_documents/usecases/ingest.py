@@ -11,6 +11,7 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
+from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
 from app.worker.broker import broker
 from app_file_storage import get_storage_client
 from app_layer_base.base.usecases.base import BaseUseCase
@@ -113,6 +114,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                 )
                 doc = await self.doc_service.create(session, doc_create)
 
+            await refresh_knowledge_base_status(session, self.kb_service, self.doc_service, knowledge_base_id)
             doc_id = doc.id
             kb_name = kb.name
 
