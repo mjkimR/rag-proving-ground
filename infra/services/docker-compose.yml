@@ -2,6 +2,8 @@ services:
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
     container_name: litellm-proxy
+    env_file:
+      - ../../.env
     ports:
       - "14004:4000"
     volumes:
