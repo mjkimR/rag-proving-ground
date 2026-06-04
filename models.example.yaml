@@ -1,4 +1,36 @@
 model_list:
+  - model_name: gpt-oss-20b
+    litellm_params:
+      model: openai/openai/gpt-oss-20b
+      api_base: "os.environ/VLLM_API_BASE_GPT_OSS_20B"
+      api_key: "os.environ/VLLM_API_KEY"
+    metadata:
+      role: llm
+
+  - model_name: gpt-oss-120b
+    litellm_params:
+      model: openai/openai/gpt-oss-120b
+      api_base: "os.environ/VLLM_API_BASE_GPT_OSS_120B"
+      api_key: "os.environ/VLLM_API_KEY"
+    metadata:
+      role: llm
+
+  - model_name: vllm-embedding
+    litellm_params:
+      model: hosted_vllm/ko-embedding
+      api_base: "os.environ/VLLM_API_BASE_EMBEDDING"
+      api_key: "os.environ/VLLM_API_KEY"
+    metadata:
+      role: embedding
+
+  - model_name: vllm-reranker
+    litellm_params:
+      model: huggingface/ko-reranker
+      api_base: "os.environ/VLLM_API_BASE_RERANKER"
+      api_key: "os.environ/VLLM_API_KEY"
+    metadata:
+      role: reranker
+
   - model_name: gpt-4o
     litellm_params:
       model: openai/gpt-4o
@@ -12,38 +44,6 @@ model_list:
       api_key: "os.environ/OPENAI_API_KEY"
     metadata:
       role: embedding
-
-  - model_name: gpt-oss-20b
-    litellm_params:
-      model: openai/openai/gpt-oss-20b
-      api_base: http://proxy.aica-gpu.nhncloud.com:30121/v1
-      api_key: "os.environ/VLLM_API_KEY"
-    metadata:
-      role: llm
-
-  - model_name: gpt-oss-120b
-    litellm_params:
-      model: openai/openai/gpt-oss-120b
-      api_base: http://proxy.aica-gpu.nhncloud.com:30120/v1
-      api_key: "os.environ/VLLM_API_KEY"
-    metadata:
-      role: llm
-
-  - model_name: vllm-embedding
-    litellm_params:
-      model: hosted_vllm/ko-embedding
-      api_base: http://proxy.aica-gpu.nhncloud.com:30123/v1
-      api_key: "os.environ/VLLM_API_KEY"
-    metadata:
-      role: embedding
-
-  - model_name: vllm-reranker
-    litellm_params:
-      model: huggingface/ko-reranker
-      api_base: http://proxy.aica-gpu.nhncloud.com:30124
-      api_key: "os.environ/VLLM_API_KEY"
-    metadata:
-      role: reranker
 
   - model_name: qwen3-vl-4b
     litellm_params:
