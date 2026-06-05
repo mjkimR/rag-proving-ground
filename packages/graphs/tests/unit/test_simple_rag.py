@@ -62,9 +62,22 @@ async def test_simple_rag_retrieves_context_and_injects_system_message(mocker):
     llm_messages = mock_llm.ainvoke.await_args.args[0]
     assert isinstance(llm_messages[0], SystemMessage)
     assert "RAG combines retrieval with generation." in llm_messages[0].content
-    assert "[1]" in llm_messages[0].content
+    assert "[cite:1]" in llm_messages[0].content
     assert llm_messages[1].content == "What is RAG?"
     assert result["messages"][-1].content == "RAG answer"
+    assert result["messages"][-1].additional_kwargs["references"] == [
+        {
+            "index": 1,
+            "knowledge_base_id": str(KB_ID),
+            "doc_id": "doc-1",
+            "chunk_id": "chunk-1",
+            "score": 0.91,
+            "rerank_score": None,
+            "content": "RAG combines retrieval with generation.",
+            "source": "rag.md",
+            "page": 3,
+        }
+    ]
 
 
 async def test_simple_rag_passes_reranker_config_for_multi_kb(mocker):

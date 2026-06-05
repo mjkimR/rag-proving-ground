@@ -4,7 +4,7 @@ import pytest
 from langchain_core.documents import Document
 from qdrant_client.http import models as qmodels
 from rag_core.embeddings.schemas import EmbeddingDistanceMetric, KnowledgeEmbeddingConfig
-from rag_core.retrieval import search
+from rag_core.retrieval import rerank, search
 from rag_core.retrieval.schemas import RerankerConfig, RetrievedChunk
 from rag_core.retrieval.search import retrieve_knowledge_chunks, retrieve_multi_knowledge_chunks
 
@@ -20,7 +20,7 @@ async def test_retrieve_knowledge_chunks_queries_vector_store(monkeypatch: pytes
             self, query: str, k: int, filter: qmodels.Filter
         ) -> list[tuple[Document, float]]:
             assert query == query_str
-            assert k == 3
+            assert k == 12
 
             # Verify filter matches our knowledge base ID
             condition = _single_field_condition(filter)
@@ -155,11 +155,11 @@ async def test_retrieve_multi_knowledge_chunks_reranks_multiple_kbs(monkeypatch:
 
     def fake_get_reranker_model(model_name: str | None = None, **kwargs):
         assert model_name == "test-reranker"
-        assert kwargs == {"top_n": 2}
+        assert kwargs == {"top_n": 8}
         return FakeReranker()
 
     monkeypatch.setattr(search, "get_knowledge_vector_store", fake_get_knowledge_vector_store)
-    monkeypatch.setattr(search, "get_reranker_model", fake_get_reranker_model)
+    monkeypatch.setattr(rerank, "get_reranker_model", fake_get_reranker_model)
 
     results = await retrieve_multi_knowledge_chunks(
         query="test query",
@@ -227,7 +227,7 @@ async def test_retrieve_multi_knowledge_chunks_uses_candidate_limit_per_kb(monke
         return FakeReranker()
 
     monkeypatch.setattr(search, "get_knowledge_vector_store", fake_get_knowledge_vector_store)
-    monkeypatch.setattr(search, "get_reranker_model", fake_get_reranker_model)
+    monkeypatch.setattr(rerank, "get_reranker_model", fake_get_reranker_model)
 
     results = await retrieve_multi_knowledge_chunks(
         query="test query",
@@ -300,11 +300,11 @@ async def test_retrieve_multi_knowledge_chunks_can_map_reranked_documents_by_chu
         return FakeVectorStore(), "collection_name", "hash_val"
 
     def fake_get_reranker_model(model_name: str | None = None, **kwargs):
-        assert kwargs == {"top_n": 1}
+        assert kwargs == {"top_n": 4}
         return FakeReranker()
 
     monkeypatch.setattr(search, "get_knowledge_vector_store", fake_get_knowledge_vector_store)
-    monkeypatch.setattr(search, "get_reranker_model", fake_get_reranker_model)
+    monkeypatch.setattr(rerank, "get_reranker_model", fake_get_reranker_model)
 
     results = await retrieve_multi_knowledge_chunks(
         query="test query",
@@ -324,3 +324,112 @@ def _single_field_condition(qdrant_filter: qmodels.Filter) -> qmodels.FieldCondi
     condition = qdrant_filter.must[0]
     assert isinstance(condition, qmodels.FieldCondition)
     return condition
+
+
+async def test_retrieve_chunks_deduplication_single_page(monkeypatch: pytest.MonkeyPatch) -> None:
+    kb_id = uuid4()
+    query_str = "test query"
+    embedding_config = KnowledgeEmbeddingConfig(model="test-embedding-model", distance=EmbeddingDistanceMetric.COSINE)
+
+    class FakeVectorStore:
+        async def asimilarity_search_with_score(
+            self, query: str, k: int, filter: qmodels.Filter
+        ) -> list[tuple[Document, float]]:
+            assert k == 8  # limit(2) * 4 oversampling
+            return [
+                (
+                    Document(
+                        page_content="chunk 1 content",
+                        metadata={"chunk_id": "chunk_1", "doc_id": "doc_1", "page_ids": ["page_1"]},
+                    ),
+                    0.9,
+                ),
+                (
+                    Document(
+                        page_content="chunk 2 content",
+                        metadata={"chunk_id": "chunk_2", "doc_id": "doc_1", "page_ids": ["page_1"]},  # same page
+                    ),
+                    0.8,
+                ),
+                (
+                    Document(
+                        page_content="chunk 3 content",
+                        metadata={"chunk_id": "chunk_3", "doc_id": "doc_1", "page_ids": ["page_2"]},  # new page
+                    ),
+                    0.7,
+                ),
+            ]
+
+    async def fake_get_knowledge_vector_store(config):
+        return FakeVectorStore(), "collection_name", "hash_val"
+
+    monkeypatch.setattr(search, "get_knowledge_vector_store", fake_get_knowledge_vector_store)
+
+    results = await retrieve_knowledge_chunks(
+        query=query_str,
+        knowledge_base_id=kb_id,
+        embedding_config=embedding_config,
+        limit=2,
+    )
+
+    assert len(results) == 2
+    assert results[0].chunk_id == "chunk_1"
+    assert results[1].chunk_id == "chunk_3"  # chunk 2 is skipped due to page_1 deduplication
+
+
+async def test_retrieve_chunks_deduplication_multi_page(monkeypatch: pytest.MonkeyPatch) -> None:
+    kb_id = uuid4()
+    query_str = "test query"
+    embedding_config = KnowledgeEmbeddingConfig(model="test-embedding-model", distance=EmbeddingDistanceMetric.COSINE)
+
+    class FakeVectorStore:
+        async def asimilarity_search_with_score(
+            self, query: str, k: int, filter: qmodels.Filter
+        ) -> list[tuple[Document, float]]:
+            return [
+                (
+                    Document(
+                        page_content="chunk 1 content",
+                        metadata={"chunk_id": "chunk_1", "doc_id": "doc_1", "page_ids": ["page_1", "page_2"]},
+                    ),
+                    0.9,
+                ),
+                (
+                    Document(
+                        page_content="chunk 2 content",
+                        metadata={
+                            "chunk_id": "chunk_2",
+                            "doc_id": "doc_1",
+                            "page_ids": ["page_2"],
+                        },  # page_2 already seen in chunk 1
+                    ),
+                    0.8,
+                ),
+                (
+                    Document(
+                        page_content="chunk 3 content",
+                        metadata={
+                            "chunk_id": "chunk_3",
+                            "doc_id": "doc_1",
+                            "page_ids": ["page_2", "page_3"],
+                        },  # page_3 is new, so kept
+                    ),
+                    0.7,
+                ),
+            ]
+
+    async def fake_get_knowledge_vector_store(config):
+        return FakeVectorStore(), "collection_name", "hash_val"
+
+    monkeypatch.setattr(search, "get_knowledge_vector_store", fake_get_knowledge_vector_store)
+
+    results = await retrieve_knowledge_chunks(
+        query=query_str,
+        knowledge_base_id=kb_id,
+        embedding_config=embedding_config,
+        limit=3,
+    )
+
+    assert len(results) == 2
+    assert results[0].chunk_id == "chunk_1"
+    assert results[1].chunk_id == "chunk_3"  # chunk 2 is skipped because all its page_ids (page_2) were seen

@@ -25,4 +25,5 @@ class RetrievedChunk(BaseModel):
     knowledge_base_id: UUID
     vector_score: float
     rerank_score: float | None = None
+    page_content: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)

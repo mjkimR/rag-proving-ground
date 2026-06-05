@@ -108,6 +108,9 @@ class KnowledgeBaseSearchResultItem(BaseModel):
     knowledge_base_id: UUID = Field(description="The knowledge base that produced the chunk.")
     vector_score: float = Field(description="The original vector search score.")
     rerank_score: float | None = Field(default=None, description="The reranker relevance score when reranking is used.")
+    page_content: str | None = Field(
+        default=None, description="The full parent page text content of the chunk, if resolved."
+    )
     metadata: dict[str, Any] = Field(default_factory=dict, description="Metadata associated with the chunk.")
 
 

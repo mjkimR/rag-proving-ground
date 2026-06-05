@@ -3,6 +3,7 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     IngestDocumentMessage,
     KnowledgeBaseDocumentStatus,
 )
+from app.features.knowledge.knowledge_base_pages.schemas import KnowledgeBasePageCreate
 from app.worker.services import build_pipeline_service
 from app_file_storage import get_storage_client
 from app_layer_base.core.database.transaction import AsyncTransaction
@@ -70,6 +71,41 @@ async def handle_ingest(msg: IngestDocumentMessage) -> None:
             parsing_config=resolved_parsing_config,
             provider_override=msg.provider,
         )
+
+        logger.info(f"Worker saving pages for document {msg.document_id}")
+        # Group and sort elements by page_id in O(N log N)
+        from collections import defaultdict
+
+        elements_by_page = defaultdict(list)
+        for element in parsed_doc.elements:
+            if element.page_id:
+                elements_by_page[element.page_id].append(element)
+        for page_id in elements_by_page:
+            elements_by_page[page_id].sort(key=lambda e: e.order)
+
+        # Batch insert pages (e.g., 50 pages per batch) inside a single transaction to ensure atomicity
+        batch_size = 50
+        page_creates = []
+        async with AsyncTransaction() as session:
+            await pipeline_service.page_service.repo.delete_by_document_id(session, msg.document_id)
+            for page in parsed_doc.pages:
+                page_elements = elements_by_page.get(page.page_id, [])
+                content_text = "\n\n".join(e.content for e in page_elements if not e.ignored and e.content.strip())
+                page_creates.append(
+                    KnowledgeBasePageCreate(
+                        document_id=msg.document_id,
+                        page_id=page.page_id,
+                        page_number=page.page_no,
+                        content=content_text,
+                        metadata_info=page.metadata,
+                    )
+                )
+                if len(page_creates) >= batch_size:
+                    await pipeline_service.page_service.repo.bulk_create(session, page_creates, msg.document_id)
+                    page_creates = []
+
+            if page_creates:
+                await pipeline_service.page_service.repo.bulk_create(session, page_creates, msg.document_id)
 
         logger.info(f"Worker starting chunk stage for document {msg.document_id}")
         chunks = await pipeline_service.rebuild_chunks(

@@ -90,12 +90,38 @@ async def respond(state: MessagesState, config: RunnableConfig) -> dict[str, lis
         max_context_chars=runtime_config.max_context_chars,
     )
     response = await llm.ainvoke(llm_messages, config=config)
-    # Ensure we return an AIMessage
-    if isinstance(response, AIMessage):
-        return {"messages": [response]}
-    # If not AIMessage (e.g. BaseMessage), convert or wraps it
-    content = message_content(response)
-    return {"messages": [AIMessage(content=content)]}
+
+    # Convert RetrievedChunk objects to serializable dicts
+    references = []
+    for index, chunk in enumerate(chunks, start=1):
+        references.append(
+            {
+                "index": index,
+                "knowledge_base_id": str(chunk.knowledge_base_id),
+                "doc_id": str(chunk.doc_id),
+                "chunk_id": str(chunk.chunk_id),
+                "score": float(chunk.score),
+                "rerank_score": float(chunk.rerank_score) if chunk.rerank_score is not None else None,
+                "content": chunk.content,
+                "source": chunk.metadata.get("source")
+                or chunk.metadata.get("filename")
+                or chunk.metadata.get("title")
+                or "Unknown Source",
+                "page": chunk.metadata.get("page") or chunk.metadata.get("page_number"),
+            }
+        )
+
+    # Ensure we return an AIMessage with the references attached
+    if not isinstance(response, AIMessage):
+        content = message_content(response)
+        response = AIMessage(content=content)
+    else:
+        response = response.model_copy()
+
+    response.additional_kwargs = dict(response.additional_kwargs or {})
+    response.additional_kwargs["references"] = references
+
+    return {"messages": [response]}
 
 
 def _runtime_config(config: RunnableConfig) -> _GraphRuntimeConfig:
@@ -172,7 +198,7 @@ def _context_system_prompt(*, chunks: list[RetrievedChunk], max_context_chars: i
     return (
         "You are a retrieval-augmented assistant. Use the knowledge-base context below as the primary evidence. "
         "If the context is insufficient, say so instead of inventing details. Cite relevant chunks with bracketed "
-        "source numbers like [1].\n\n"
+        "source numbers like [cite:1].\n\n"
         f"Knowledge-base context:\n{context}"
     )
 
@@ -214,7 +240,7 @@ def _format_chunk(*, index: int, chunk: RetrievedChunk) -> str:
 
     return (
         f"[{index}] kb={chunk.knowledge_base_id} doc={chunk.doc_id} chunk={chunk.chunk_id} {score}{metadata}\n"
-        f"{chunk.content}"
+        f"{chunk.page_content or chunk.content}"
     )
 
 

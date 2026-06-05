@@ -3,6 +3,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 import pytest
+from app.features.knowledge.knowledge_base_pages.repos import KnowledgeBasePageRepository
 from app.features.knowledge.knowledge_bases.schemas import MultiKnowledgeBaseSearchRequest
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.usecases import search
@@ -41,7 +42,8 @@ async def test_search_multi_knowledge_base_usecase_rejects_missing_ids(monkeypat
     existing_id = uuid4()
     missing_id = uuid4()
     use_case = SearchMultiKnowledgeBaseUseCase(
-        cast(KnowledgeBaseService, _FakeService([_FakeKnowledgeBase(existing_id)]))
+        cast(KnowledgeBaseService, _FakeService([_FakeKnowledgeBase(existing_id)])),
+        cast(KnowledgeBasePageRepository, _FakeKnowledgeBasePageRepository()),
     )
     monkeypatch.setattr(search, "AsyncTransaction", _FakeTransaction)
 
@@ -71,7 +73,8 @@ async def test_search_multi_knowledge_base_usecase_maps_results(monkeypatch: pyt
                     _FakeKnowledgeBase(kb_id_2),
                 ]
             ),
-        )
+        ),
+        cast(KnowledgeBasePageRepository, _FakeKnowledgeBasePageRepository()),
     )
     monkeypatch.setattr(search, "AsyncTransaction", _FakeTransaction)
 
@@ -116,7 +119,10 @@ async def test_search_multi_knowledge_base_usecase_dedupes_ids_when_called_direc
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     kb_id = uuid4()
-    use_case = SearchMultiKnowledgeBaseUseCase(cast(KnowledgeBaseService, _FakeService([_FakeKnowledgeBase(kb_id)])))
+    use_case = SearchMultiKnowledgeBaseUseCase(
+        cast(KnowledgeBaseService, _FakeService([_FakeKnowledgeBase(kb_id)])),
+        cast(KnowledgeBasePageRepository, _FakeKnowledgeBasePageRepository()),
+    )
     monkeypatch.setattr(search, "AsyncTransaction", _FakeTransaction)
 
     async def fake_retrieve_multi_knowledge_chunks(**kwargs):
@@ -170,3 +176,11 @@ class _FakeKnowledgeBase:
     def __init__(self, knowledge_base_id):
         self.id = knowledge_base_id
         self.embedding_config = {"model": "test-embedding"}
+
+
+class _FakeKnowledgeBasePageRepository:
+    async def get_by_page_ids(self, session, page_ids):
+        return []
+
+    async def enrich_chunks_with_page_content(self, session, chunks):
+        pass

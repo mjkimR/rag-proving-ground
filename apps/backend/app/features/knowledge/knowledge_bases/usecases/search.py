@@ -1,6 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
+from app.features.knowledge.knowledge_base_pages.repos import KnowledgeBasePageRepository
 from app.features.knowledge.knowledge_bases.schemas import (
     KnowledgeBaseSearchRequest,
     KnowledgeBaseSearchResponse,
@@ -19,8 +20,13 @@ from rag_core.retrieval import RetrievedChunk, retrieve_knowledge_chunks, retrie
 class SearchKnowledgeBaseUseCase(BaseUseCase):
     """UseCase to handle knowledge base search operations."""
 
-    def __init__(self, service: Annotated[KnowledgeBaseService, Depends()]) -> None:
+    def __init__(
+        self,
+        service: Annotated[KnowledgeBaseService, Depends()],
+        page_repo: Annotated[KnowledgeBasePageRepository, Depends()],
+    ) -> None:
         self.service = service
+        self.page_repo = page_repo
 
     async def execute(
         self, knowledge_base_id: UUID, search_request: KnowledgeBaseSearchRequest
@@ -52,6 +58,10 @@ class SearchKnowledgeBaseUseCase(BaseUseCase):
                 detail="Vector database side error occurred during search.",
             ) from e
 
+        # Fetch parent page content from Postgres
+        async with AsyncTransaction() as session:
+            await self.page_repo.enrich_chunks_with_page_content(session, chunks)
+
         results = [_search_result_from_chunk(chunk) for chunk in chunks]
 
         # Note: 'total' represents the count of retrieved results under the requested limit.
@@ -65,8 +75,13 @@ class SearchKnowledgeBaseUseCase(BaseUseCase):
 class SearchMultiKnowledgeBaseUseCase(BaseUseCase):
     """UseCase to search and merge results from multiple knowledge bases."""
 
-    def __init__(self, service: Annotated[KnowledgeBaseService, Depends()]) -> None:
+    def __init__(
+        self,
+        service: Annotated[KnowledgeBaseService, Depends()],
+        page_repo: Annotated[KnowledgeBasePageRepository, Depends()],
+    ) -> None:
         self.service = service
+        self.page_repo = page_repo
 
     async def execute(self, search_request: MultiKnowledgeBaseSearchRequest) -> KnowledgeBaseSearchResponse:
         requested_ids = list(dict.fromkeys(search_request.knowledge_base_ids))
@@ -115,6 +130,10 @@ class SearchMultiKnowledgeBaseUseCase(BaseUseCase):
                 detail="Vector database side error occurred during search.",
             ) from e
 
+        # Fetch parent page content from Postgres
+        async with AsyncTransaction() as session:
+            await self.page_repo.enrich_chunks_with_page_content(session, chunks)
+
         results = [_search_result_from_chunk(chunk) for chunk in chunks]
         return KnowledgeBaseSearchResponse(
             query=search_request.query,
@@ -133,4 +152,5 @@ def _search_result_from_chunk(chunk: RetrievedChunk) -> KnowledgeBaseSearchResul
         vector_score=chunk.vector_score,
         rerank_score=chunk.rerank_score,
         metadata=chunk.metadata,
+        page_content=chunk.page_content,
     )

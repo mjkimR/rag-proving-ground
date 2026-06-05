@@ -1,6 +1,7 @@
 from app.features.doc_parse.api.v1 import router as v1_doc_parse_router
 from app.features.history.job_process_histories.api.v1 import router as v1_job_process_histories_router
 from app.features.knowledge.knowledge_base_documents.api.v1 import router as v1_knowledge_base_documents_router
+from app.features.knowledge.knowledge_base_pages.api.v1 import router as v1_knowledge_base_pages_router
 from app.features.knowledge.knowledge_bases.api.v1 import router as v1_knowledge_bases_router
 from app.features.model_catalog.api.v1 import router as v1_model_catalog_router
 from fastapi import APIRouter, status
@@ -25,4 +26,5 @@ v1_router.include_router(v1_knowledge_bases_router)
 v1_router.include_router(v1_knowledge_base_documents_router)
 v1_router.include_router(v1_job_process_histories_router)
 v1_router.include_router(v1_model_catalog_router)
+v1_router.include_router(v1_knowledge_base_pages_router)
 router.include_router(v1_router)

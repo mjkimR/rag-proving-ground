@@ -7,6 +7,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
+    from app.features.knowledge.knowledge_base_pages.models import KnowledgeBasePage
     from app.features.knowledge.knowledge_bases.models import KnowledgeBase
 
 
@@ -22,3 +23,6 @@ class KnowledgeBaseDocument(Base, UUIDMixin, TimestampMixin):
 
     # Relationships
     knowledge_base: Mapped["KnowledgeBase"] = relationship("KnowledgeBase", back_populates="documents")
+    pages: Mapped[list["KnowledgeBasePage"]] = relationship(
+        "KnowledgeBasePage", back_populates="document", cascade="all, delete-orphan"
+    )

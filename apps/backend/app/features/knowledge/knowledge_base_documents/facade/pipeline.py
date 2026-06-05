@@ -9,6 +9,7 @@ from app.features.history.job_process_histories.schemas import JobProcessHistory
 from app.features.history.job_process_histories.services import JobProcessHistoryService
 from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
+from app.features.knowledge.knowledge_base_pages.services import KnowledgeBasePageService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status_for_document
 from app_file_storage import get_storage_client
@@ -42,10 +43,12 @@ class KnowledgeDocumentPipelineService:
         kb_service: Annotated[KnowledgeBaseService, Depends()],
         doc_service: Annotated[KnowledgeBaseDocumentService, Depends()],
         history_service: Annotated[JobProcessHistoryService, Depends()],
+        page_service: Annotated[KnowledgeBasePageService, Depends()],
     ) -> None:
         self.kb_service = kb_service
         self.doc_service = doc_service
         self.history_service = history_service
+        self.page_service = page_service
 
     async def parse_or_load_cached(
         self,

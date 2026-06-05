@@ -89,6 +89,8 @@ class QdrantProvider(VectorStoreProvider):
     async def delete_points(self, collection_name: str, points_selector: Any) -> None:
         if not self.async_client:
             raise RuntimeError("Qdrant async client is not initialized.")
+        if not await self.async_client.collection_exists(collection_name=collection_name):
+            return
         await self.async_client.delete(collection_name=collection_name, points_selector=points_selector)
 
 
