@@ -5,17 +5,7 @@ import remarkGfm from "remark-gfm";
 import { Popover } from "antd";
 import { FileText, ArrowRight } from "lucide-react";
 
-export interface Reference {
-  index: number;
-  knowledge_base_id: string;
-  doc_id: string;
-  chunk_id: string;
-  score: number;
-  rerank_score?: number | null;
-  content: string;
-  source?: string | null;
-  page?: number | null;
-}
+import type { Reference } from '@/views/Chat/types';
 
 type MarkdownPreviewProps = {
   markdown: string;

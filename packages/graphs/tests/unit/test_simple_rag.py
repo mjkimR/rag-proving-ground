@@ -74,6 +74,7 @@ async def test_simple_rag_retrieves_context_and_injects_system_message(mocker):
             "score": 0.91,
             "rerank_score": None,
             "content": "RAG combines retrieval with generation.",
+            "page_content": None,
             "source": "rag.md",
             "page": 3,
         }

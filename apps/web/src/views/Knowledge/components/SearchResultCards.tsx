@@ -1,10 +1,29 @@
 import React from 'react';
-import { Badge, Card, Empty, Space, Tag, Tooltip, Typography } from 'antd';
+import { Badge, Card, Empty, Space, Tag, Tooltip, Typography, Tabs } from 'antd';
 import { Info } from 'lucide-react';
 import type { KnowledgeBaseSearchResultItem } from '@/generated/api/types.gen';
 import { formatShortId } from '@/lib/format';
 
 const { Text } = Typography;
+
+const PRE_CONTAINER_STYLE: React.CSSProperties = {
+  background: 'var(--bg-app, #ffffff)',
+  padding: '12px 16px',
+  borderRadius: '8px',
+  border: '1px dashed var(--border-color, #dde3ea)',
+  maxHeight: '300px',
+  overflowY: 'auto',
+};
+
+const PRE_TEXT_STYLE: React.CSSProperties = {
+  margin: 0,
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  fontFamily: 'inherit',
+  fontSize: '13px',
+  color: 'var(--text-primary, #1c2430)',
+  lineHeight: '1.6',
+};
 
 interface SearchResultCardsProps {
   results: KnowledgeBaseSearchResultItem[];
@@ -79,30 +98,36 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({ result, index }) =>
         </Space>
       </div>
 
-      <div
-        style={{
-          background: 'rgba(0,0,0,0.01)',
-          padding: '12px 16px',
-          borderRadius: '8px',
-          border: '1px dashed var(--border-color)',
-          maxHeight: '300px',
-          overflowY: 'auto',
-        }}
-      >
-        <pre
-          style={{
-            margin: 0,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            fontFamily: 'inherit',
-            fontSize: '13px',
-            color: 'var(--text-primary)',
-            lineHeight: '1.6',
-          }}
-        >
-          {result.content}
-        </pre>
-      </div>
+      {result.page_content ? (
+        <Tabs
+          defaultActiveKey="page"
+          size="small"
+          items={[
+            {
+              key: 'page',
+              label: 'Page Content (Parent)',
+              children: (
+                <div style={PRE_CONTAINER_STYLE}>
+                  <pre style={PRE_TEXT_STYLE}>{result.page_content}</pre>
+                </div>
+              ),
+            },
+            {
+              key: 'chunk',
+              label: 'Chunk Content (Child)',
+              children: (
+                <div style={PRE_CONTAINER_STYLE}>
+                  <pre style={PRE_TEXT_STYLE}>{result.content}</pre>
+                </div>
+              ),
+            },
+          ]}
+        />
+      ) : (
+        <div style={PRE_CONTAINER_STYLE}>
+          <pre style={PRE_TEXT_STYLE}>{result.content}</pre>
+        </div>
+      )}
 
       {metadata && Object.keys(metadata).length > 0 && (
         <div style={{ marginTop: '12px', borderTop: '1px solid rgba(0,0,0,0.04)', paddingTop: '10px' }}>

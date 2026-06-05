@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Message } from '../components/ChatMessageItem';
+import type { Message } from '../types';
 import {
   extractMessageContentDelta,
   isRecord,

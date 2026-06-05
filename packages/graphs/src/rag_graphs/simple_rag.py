@@ -103,11 +103,12 @@ async def respond(state: MessagesState, config: RunnableConfig) -> dict[str, lis
                 "score": float(chunk.score),
                 "rerank_score": float(chunk.rerank_score) if chunk.rerank_score is not None else None,
                 "content": chunk.content,
+                "page_content": chunk.page_content,
                 "source": chunk.metadata.get("source")
                 or chunk.metadata.get("filename")
                 or chunk.metadata.get("title")
                 or "Unknown Source",
-                "page": chunk.metadata.get("page") or chunk.metadata.get("page_number"),
+                "page": _extract_page(chunk.metadata),
             }
         )
 
@@ -228,7 +229,7 @@ def _format_context(*, chunks: list[RetrievedChunk], max_context_chars: int) -> 
 def _format_chunk(*, index: int, chunk: RetrievedChunk) -> str:
     metadata_bits = []
     source = chunk.metadata.get("source") or chunk.metadata.get("filename") or chunk.metadata.get("title")
-    page = chunk.metadata.get("page") or chunk.metadata.get("page_number")
+    page = _extract_page(chunk.metadata)
     if source:
         metadata_bits.append(f"source={source}")
     if page:
@@ -242,6 +243,39 @@ def _format_chunk(*, index: int, chunk: RetrievedChunk) -> str:
         f"[{index}] kb={chunk.knowledge_base_id} doc={chunk.doc_id} chunk={chunk.chunk_id} {score}{metadata}\n"
         f"{chunk.page_content or chunk.content}"
     )
+
+
+def _extract_page(metadata: dict[str, Any]) -> str | int | None:
+    # Explicit None check to support 0 page number
+    page_val = metadata.get("page")
+    if page_val is None:
+        page_val = metadata.get("page_number")
+
+    if page_val is not None:
+        if isinstance(page_val, (str, int)):
+            if isinstance(page_val, str) and not page_val.strip():
+                return None
+            return page_val
+        val_str = str(page_val).strip()
+        return val_str if val_str else None
+
+    page_numbers = metadata.get("page_numbers")
+    if page_numbers is None:
+        return None
+
+    if isinstance(page_numbers, list):
+        valid_pages = [str(p).strip() for p in page_numbers if str(p).strip()]
+        if not valid_pages:
+            return None
+        return ", ".join(valid_pages)
+
+    if isinstance(page_numbers, (str, int)):
+        if isinstance(page_numbers, str) and not page_numbers.strip():
+            return None
+        return page_numbers
+
+    val_str = str(page_numbers).strip()
+    return val_str if val_str else None
 
 
 builder = StateGraph(MessagesState, context_schema=GraphConfig)

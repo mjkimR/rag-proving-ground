@@ -2,25 +2,52 @@ import React, { useState, useMemo } from 'react';
 import { User, Bot, AlertTriangle, Brain, FileText, BookOpen } from 'lucide-react';
 import { MarkdownPreview } from '@/components/MarkdownPreview';
 
-export interface Reference {
-  index: number;
-  knowledge_base_id: string;
-  doc_id: string;
-  chunk_id: string;
-  score: number;
-  rerank_score?: number | null;
-  content: string;
-  source?: string | null;
-  page?: number | null;
-}
+import type { Reference, Message } from '@/views/Chat/types';
 
-export interface Message {
-  id: string;
-  type: 'human' | 'ai' | 'error';
-  content: string;
-  thinking?: string;
-  references?: Reference[];
-}
+const PAGE_CONTENT_WRAPPER_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px'
+};
+
+const PAGE_CONTENT_LABEL_STYLE: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 700,
+  color: '#3b82f6',
+  display: 'block',
+  marginBottom: '4px'
+};
+
+const getDetailsStyle = (isDarkMode: boolean): React.CSSProperties => ({
+  borderTop: isDarkMode ? '1px solid #1f2937' : '1px solid #e5e7eb',
+  paddingTop: '6px'
+});
+
+const getDetailsSummaryStyle = (isDarkMode: boolean): React.CSSProperties => ({
+  cursor: 'pointer',
+  fontSize: '11px',
+  color: isDarkMode ? '#9ca3af' : '#4b5563',
+  outline: 'none',
+  fontWeight: 600
+});
+
+const getChildChunkStyle = (isDarkMode: boolean): React.CSSProperties => ({
+  marginTop: '4px',
+  fontSize: '11px',
+  color: isDarkMode ? '#9ca3af' : '#4b5563',
+  fontStyle: 'italic'
+});
+
+const getRefContentContainerStyle = (isDarkMode: boolean): React.CSSProperties => ({
+  padding: '10px 12px',
+  borderTop: isDarkMode ? '1px solid #1f2937' : '1px solid #e5e7eb',
+  color: isDarkMode ? '#9ca3af' : '#4b5563',
+  lineHeight: 1.5,
+  background: isDarkMode ? '#030712' : '#ffffff',
+  whiteSpace: 'pre-wrap',
+  maxHeight: '160px',
+  overflowY: 'auto'
+});
 
 
 interface ChatMessageItemProps {
@@ -326,19 +353,27 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMod
                                 </span>
                               </div>
                             </summary>
-                            <div
-                              style={{
-                                padding: '10px 12px',
-                                borderTop: isDarkMode ? '1px solid #1f2937' : '1px solid #e5e7eb',
-                                color: isDarkMode ? '#9ca3af' : '#4b5563',
-                                lineHeight: 1.5,
-                                background: isDarkMode ? '#030712' : '#ffffff',
-                                whiteSpace: 'pre-wrap',
-                                maxHeight: '160px',
-                                overflowY: 'auto',
-                              }}
-                            >
-                              {ref.content}
+                            <div style={getRefContentContainerStyle(isDarkMode)}>
+                              {ref.page_content ? (
+                                <div style={PAGE_CONTENT_WRAPPER_STYLE}>
+                                  <div>
+                                    <span style={PAGE_CONTENT_LABEL_STYLE}>
+                                      Page Content (Parent):
+                                    </span>
+                                    {ref.page_content}
+                                  </div>
+                                  <details style={getDetailsStyle(isDarkMode)}>
+                                    <summary style={getDetailsSummaryStyle(isDarkMode)}>
+                                      View Matched Chunk (Child)
+                                    </summary>
+                                    <div style={getChildChunkStyle(isDarkMode)}>
+                                      {ref.content}
+                                    </div>
+                                  </details>
+                                </div>
+                              ) : (
+                                ref.content
+                              )}
                             </div>
                           </details>
                         ))}
