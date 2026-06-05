@@ -4,8 +4,10 @@ from rag_core.embeddings.indexing import (
     get_knowledge_vector_store,
 )
 from rag_core.embeddings.schemas import (
+    COLPALI_MODELS,
     EmbeddingDistanceMetric,
     KnowledgeEmbeddingConfig,
+    is_colpali_model,
     knowledge_embedding_config_hash,
     knowledge_embedding_config_payload,
     knowledge_vector_collection_name,
@@ -13,11 +15,13 @@ from rag_core.embeddings.schemas import (
 )
 
 __all__ = [
+    "COLPALI_MODELS",
     "EmbeddingDistanceMetric",
     "KnowledgeEmbeddingConfig",
     "chunks_to_langchain_documents",
     "delete_document_vectors",
     "get_knowledge_vector_store",
+    "is_colpali_model",
     "knowledge_embedding_config_hash",
     "knowledge_embedding_config_payload",
     "knowledge_vector_collection_name",

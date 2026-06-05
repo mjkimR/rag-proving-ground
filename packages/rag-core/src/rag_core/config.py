@@ -88,3 +88,17 @@ class RedisSettings(BaseSettings):
 @lru_cache
 def get_redis_settings() -> RedisSettings:
     return RedisSettings()
+
+
+class ColPaliSettings(BaseSettings):
+    """Settings for ColPali serving engine (Infinity)."""
+
+    base_url: str = Field(default="http://localhost:7997", validation_alias="COLPALI_BASE_URL")
+    timeout: float = Field(default=120.0, validation_alias="COLPALI_TIMEOUT")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_colpali_settings() -> ColPaliSettings:
+    return ColPaliSettings()

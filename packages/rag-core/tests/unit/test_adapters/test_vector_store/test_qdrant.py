@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from rag_core.adapters.vector_store.providers.qdrant import QdrantProvider
 
 

@@ -45,6 +45,50 @@ class QdrantProvider(VectorStoreProvider):
             return False
 
     async def create_vector_store(self, collection_name: str, model_name: str, *, distance: str = "cosine") -> Any:
+        from rag_core.embeddings import is_colpali_model
+
+        if is_colpali_model(model_name):
+            with import_error_handler("qdrant"):
+                from qdrant_client.http import models as conf
+                from qdrant_client.http.exceptions import ApiException
+            from rag_core.adapters.vector_store.providers.colpali_qdrant import ColPaliQdrantStore
+            from rag_core.ai.colpali import ColPaliModel
+
+            colpali_model = ColPaliModel(model_name)
+            distance_metric = _qdrant_distance(distance, conf)
+
+            if not self.async_client:
+                raise RuntimeError("Qdrant async client is not initialized.")
+
+            if not await self.async_client.collection_exists(collection_name=collection_name):
+                try:
+                    await self.async_client.create_collection(
+                        collection_name=collection_name,
+                        vectors_config=conf.VectorParams(
+                            size=colpali_model.embedding_dim,
+                            distance=distance_metric,
+                            multivector_config=conf.MultiVectorConfig(
+                                comparator=conf.MultiVectorComparator.MAX_SIM,
+                            ),
+                        ),
+                    )
+                    # Create payload index on metadata.knowledge_id as partition key
+                    await self.async_client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name="metadata.knowledge_id",
+                        field_schema=conf.PayloadSchemaType.KEYWORD,
+                    )
+                except ApiException as e:
+                    if "exists" not in str(e):
+                        raise e
+
+            return ColPaliQdrantStore(
+                client=self.client,
+                async_client=self.async_client,
+                collection_name=collection_name,
+                colpali_model=colpali_model,
+            )
+
         with import_error_handler("qdrant"):
             from langchain_qdrant import QdrantVectorStore
             from qdrant_client.http import models as conf

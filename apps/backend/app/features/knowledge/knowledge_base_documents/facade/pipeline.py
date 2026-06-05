@@ -163,6 +163,7 @@ class KnowledgeDocumentPipelineService:
         filename: str,
         parsed_doc: ParsedDocument,
         chunking_config: dict | ChunkingConfig | None,
+        embedding_config: KnowledgeEmbeddingConfig | None = None,
         record_history: bool = True,
         history_name_prefix: str = "Chunk",
         failure_detail_prefix: str = "Ingestion",
@@ -175,7 +176,15 @@ class KnowledgeDocumentPipelineService:
         logger.info(f"Chunking document '{filename}' (ID: {document_id})")
         start_time = time.time()
         try:
-            chunks = chunk_document(parsed_doc, config=resolved_config)
+            from rag_core.embeddings import is_colpali_model
+
+            if embedding_config and is_colpali_model(embedding_config.model):
+                from rag_core.chunkers.visual import visual_chunk_document
+
+                chunks = visual_chunk_document(parsed_doc)
+            else:
+                chunks = chunk_document(parsed_doc, config=resolved_config)
+
             duration = time.time() - start_time
 
             async with AsyncTransaction() as session:

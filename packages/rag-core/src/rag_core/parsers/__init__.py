@@ -4,6 +4,7 @@ from rag_core.parsers.config import (
     knowledge_parsing_config_payload,
     resolve_knowledge_parsing_config,
 )
+from rag_core.parsers.pdf_page_renderer import render_and_store_pdf_pages
 from rag_core.parsers.renderers import (
     parsed_document_to_html,
     parsed_document_to_markdown,
@@ -37,6 +38,7 @@ __all__ = [
     "knowledge_parsing_config_payload",
     "parsed_document_to_html",
     "parsed_document_to_markdown",
+    "render_and_store_pdf_pages",
     "resolve_knowledge_parsing_config",
     "to_html",
     "to_markdown",

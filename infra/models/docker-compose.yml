@@ -19,6 +19,16 @@ services:
       - HF_HUB_ENABLE_HF_TRANSFER=0
     command: --model-id BAAI/bge-reranker-v2-m3 --max-batch-tokens 2048
 
+  infinity-colpali:
+    image: michaelf34/infinity:latest
+    container_name: local-infinity-colpali
+    ports:
+      - "7997:7997"
+    volumes:
+      - ~/.ai_models/infinity:/app/.cache
+    # CPU 실행 기본 설정 (GPU 사용 시 --device cuda 및 --gpus all 추가 필요)
+    command: v2 --model-id vidore/colpali-v1.2-merged --dtype bfloat16 --device cpu --engine torch --port 7997
+
 networks:
   default:
     name: rag-network

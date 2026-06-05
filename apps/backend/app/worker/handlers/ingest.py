@@ -72,6 +72,20 @@ async def handle_ingest(msg: IngestDocumentMessage) -> None:
             provider_override=msg.provider,
         )
 
+        from rag_core.embeddings import is_colpali_model
+
+        is_vision_rag = is_colpali_model(embedding_config.model)
+
+        if is_vision_rag:
+            logger.info(f"ColPali model detected. Rendering pages to images for document {msg.document_id}")
+            from rag_core.parsers.pdf_page_renderer import render_and_store_pdf_pages
+
+            asset_refs = await render_and_store_pdf_pages(content, str(msg.document_id), storage_client)
+            # Map page images back to parsed_doc.pages
+            sorted_pages = sorted(parsed_doc.pages, key=lambda p: p.page_no)
+            for page, asset_ref in zip(sorted_pages, asset_refs, strict=True):
+                page.image = asset_ref
+
         logger.info(f"Worker saving pages for document {msg.document_id}")
         # Group and sort elements by page_id in O(N log N)
         from collections import defaultdict
@@ -91,13 +105,18 @@ async def handle_ingest(msg: IngestDocumentMessage) -> None:
             for page in parsed_doc.pages:
                 page_elements = elements_by_page.get(page.page_id, [])
                 content_text = "\n\n".join(e.content for e in page_elements if not e.ignored and e.content.strip())
+
+                metadata_info = dict(page.metadata)
+                if page.image:
+                    metadata_info["image"] = page.image.model_dump()
+
                 page_creates.append(
                     KnowledgeBasePageCreate(
                         document_id=msg.document_id,
                         page_id=page.page_id,
                         page_number=page.page_no,
                         content=content_text,
-                        metadata_info=page.metadata,
+                        metadata_info=metadata_info,
                     )
                 )
                 if len(page_creates) >= batch_size:
@@ -113,6 +132,7 @@ async def handle_ingest(msg: IngestDocumentMessage) -> None:
             filename=msg.filename,
             parsed_doc=parsed_doc,
             chunking_config=resolved_chunking_config,
+            embedding_config=embedding_config,
             record_history=True,
             history_name_prefix="Chunk",
             failure_detail_prefix="Ingestion",

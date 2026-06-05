@@ -98,3 +98,14 @@ def _validate_knowledge_embedding_config(config: KnowledgeEmbeddingConfigInput) 
     if config is None:
         return KnowledgeEmbeddingConfig()
     return KnowledgeEmbeddingConfig.model_validate(config)
+
+
+COLPALI_MODELS: set[str] = {
+    "vidore/colpali-v1.2-merged",
+    "vidore/colSmol-500M-merged",
+}
+
+
+def is_colpali_model(model_name: str | None) -> bool:
+    """Check if the embedding model is a ColPali model."""
+    return model_name in COLPALI_MODELS if model_name else False
