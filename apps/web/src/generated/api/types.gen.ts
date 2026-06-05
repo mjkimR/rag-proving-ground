@@ -525,6 +525,160 @@ export type KnowledgeBaseDocumentReprocessRequest = {
 export type KnowledgeBaseDocumentStatus = 'READY' | 'QUEUED' | 'PARSING' | 'CHUNKING' | 'EMBEDDING' | 'FAILED' | 'COMPLETED' | 'PENDING_REPARSE' | 'PENDING_RECHUNK' | 'PENDING_REEMBED' | 'DELETING';
 
 /**
+ * KnowledgeBasePageCreate
+ */
+export type KnowledgeBasePageCreate = {
+    /**
+     * Document Id
+     *
+     * The ID of the document this page belongs to.
+     */
+    document_id: string;
+    /**
+     * Page Id
+     *
+     * Parser-generated string ID of the page.
+     */
+    page_id: string;
+    /**
+     * Page Number
+     *
+     * 1-based page number.
+     */
+    page_number: number;
+    /**
+     * Content
+     *
+     * The full raw text content of the page.
+     */
+    content: string;
+    /**
+     * Metadata Info
+     *
+     * Extra metadata for the page.
+     */
+    metadata_info?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * KnowledgeBasePagePatch
+ */
+export type KnowledgeBasePagePatch = {
+    /**
+     * Document Id
+     */
+    document_id?: string | null;
+    /**
+     * Page Id
+     */
+    page_id?: string | null;
+    /**
+     * Page Number
+     */
+    page_number?: number | null;
+    /**
+     * Content
+     */
+    content?: string | null;
+    /**
+     * Metadata Info
+     */
+    metadata_info?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * KnowledgeBasePagePut
+ */
+export type KnowledgeBasePagePut = {
+    /**
+     * Document Id
+     *
+     * The ID of the document this page belongs to.
+     */
+    document_id: string;
+    /**
+     * Page Id
+     *
+     * Parser-generated string ID of the page.
+     */
+    page_id: string;
+    /**
+     * Page Number
+     *
+     * 1-based page number.
+     */
+    page_number: number;
+    /**
+     * Content
+     *
+     * The full raw text content of the page.
+     */
+    content: string;
+    /**
+     * Metadata Info
+     *
+     * Extra metadata for the page.
+     */
+    metadata_info?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * KnowledgeBasePageRead
+ */
+export type KnowledgeBasePageRead = {
+    /**
+     * Document Id
+     *
+     * The ID of the document this page belongs to.
+     */
+    document_id: string;
+    /**
+     * Page Id
+     *
+     * Parser-generated string ID of the page.
+     */
+    page_id: string;
+    /**
+     * Page Number
+     *
+     * 1-based page number.
+     */
+    page_number: number;
+    /**
+     * Content
+     *
+     * The full raw text content of the page.
+     */
+    content: string;
+    /**
+     * Metadata Info
+     *
+     * Extra metadata for the page.
+     */
+    metadata_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
  * KnowledgeBasePatch
  */
 export type KnowledgeBasePatch = {
@@ -715,6 +869,12 @@ export type KnowledgeBaseSearchResultItem = {
      */
     rerank_score?: number | null;
     /**
+     * Page Content
+     *
+     * The full parent page text content of the chunk, if resolved.
+     */
+    page_content?: string | null;
+    /**
      * Metadata
      *
      * Metadata associated with the chunk.
@@ -866,6 +1026,38 @@ export type PaginatedListKnowledgeBaseDocumentRead = {
      * Items
      */
     items: Array<KnowledgeBaseDocumentRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
+ * PaginatedList[KnowledgeBasePageRead]
+ */
+export type PaginatedListKnowledgeBasePageRead = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeBasePageRead>;
     /**
      * Total Count
      */
@@ -1200,6 +1392,28 @@ export type PaginatedListKnowledgeBaseDocumentReadWritable = {
      * Items
      */
     items: Array<KnowledgeBaseDocumentRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
+ * PaginatedList[KnowledgeBasePageRead]
+ */
+export type PaginatedListKnowledgeBasePageReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<KnowledgeBasePageRead>;
     /**
      * Total Count
      */
@@ -1969,3 +2183,186 @@ export type GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses = {
 };
 
 export type GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponse = GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses[keyof GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses];
+
+export type GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/knowledge_base_pages';
+};
+
+export type GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetError = GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetErrors[keyof GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetErrors];
+
+export type GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListKnowledgeBasePageRead;
+};
+
+export type GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetResponse = GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetResponses[keyof GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetResponses];
+
+export type CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostData = {
+    body: KnowledgeBasePageCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/knowledge_base_pages';
+};
+
+export type CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostError = CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostErrors[keyof CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostErrors];
+
+export type CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: KnowledgeBasePageRead;
+};
+
+export type CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostResponse = CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostResponses[keyof CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostResponses];
+
+export type DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Page Id
+         */
+        knowledge_base_page_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_pages/{knowledge_base_page_id}';
+};
+
+export type DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteError = DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteErrors[keyof DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteErrors];
+
+export type DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteResponse = DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteResponses[keyof DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteResponses];
+
+export type GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Page Id
+         */
+        knowledge_base_page_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_pages/{knowledge_base_page_id}';
+};
+
+export type GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetError = GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetErrors[keyof GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetErrors];
+
+export type GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBasePageRead;
+};
+
+export type GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetResponse = GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetResponses[keyof GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetResponses];
+
+export type PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchData = {
+    body: KnowledgeBasePagePatch;
+    path: {
+        /**
+         * Knowledge Base Page Id
+         */
+        knowledge_base_page_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_pages/{knowledge_base_page_id}';
+};
+
+export type PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchError = PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchErrors[keyof PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchErrors];
+
+export type PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBasePageRead;
+};
+
+export type PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchResponse = PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchResponses[keyof PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchResponses];
+
+export type PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutData = {
+    body: KnowledgeBasePagePut;
+    path: {
+        /**
+         * Knowledge Base Page Id
+         */
+        knowledge_base_page_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_pages/{knowledge_base_page_id}';
+};
+
+export type PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutError = PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutErrors[keyof PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutErrors];
+
+export type PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: KnowledgeBasePageRead;
+};
+
+export type PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponse = PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponses[keyof PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponses];

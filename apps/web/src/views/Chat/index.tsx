@@ -1,7 +1,14 @@
 import React from 'react';
 import { useThemeStore } from '@/stores/themeStore';
 import { ChatHub } from './components/ChatHub';
-import { ChatDetail } from './components/ChatDetail';
+import { SimpleChatView } from './agents/SimpleChatView';
+import { SimpleRagView } from './agents/SimpleRagView';
+import type { AgentViewProps } from './types';
+
+const viewMap: Record<string, React.FC<AgentViewProps>> = {
+  simple_chat: SimpleChatView,
+  simple_rag: SimpleRagView,
+};
 
 export const Chat: React.FC = () => {
   const {
@@ -11,13 +18,14 @@ export const Chat: React.FC = () => {
     setSelectedAssistant,
   } = useThemeStore();
 
+  const View = viewMap[selectedAssistantGraphId ?? ''] ?? SimpleChatView;
+
   return (
-    <div style={{ minHeight: 'calc(100vh - 120px)', padding: '12px 0 24px 0' }}>
+    <div className="chat-layout-wrapper">
       {selectedAssistantId ? (
-        <ChatDetail
+        <View
           assistantId={selectedAssistantId}
           assistantName={selectedAssistantName}
-          assistantGraphId={selectedAssistantGraphId}
           onBack={() => setSelectedAssistant(null)}
         />
       ) : (
@@ -28,3 +36,4 @@ export const Chat: React.FC = () => {
     </div>
   );
 };
+

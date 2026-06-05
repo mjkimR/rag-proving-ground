@@ -11,11 +11,11 @@ import { Chat } from './views/Chat';
 import { Playground } from './views/Playground';
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
+import { API_BASE_URL, COPILOT_RUNTIME_URL } from '@/lib/config';
 
 // Set up the generated OpenAPI Client Base URL
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389';
 client.setConfig({
-  baseUrl: apiBaseUrl,
+  baseUrl: API_BASE_URL,
 });
 
 // Configure React Query Client with sensible caching settings
@@ -28,7 +28,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const copilotRuntimeUrl = import.meta.env.VITE_COPILOT_RUNTIME_URL as string | undefined;
+const copilotRuntimeUrl = COPILOT_RUNTIME_URL;
 
 const ContentSwitcher: React.FC = () => {
   const { activeTab } = useThemeStore();

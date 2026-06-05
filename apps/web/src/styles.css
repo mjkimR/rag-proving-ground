@@ -930,4 +930,56 @@ textarea {
   background-color: rgba(255, 255, 255, 0.02);
 }
 
+/* Citation Badge Micro-interactions */
+.citation-badge {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.citation-badge:hover {
+  transform: scale(1.15) translateY(-1px);
+  background-color: var(--accent-color, #3b82f6) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-color, #3b82f6) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+}
+
+.citation-badge:active {
+  transform: scale(0.95);
+}
+
+.popover-action-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Layout and container classes for Chat views */
+.chat-layout-wrapper {
+  height: 100%;
+  min-height: 0;
+  padding: 12px 0 24px 0;
+}
+
+.chat-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0 24px;
+}
+
+.chat-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+}
+
+.chat-loading-text {
+  margin-top: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+
 

@@ -24,7 +24,7 @@ interface ChatHubProps {
   onSelect: (assistant: { id: string; name: string; graphId: string }) => void;
 }
 
-const AEGRA_API_URL = import.meta.env.VITE_AEGRA_URL || 'http://localhost:2026';
+import { AEGRA_API_URL } from '@/lib/config';
 
 export const ChatHub: React.FC<ChatHubProps> = ({ onSelect }) => {
   const { isDarkMode } = useThemeStore();

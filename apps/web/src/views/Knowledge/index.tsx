@@ -11,6 +11,7 @@ import { PdfPreview } from '@/components/PdfPreview';
 import { KnowledgeBaseHub } from './components/KnowledgeBaseHub';
 import { KnowledgeBaseDetail } from './components/KnowledgeBaseDetail';
 import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
+import { API_BASE_URL } from '@/lib/config';
 
 export const Knowledge: React.FC = () => {
   const {
@@ -145,7 +146,7 @@ export const Knowledge: React.FC = () => {
               <div className="panel-content" style={{ flex: 1, overflow: "hidden" }}>
                 {inspectingFile?.name.toLowerCase().endsWith('.pdf') ? (
                   <PdfPreview
-                    fileUrl={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389'}/api/v1/knowledge_base_documents/${inspectingFile.id}/download`}
+                    fileUrl={`${API_BASE_URL}/api/v1/knowledge_base_documents/${inspectingFile.id}/download`}
                     fileName={inspectingFile.name}
                     activeElement={activeElement}
                     parsedDoc={parsedDoc.data as any}

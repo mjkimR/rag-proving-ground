@@ -179,7 +179,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main Container */}
       <AntdLayout style={{
         marginLeft: collapsed ? 0 : 260,
-        minHeight: '100vh',
+        height: '100vh',
+        overflow: 'hidden',
         background: 'transparent',
         transition: 'margin-left 0.2s ease-in-out'
       }}>
@@ -251,8 +252,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Header>
 
         {/* Content Area */}
-        <Content style={{ padding: '32px', minHeight: 280 }}>
-          <div style={{ maxWidth: activeTab === 'dashboard' ? 1400 : '100%', margin: '0 auto' }}>
+        <Content style={{ padding: '32px', height: 'calc(100vh - 70px)', overflowY: 'auto' }}>
+          <div style={{ maxWidth: activeTab === 'dashboard' ? 1400 : '100%', margin: '0 auto', height: '100%' }}>
             {children}
           </div>
         </Content>

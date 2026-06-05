@@ -6,7 +6,9 @@ type OfficePreviewProps = {
   onPdfReady: (url: string, name: string) => void;
 };
 
-const convertUrl = import.meta.env.VITE_OFFICE_CONVERT_URL as string | undefined;
+import { OFFICE_CONVERT_URL } from '@/lib/config';
+
+const convertUrl = OFFICE_CONVERT_URL;
 
 export function OfficePreview({ onPdfReady }: OfficePreviewProps) {
   const [status, setStatus] = useState(convertUrl ? "Ready for conversion" : "Set VITE_OFFICE_CONVERT_URL first");

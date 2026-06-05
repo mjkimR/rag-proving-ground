@@ -22,6 +22,7 @@ import type {
 } from '@/generated/api/types.gen';
 import { DocumentSettingsModal } from './DocumentSettingsModal';
 import { RetrievalTestTab } from './RetrievalTestTab';
+import { API_BASE_URL } from '@/lib/config';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -197,8 +198,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
   };
 
   const handleDownload = (docId: string) => {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389';
-    window.open(`${apiBaseUrl}/api/v1/knowledge_base_documents/${docId}/download`, '_blank');
+    window.open(`${API_BASE_URL}/api/v1/knowledge_base_documents/${docId}/download`, '_blank');
   };
 
   // --- MUTATION: Delete KB ---

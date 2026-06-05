@@ -12,6 +12,7 @@ import {
   FileText, Trash2, Download, Eye, AlertCircle, UploadCloud, Settings2, Settings
 } from 'lucide-react';
 import type { KnowledgeBaseDocumentRead, KnowledgeParsingConfig, ChunkingConfig } from '@/generated/api/types.gen';
+import { API_BASE_URL } from '@/lib/config';
 import { DocumentSettingsModal } from './DocumentSettingsModal';
 
 const { Title, Text } = Typography;
@@ -106,8 +107,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   };
 
   const handleDownload = (docId: string) => {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8389';
-    window.open(`${apiBaseUrl}/api/v1/knowledge_base_documents/${docId}/download`, '_blank');
+    window.open(`${API_BASE_URL}/api/v1/knowledge_base_documents/${docId}/download`, '_blank');
   };
 
   const formatBytes = (bytes: number, decimals = 2) => {

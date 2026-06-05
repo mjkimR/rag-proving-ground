@@ -1,13 +1,27 @@
-import React from 'react';
-import { User, Bot, AlertTriangle, Brain } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { User, Bot, AlertTriangle, Brain, FileText, BookOpen } from 'lucide-react';
 import { MarkdownPreview } from '@/components/MarkdownPreview';
+
+export interface Reference {
+  index: number;
+  knowledge_base_id: string;
+  doc_id: string;
+  chunk_id: string;
+  score: number;
+  rerank_score?: number | null;
+  content: string;
+  source?: string | null;
+  page?: number | null;
+}
 
 export interface Message {
   id: string;
   type: 'human' | 'ai' | 'error';
   content: string;
   thinking?: string;
+  references?: Reference[];
 }
+
 
 interface ChatMessageItemProps {
   msg: Message;
@@ -18,6 +32,52 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMod
   const isHuman = msg.type === 'human';
   const isError = msg.type === 'error';
   const hasThinking = !isHuman && !isError && Boolean(msg.thinking?.trim());
+
+  const [showAllRefs, setShowAllRefs] = useState(false);
+
+  const { citedReferences, uncitedReferences } = useMemo(() => {
+    const cited = new Set<number>();
+    if (msg.content) {
+      const matches = msg.content.matchAll(/\[cite:(\d+)\]/g);
+      for (const match of matches) {
+        cited.add(parseInt(match[1], 10));
+      }
+    }
+    const citedList: Reference[] = [];
+    const uncitedList: Reference[] = [];
+    if (msg.references) {
+      for (const ref of msg.references) {
+        if (cited.has(ref.index)) {
+          citedList.push(ref);
+        } else {
+          uncitedList.push(ref);
+        }
+      }
+    }
+    return { citedReferences: citedList, uncitedReferences: uncitedList };
+  }, [msg.references, msg.content]);
+
+  const handleScrollToRef = (refIndex: number) => {
+    const element = document.getElementById(`ref-detail-${msg.id}-${refIndex}`);
+    if (element) {
+      element.setAttribute('open', 'true');
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      const originalBg = element.style.background;
+      const originalBorderColor = element.style.borderColor;
+      const originalBoxShadow = element.style.boxShadow;
+
+      element.style.background = isDarkMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)';
+      element.style.borderColor = '#3b82f6';
+      element.style.boxShadow = isDarkMode ? '0 0 12px rgba(59, 130, 246, 0.4)' : '0 0 12px rgba(59, 130, 246, 0.2)';
+      
+      setTimeout(() => {
+        element.style.background = originalBg;
+        element.style.borderColor = originalBorderColor;
+        element.style.boxShadow = originalBoxShadow;
+      }, 2000);
+    }
+  };
 
   return (
     <div
@@ -144,11 +204,182 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMod
                 </details>
               )}
               {msg.content ? (
-                <MarkdownPreview markdown={msg.content} className="chat-markdown-preview" />
+                <MarkdownPreview
+                  markdown={msg.content}
+                  className="chat-markdown-preview"
+                  references={msg.references}
+                  onReferenceClick={handleScrollToRef}
+                  isDarkMode={isDarkMode}
+                />
               ) : hasThinking ? null : (
                 <span style={{ color: isDarkMode ? '#9ca3af' : '#6b7280', fontStyle: 'italic' }}>
                   Waiting for response...
                 </span>
+              )}
+
+              {msg.references && msg.references.length > 0 && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    paddingTop: '12px',
+                    borderTop: isDarkMode ? '1px dashed #263244' : '1px dashed #e5e7eb',
+                  }}
+                >
+                  {(citedReferences.length > 0 || showAllRefs) && (
+                    <>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: isDarkMode ? '#9ca3af' : '#4b5563',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        <BookOpen size={13} />
+                        <span>References ({showAllRefs ? msg.references.length : citedReferences.length})</span>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                        }}
+                      >
+                        {(showAllRefs ? msg.references : citedReferences).map((ref) => (
+                          <details
+                            key={ref.chunk_id || ref.index}
+                            id={`ref-detail-${msg.id}-${ref.index}`}
+                            style={{
+                              width: '100%',
+                              border: isDarkMode ? '1px solid #1f2937' : '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              background: isDarkMode ? '#0b0f17' : '#f9fafb',
+                              overflow: 'hidden',
+                              fontSize: '12px',
+                              transition: 'all 0.3s ease',
+                            }}
+                          >
+                            <summary
+                              style={{
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '8px 12px',
+                                userSelect: 'none',
+                                listStyle: 'none',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                                <span
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: isDarkMode ? '#1f2937' : '#e5e7eb',
+                                    color: isDarkMode ? '#9ca3af' : '#4b5563',
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {ref.index}
+                                </span>
+                                <FileText size={13} style={{ flexShrink: 0, color: '#3b82f6' }} />
+                                <span
+                                  style={{
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    fontWeight: 600,
+                                    color: isDarkMode ? '#cbd5e1' : '#374151',
+                                  }}
+                                >
+                                  {ref.source}
+                                </span>
+                                {ref.page !== null && ref.page !== undefined && (
+                                  <span style={{ color: '#9ca3af', fontSize: '11px', flexShrink: 0 }}>
+                                    (p. {ref.page})
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    background: isDarkMode ? '#1e293b' : '#eff6ff',
+                                    color: '#3b82f6',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {ref.rerank_score !== null && ref.rerank_score !== undefined
+                                    ? `${(ref.rerank_score * 100).toFixed(0)}% match`
+                                    : `${(ref.score * 100).toFixed(0)}% match`}
+                                </span>
+                              </div>
+                            </summary>
+                            <div
+                              style={{
+                                padding: '10px 12px',
+                                borderTop: isDarkMode ? '1px solid #1f2937' : '1px solid #e5e7eb',
+                                color: isDarkMode ? '#9ca3af' : '#4b5563',
+                                lineHeight: 1.5,
+                                background: isDarkMode ? '#030712' : '#ffffff',
+                                whiteSpace: 'pre-wrap',
+                                maxHeight: '160px',
+                                overflowY: 'auto',
+                              }}
+                            >
+                              {ref.content}
+                            </div>
+                          </details>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {uncitedReferences.length > 0 && (
+                    <div
+                      style={{
+                        marginTop: (citedReferences.length > 0 || showAllRefs) ? '10px' : '0',
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                      }}
+                    >
+                      <button
+                        onClick={() => setShowAllRefs(!showAllRefs)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          padding: 0,
+                          color: '#3b82f6',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'opacity 0.2s',
+                        }}
+                        className="popover-action-link"
+                      >
+                        {showAllRefs ? (
+                          <span>Hide uncited references</span>
+                        ) : (
+                          <span>Show all retrieved references ({msg.references.length})</span>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
