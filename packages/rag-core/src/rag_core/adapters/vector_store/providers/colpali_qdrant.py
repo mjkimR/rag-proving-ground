@@ -1,4 +1,4 @@
-"""ColPali 멀티 벡터 전용 Qdrant VectorStore."""
+"""Qdrant VectorStore specialized for ColPali multi-vector representation."""
 
 from __future__ import annotations
 
@@ -53,12 +53,12 @@ class ColPaliQdrantStore(VectorStore):
         points = []
         point_ids = []
 
-        # OOM 및 네트워크 타임아웃 방지를 위한 4개 단위 미니 배치 루프
+        # Mini-batch loop in steps of 4 to prevent OOM and network timeouts
         batch_size = 4
         for i in range(0, len(documents), batch_size):
             batch_docs = documents[i : i + batch_size]
 
-            # asyncio.gather를 통한 이미지 파일 병렬 다운로드 진행
+            # Download image files in parallel using asyncio.gather
             tasks = [self._download_image(doc.metadata.get("image_storage_path")) for doc in batch_docs]
             downloaded_images = await asyncio.gather(*tasks)
 
@@ -73,7 +73,7 @@ class ColPaliQdrantStore(VectorStore):
                 continue
 
             try:
-                # Infinity를 통한 고속 원격 임베딩
+                # Fast remote embedding generation using Infinity
                 embeddings = await self.colpali_model.encode_images(images)
             finally:
                 for img in images:
@@ -85,7 +85,7 @@ class ColPaliQdrantStore(VectorStore):
                 points.append(
                     qmodels.PointStruct(
                         id=pt_id,
-                        vector=embedding,  # list[list[float]] (멀티 벡터)
+                        vector=embedding,  # list[list[float]] (multi-vector)
                         payload={"page_content": doc.page_content, "metadata": doc.metadata},
                     )
                 )
@@ -103,11 +103,11 @@ class ColPaliQdrantStore(VectorStore):
         filter: Any | None = None,
         **kwargs: Any,
     ) -> list[tuple[Document, float]]:
-        # 1. Infinity 클라이언트를 사용해 쿼리 임베딩 획득
+        # 1. Obtain query embedding using the Infinity client
         query_embeddings = await self.colpali_model.encode_queries([query])
         query_vector = query_embeddings[0]
 
-        # 2. Qdrant 멀티벡터 MAX_SIM 쿼리 실행
+        # 2. Execute Qdrant multi-vector MAX_SIM query
         results = await self.async_client.query_points(
             collection_name=self.collection_name, query=query_vector, query_filter=filter, limit=k, with_payload=True
         )

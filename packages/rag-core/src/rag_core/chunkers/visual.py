@@ -1,4 +1,4 @@
-"""페이지 단위 비전 청커 — ColPali 파이프라인용."""
+"""Page-by-page vision chunker — for ColPali pipeline."""
 
 from __future__ import annotations
 

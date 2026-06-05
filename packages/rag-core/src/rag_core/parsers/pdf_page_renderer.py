@@ -1,4 +1,4 @@
-"""PDF 페이지를 이미지로 렌더링하고 스토리지에 업로드하는 유틸리티."""
+"""Utility to render PDF pages as images and upload them to storage."""
 
 from __future__ import annotations
 
@@ -35,17 +35,17 @@ async def render_and_store_pdf_pages(
             rect = page.rect
             width, height = rect.width, rect.height
 
-            # 1. 대상 최대 크기(target_max_dim)에 맞춰 배율(zoom) 계산
+            # 1. Calculate zoom ratio based on the target maximum dimension (target_max_dim)
             max_dim = max(width, height)
             zoom = target_max_dim / max_dim if max_dim > target_max_dim else 150 / 72.0
 
             mat = fitz.Matrix(zoom, zoom)
             pix = page.get_pixmap(matrix=mat)
 
-            # 2. PyMuPDF Pixmap 데이터를 Pillow Image 객체로 래핑
+            # 2. Wrap the PyMuPDF Pixmap data into a Pillow Image object
             img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
-            # 3. Pillow를 사용하여 JPEG로 가볍게 압축 (질도 80% 추천)
+            # 3. Lightly compress to JPEG using Pillow (recommended quality is 80)
             img_byte_arr = io.BytesIO()
             img.save(img_byte_arr, format=image_format.upper(), quality=jpeg_quality)
             img_bytes = img_byte_arr.getvalue()
