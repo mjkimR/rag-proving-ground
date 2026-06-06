@@ -18,7 +18,7 @@ class ColPaliModel:
     # Concurrency control semaphore to prevent remote Infinity server overload and connection exhaustion
     _semaphore = asyncio.Semaphore(4)
 
-    def __init__(self, model_name: str = "vidore/colpali-v1.2-merged"):
+    def __init__(self, model_name: str = "vidore/colpali-v1.3-merged"):
         self.model_name = model_name
         self.settings = get_colpali_settings()
 

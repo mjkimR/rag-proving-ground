@@ -102,6 +102,7 @@ def _validate_knowledge_embedding_config(config: KnowledgeEmbeddingConfigInput) 
 
 COLPALI_MODELS: set[str] = {
     "vidore/colpali-v1.2-merged",
+    "vidore/colpali-v1.3-merged",
     "vidore/colSmol-500M-merged",
 }
 
