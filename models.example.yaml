@@ -1,4 +1,5 @@
 model_list:
+  # --- VLLM Settings
   - model_name: gpt-oss-20b
     litellm_params:
       model: openai/openai/gpt-oss-20b
@@ -31,6 +32,7 @@ model_list:
     metadata:
       role: reranker
 
+  # --- OpenAI Settings
   - model_name: gpt-4o
     litellm_params:
       model: openai/gpt-4o
@@ -45,6 +47,7 @@ model_list:
     metadata:
       role: embedding
 
+  # --- LM Studio Settings
   - model_name: qwen3-vl-4b
     litellm_params:
       model: openai/qwen/qwen3-vl-4b
@@ -53,21 +56,58 @@ model_list:
     metadata:
       role: llm
 
-  - model_name: bge-m3
+  - model_name: text-embedding
     litellm_params:
-      model: huggingface/BAAI/bge-m3
-      api_base: http://host.docker.internal:18080
+      model: openai/text-embedding-multilingual-e5-large-instruct
+      api_base: http://host.docker.internal:1234/v1
       api_key: "none"
     metadata:
       role: embedding
 
-  - model_name: bge-reranker-v2-m3
+  # --- Google Generative Settings
+  - model_name: gemini-2.5-flash-lite
     litellm_params:
-      model: huggingface/BAAI/bge-reranker-v2-m3
-      api_base: http://host.docker.internal:18081
-      api_key: "none"
+      model: gemini/gemini-2.5-flash-lite
+      api_key: "os.environ/GEMINI_API_KEY"
+    metadata:
+      role: llm
+
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: "os.environ/GEMINI_API_KEY"
+    metadata:
+      role: llm
+
+  - model_name: gemini-embedding-2
+    litellm_params:
+      model: gemini/gemini-embedding-2
+      api_key: "os.environ/GEMINI_API_KEY"
+    metadata:
+      role: embedding
+
+  # --- Cohere Settings
+  - model_name: cohere-reranker
+    litellm_params:
+      model: cohere/rerank-multilingual-v3.0
+      api_key: "os.environ/COHERE_API_KEY"
     metadata:
       role: reranker
+
+  # --- Groq Settings
+  - model_name: groq-llama-3.3-70b
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: "os.environ/GROQ_API_KEY"
+    metadata:
+      role: llm
+
+  - model_name: groq-gpt-oss-120b
+    litellm_params:
+      model: groq/gpt-oss-120b
+      api_key: "os.environ/GROQ_API_KEY"
+    metadata:
+      role: llm
 
 router_settings:
   routing_strategy: simple-shuffle
