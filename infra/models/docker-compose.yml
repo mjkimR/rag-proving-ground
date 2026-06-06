@@ -1,13 +1,4 @@
 services:
-  tei-embedding:
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
-    container_name: local-tei-embedding
-    ports:
-      - "18080:80"
-    volumes:
-      - ~/.ai_models/tei/embedding:/data
-    command: --model-id BAAI/bge-m3 --max-batch-tokens 2048
-
   tei-reranker:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
     container_name: local-tei-reranker
@@ -26,7 +17,6 @@ services:
       - "7997:7997"
     volumes:
       - ~/.ai_models/infinity:/app/.cache
-    # CPU 실행 기본 설정 (GPU 사용 시 --device cuda 및 --gpus all 추가 필요)
     command: v2 --model-id vidore/colpali-v1.2-merged --dtype bfloat16 --device cpu --engine torch --port 7997
 
 networks:

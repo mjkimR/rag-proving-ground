@@ -99,9 +99,9 @@ down:
     docker compose -p rag -f infra/services/docker-compose.yml -f infra/services/docker-compose.gpu.yml down --remove-orphans
 
 
-# Start local model serving (Ollama & TEI)
-models-up:
-    docker compose -f infra/models/docker-compose.yml up -d
+# Start local model serving (Ollama & TEI). Can specify multiple models (e.g. just models-up embed,rerank)
+models-up +models="all":
+    @bash ./scripts/models-up.sh {{ models }}
 
 # Stop local model serving (Ollama & TEI)
 models-down:
