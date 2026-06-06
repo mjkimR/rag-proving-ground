@@ -1,15 +1,4 @@
 services:
-  tei-reranker:
-    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
-    container_name: local-tei-reranker
-    ports:
-      - "18081:80"
-    volumes:
-      - ~/.ai_models/tei/reranker:/data
-    environment:
-      - HF_HUB_ENABLE_HF_TRANSFER=0
-    command: --model-id BAAI/bge-reranker-v2-m3 --max-batch-tokens 2048
-
   infinity-colpali:
     image: michaelf34/infinity:latest
     container_name: local-infinity-colpali
