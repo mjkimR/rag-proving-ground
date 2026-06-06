@@ -19,23 +19,95 @@ logging.getLogger("LiteLLM").setLevel(logging.CRITICAL)
 
 logger = logging.getLogger(__name__)
 
+# Standard parameters for model initialization and routing
+TEMPERATURE = "temperature"
+MAX_TOKENS = "max_tokens"
+REQUEST_TIMEOUT = "request_timeout"
+MAX_RETRIES = "max_retries"
+
+LLM_STANDARD_PARAMS = (
+    TEMPERATURE,
+    MAX_TOKENS,
+    REQUEST_TIMEOUT,
+    MAX_RETRIES,
+)
+
+SHARED_STANDARD_PARAMS = (
+    REQUEST_TIMEOUT,
+    MAX_RETRIES,
+)
+
 _LLM_MODEL_CACHE: dict[str, BaseChatModel] = {}
 _EMBEDDING_MODEL_CACHE: dict[str, Embeddings] = {}
 _RERANKER_MODEL_CACHE: dict[str, BaseDocumentCompressor] = {}
 
 
+def _resolve_model_params(
+    passed_kwargs: dict[str, Any],
+    yaml_params: dict[str, Any],
+    standard_keys: list[str] | tuple[str, ...],
+    default_settings: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Resolve and merge model parameters based on priority.
+
+    Priority: passed_kwargs > yaml_params > default_settings
+
+    Returns:
+        tuple[resolved_params, remaining_kwargs]:
+            - resolved_params: Merged standard parameters (if not None) and custom yaml_params.
+            - remaining_kwargs: The passed kwargs with standard keys popped out.
+    """
+    remaining_kwargs = dict(passed_kwargs)
+    resolved_params = {}
+
+    # 1. Resolve standard parameters
+    for key in standard_keys:
+        if key in remaining_kwargs:
+            val = remaining_kwargs.pop(key)
+        else:
+            val = yaml_params.get(key)
+            if val is None:
+                val = default_settings.get(key)
+
+        if val is not None:
+            resolved_params[key] = val
+
+    # 2. Merge other custom yaml_params (excluding standard parameters)
+    for k, v in yaml_params.items():
+        if k not in standard_keys:
+            resolved_params[k] = v
+
+    return resolved_params, remaining_kwargs
+
+
 def get_llm_model(model_name: str | None = None, **kwargs: Any) -> BaseChatModel | Runnable:
     settings = get_litellm_settings()
-    model = _gateway_openai_model(model_name or settings.default_llm_model)
-    bind_kwargs = dict(kwargs)
-    model_kwargs = {
+    resolved_model_name = model_name or settings.default_llm_model
+    model = _gateway_openai_model(resolved_model_name)
+
+    metadata = get_model_metadata(resolved_model_name)
+    yaml_model_params = metadata.get("model_params") or {}
+
+    default_settings = {
+        TEMPERATURE: settings.temperature,
+        MAX_TOKENS: settings.max_tokens,
+        REQUEST_TIMEOUT: settings.timeout,
+        MAX_RETRIES: settings.max_retries,
+    }
+
+    resolved_params, bind_kwargs = _resolve_model_params(
+        passed_kwargs=kwargs,
+        yaml_params=yaml_model_params,
+        standard_keys=LLM_STANDARD_PARAMS,
+        default_settings=default_settings,
+    )
+
+    model_kwargs: dict[str, Any] = {
         "model": model,
         "api_base": settings.base_url,
-        "temperature": bind_kwargs.pop("temperature", settings.temperature),
-        "max_tokens": bind_kwargs.pop("max_tokens", settings.max_tokens),
-        "request_timeout": bind_kwargs.pop("request_timeout", settings.timeout),
-        "max_retries": bind_kwargs.pop("max_retries", settings.max_retries),
+        **resolved_params,
     }
+
     cache_key = _json_cache_key(model_kwargs)
     if cache_key not in _LLM_MODEL_CACHE:
         _LLM_MODEL_CACHE[cache_key] = ChatLiteLLM(
@@ -51,15 +123,33 @@ def get_llm_model(model_name: str | None = None, **kwargs: Any) -> BaseChatModel
 
 def get_embedding_model(model_name: str | None = None, **kwargs: Any) -> Embeddings:
     settings = get_litellm_settings()
-    model = _gateway_openai_model(model_name or settings.default_embedding_model)
-    model_kwargs = dict(kwargs)
-    constructor_kwargs = {
+    resolved_model_name = model_name or settings.default_embedding_model
+    model = _gateway_openai_model(resolved_model_name)
+
+    metadata = get_model_metadata(resolved_model_name)
+    yaml_model_params = metadata.get("model_params") or {}
+
+    default_settings = {
+        REQUEST_TIMEOUT: settings.timeout,
+        MAX_RETRIES: settings.max_retries,
+    }
+
+    resolved_params, remaining_kwargs = _resolve_model_params(
+        passed_kwargs=kwargs,
+        yaml_params=yaml_model_params,
+        standard_keys=SHARED_STANDARD_PARAMS,
+        default_settings=default_settings,
+    )
+
+    constructor_kwargs: dict[str, Any] = {
         "model": model,
         "api_base": settings.base_url,
-        "request_timeout": model_kwargs.pop("request_timeout", settings.timeout),
-        "max_retries": model_kwargs.pop("max_retries", settings.max_retries),
-        **model_kwargs,
+        **resolved_params,
     }
+
+    # Merge remaining kwargs passed to the function
+    constructor_kwargs.update(remaining_kwargs)
+
     cache_key = _json_cache_key(constructor_kwargs)
     if cache_key not in _EMBEDDING_MODEL_CACHE:
         _EMBEDDING_MODEL_CACHE[cache_key] = LiteLLMEmbeddings(
@@ -71,14 +161,32 @@ def get_embedding_model(model_name: str | None = None, **kwargs: Any) -> Embeddi
 
 def get_reranker_model(model_name: str | None = None, **kwargs: Any) -> BaseDocumentCompressor:
     settings = get_litellm_settings()
-    model_kwargs = dict(kwargs)
-    constructor_kwargs = {
-        "model": model_name or settings.default_reranker_model,
-        "api_base": _gateway_base_url(settings.base_url),
-        "request_timeout": model_kwargs.pop("request_timeout", settings.timeout),
-        "max_retries": model_kwargs.pop("max_retries", settings.max_retries),
-        **model_kwargs,
+    resolved_model_name = model_name or settings.default_reranker_model
+
+    metadata = get_model_metadata(resolved_model_name)
+    yaml_model_params = metadata.get("model_params") or {}
+
+    default_settings = {
+        REQUEST_TIMEOUT: settings.timeout,
+        MAX_RETRIES: settings.max_retries,
     }
+
+    resolved_params, remaining_kwargs = _resolve_model_params(
+        passed_kwargs=kwargs,
+        yaml_params=yaml_model_params,
+        standard_keys=SHARED_STANDARD_PARAMS,
+        default_settings=default_settings,
+    )
+
+    constructor_kwargs: dict[str, Any] = {
+        "model": resolved_model_name,
+        "api_base": _gateway_base_url(settings.base_url),
+        **resolved_params,
+    }
+
+    # Merge remaining kwargs passed to the function
+    constructor_kwargs.update(remaining_kwargs)
+
     cache_key = _json_cache_key(constructor_kwargs)
     if cache_key not in _RERANKER_MODEL_CACHE:
         _RERANKER_MODEL_CACHE[cache_key] = LiteLLMRerankCompressor(
@@ -127,8 +235,8 @@ def _json_safe_key(value: Any) -> str:
 
 
 @lru_cache(maxsize=1)
-def _fetch_model_options_from_gateway() -> dict[str, list[str]]:
-    """Fetch model options from the LiteLLM gateway API.
+def _fetch_raw_model_info_from_gateway() -> list[dict[str, Any]]:
+    """Fetch raw model list from LiteLLM gateway.
 
     Raises:
         Exception: If the fetch or parsing fails, ensuring failures are not cached.
@@ -155,6 +263,40 @@ def _fetch_model_options_from_gateway() -> dict[str, list[str]]:
     if not isinstance(model_list, list):
         raise ValueError(f"Unexpected model list format from LiteLLM gateway: {type(model_list).__name__}")
 
+    logger.info("Successfully fetched model options dynamically from LiteLLM gateway.")
+    return model_list
+
+
+@lru_cache(maxsize=1)
+def _get_model_metadata_map() -> dict[str, dict[str, Any]]:
+    """Build a mapping of model name to metadata from fetched gateway info.
+
+    Raises:
+        Exception: If the fetch or parsing fails, ensuring failures are not cached.
+    """
+    model_list = _fetch_raw_model_info_from_gateway()
+    return {entry["model_name"]: entry.get("metadata") or {} for entry in model_list if "model_name" in entry}
+
+
+def get_model_metadata(model_name: str) -> dict[str, Any]:
+    """Get metadata for a specific model from cached gateway info."""
+    try:
+        metadata_map = _get_model_metadata_map()
+        return metadata_map.get(model_name) or {}
+    except Exception as e:
+        logger.warning(f"Failed to get metadata for model {model_name}: {e}")
+    return {}
+
+
+@lru_cache(maxsize=1)
+def _fetch_model_options_from_gateway() -> dict[str, list[str]]:
+    """Fetch model options from the LiteLLM gateway API.
+
+    Raises:
+        Exception: If the fetch or parsing fails, ensuring failures are not cached.
+    """
+    model_list = _fetch_raw_model_info_from_gateway()
+
     embedding_models = []
     llm_models = []
     reranker_models = []
@@ -179,7 +321,7 @@ def _fetch_model_options_from_gateway() -> dict[str, list[str]]:
         if not role:
             # Name heuristics
             name_lower = name.lower()
-            if "embedding" in name_lower:
+            if "embedding" in name_lower or ("bge" in name_lower and "rerank" not in name_lower):
                 role = "embedding"
             elif "reranker" in name_lower or "rerank" in name_lower:
                 role = "reranker"
@@ -193,7 +335,6 @@ def _fetch_model_options_from_gateway() -> dict[str, list[str]]:
         else:
             llm_models.append(name)
 
-    logger.info("Successfully fetched model options dynamically from LiteLLM gateway.")
     return {
         "embedding_models": embedding_models,
         "llm_models": llm_models,

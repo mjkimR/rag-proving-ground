@@ -11,7 +11,7 @@ class LiteLLMSettings(BaseSettings):
 
     base_url: str = Field(default="http://localhost:4000/v1", validation_alias="LITELLM_BASE_URL")
     api_key: SecretStr = Field(default="sk-local", validation_alias="LITELLM_API_KEY")  # type: ignore
-    temperature: float = Field(default=0.0, validation_alias="LITELLM_TEMPERATURE")
+    temperature: float | None = Field(default=None, validation_alias="LITELLM_TEMPERATURE")
     max_tokens: int | None = Field(default=None, validation_alias="LITELLM_MAX_TOKENS")
     timeout: float | None = Field(default=60.0, validation_alias="LITELLM_TIMEOUT")
     max_retries: int = Field(default=2, validation_alias="LITELLM_MAX_RETRIES")
