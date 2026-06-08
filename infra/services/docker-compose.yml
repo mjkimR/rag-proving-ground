@@ -12,6 +12,7 @@ services:
       - ../../models.yaml:/app/config.yaml
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@rag-meta-db:5432/litellm"
+      LITELLM_DROP_PARAMS: "True"
     command: [ "--config", "/app/config.yaml", "--port", "4000" ]
 
   rag-storage-object:
