@@ -55,7 +55,7 @@ interface ChatMessageItemProps {
   isDarkMode: boolean;
 }
 
-export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMode }) => {
+export const ChatMessageItem: React.FC<ChatMessageItemProps> = React.memo(({ msg, isDarkMode }) => {
   const isHuman = msg.type === 'human';
   const isError = msg.type === 'error';
   const hasThinking = !isHuman && !isError && Boolean(msg.thinking?.trim());
@@ -422,4 +422,4 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ msg, isDarkMod
       </div>
     </div>
   );
-};
+});

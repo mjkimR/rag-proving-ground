@@ -29,6 +29,7 @@ class ElementType(StrEnum):
     PAGE_HEADER = "page_header"
     PAGE_FOOTER = "page_footer"
     SECTION_INDEX = "section_index"
+    CODE = "code"
     UNKNOWN = "unknown"
 
 

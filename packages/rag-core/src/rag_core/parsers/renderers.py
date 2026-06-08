@@ -138,12 +138,18 @@ def _markdown_caption(element: ParsedElement) -> str:
     return f"*{content}*" if content else ""
 
 
+def _markdown_code(element: ParsedElement) -> str:
+    content = element.content.strip()
+    return f"```\n{content}\n```" if content else ""
+
+
 _MARKDOWN_ELEMENT_RENDERERS = {
     ElementType.HEADING: _markdown_heading,
     ElementType.TABLE: _markdown_table,
     ElementType.IMAGE: _markdown_image,
     ElementType.EQUATION: _markdown_equation,
     ElementType.CAPTION: _markdown_caption,
+    ElementType.CODE: _markdown_code,
 }
 
 
@@ -201,6 +207,11 @@ def _html_caption(element: ParsedElement) -> str:
     return f"<p><em>{escape(content)}</em></p>" if content else ""
 
 
+def _html_code(element: ParsedElement) -> str:
+    content = element.content.strip()
+    return f"<pre><code>{escape(content)}</code></pre>" if content else ""
+
+
 _HTML_ELEMENT_RENDERERS = {
     ElementType.HEADING: _html_heading,
     ElementType.LIST: _html_list,
@@ -209,6 +220,7 @@ _HTML_ELEMENT_RENDERERS = {
     ElementType.IMAGE: _html_image,
     ElementType.EQUATION: _html_equation,
     ElementType.CAPTION: _html_caption,
+    ElementType.CODE: _html_code,
 }
 
 
