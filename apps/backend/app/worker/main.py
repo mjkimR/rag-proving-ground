@@ -23,7 +23,6 @@ from typing import cast
 
 from app.worker.broker import broker
 from app.worker.handlers.ingest import router as ingest_router
-from app.worker.handlers.reprocess import router as reprocess_router
 from app.worker.recovery import recover_stuck_documents
 from app_file_storage import lifespan_file_storage
 from app_http_client import lifespan_http_client
@@ -65,6 +64,5 @@ async def lifespan():
 
 
 broker.include_router(ingest_router)
-broker.include_router(reprocess_router)
 
 app = FastStream(broker, lifespan=lifespan)

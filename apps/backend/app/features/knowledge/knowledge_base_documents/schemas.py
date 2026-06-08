@@ -23,6 +23,7 @@ class KnowledgeBaseDocumentStatus(StrEnum):
 
 class KnowledgeBaseDocumentReprocessMode(StrEnum):
     AUTO = "AUTO"
+    REPARSE = "REPARSE"
     RECHUNK = "RECHUNK"
     REEMBED = "REEMBED"
 
@@ -69,8 +70,8 @@ class KnowledgeBaseDocumentRead(UUIDSchemaMixin, TimestampSchemaMixin, Knowledge
     model_config = ConfigDict(from_attributes=True)
 
 
-class IngestDocumentMessage(BaseModel):
-    """Message payload for async document ingestion."""
+class ParseDocumentMessage(BaseModel):
+    """Message payload for async document parsing."""
 
     document_id: UUID
     knowledge_base_id: UUID
@@ -78,6 +79,26 @@ class IngestDocumentMessage(BaseModel):
     filename: str
     content_type: str | None = None
     provider: str | None = None
+
+
+# Alias for compatibility
+IngestDocumentMessage = ParseDocumentMessage
+
+
+class ChunkDocumentMessage(BaseModel):
+    """Message payload for async document chunking."""
+
+    document_id: UUID
+    knowledge_base_id: UUID
+    filename: str
+
+
+class EmbedDocumentMessage(BaseModel):
+    """Message payload for async document embedding."""
+
+    document_id: UUID
+    knowledge_base_id: UUID
+    filename: str
 
 
 class ReprocessDocumentMessage(BaseModel):

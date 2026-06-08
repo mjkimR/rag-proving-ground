@@ -2,9 +2,11 @@ from typing import Annotated
 from uuid import UUID
 
 from app.features.knowledge.knowledge_base_documents.schemas import (
+    ChunkDocumentMessage,
+    EmbedDocumentMessage,
     KnowledgeBaseDocumentReprocessMode,
     KnowledgeBaseDocumentStatus,
-    ReprocessDocumentMessage,
+    ParseDocumentMessage,
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
@@ -46,28 +48,57 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
                 )
 
             reprocess_mode = resolve_reprocess_mode(mode, doc.status)
-            document_info = dict(doc.document_info or {})
-            parsed_data_path = document_info.get("parsed_data_path")
-            if not parsed_data_path:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Document has no parsed artifact. Upload or reparse the document first.",
-                )
+            if reprocess_mode != KnowledgeBaseDocumentReprocessMode.REPARSE:
+                document_info = dict(doc.document_info or {})
+                parsed_data_path = document_info.get("parsed_data_path")
+                if not parsed_data_path:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Document has no parsed artifact. Upload or reparse the document first.",
+                    )
+
+            # Save values to local variables for safe publishing outside transaction
+            knowledge_base_id = doc.knowledge_base_id
+            file_hash = doc.file_hash
+            filename = doc.name
+            content_type = doc.document_info.get("content_type") if doc.document_info else None
 
             # Update status to QUEUED to signify processing is requested
             doc.status = KnowledgeBaseDocumentStatus.QUEUED
             await refresh_knowledge_base_status(session, self.kb_service, self.doc_service, doc.knowledge_base_id)
 
-        # Publish reprocess message to Redis
+        # Publish to the specific step in the ingestion pipeline
         try:
-            logger.info(f"Publishing document.reprocess message for document {document_id}")
-            await broker.publish(
-                ReprocessDocumentMessage(
-                    document_id=document_id,
-                    mode=reprocess_mode,
-                ),
-                "document.reprocess",
-            )
+            logger.info(f"Publishing reprocessing message for document {document_id} with mode {reprocess_mode}")
+            if reprocess_mode == KnowledgeBaseDocumentReprocessMode.REPARSE:
+                await broker.publish(
+                    ParseDocumentMessage(
+                        document_id=document_id,
+                        knowledge_base_id=knowledge_base_id,
+                        file_hash=file_hash,
+                        filename=filename,
+                        content_type=content_type,
+                    ),
+                    "document.parse",
+                )
+            elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.RECHUNK:
+                await broker.publish(
+                    ChunkDocumentMessage(
+                        document_id=document_id,
+                        knowledge_base_id=knowledge_base_id,
+                        filename=filename,
+                    ),
+                    "document.chunk",
+                )
+            elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.REEMBED:
+                await broker.publish(
+                    EmbedDocumentMessage(
+                        document_id=document_id,
+                        knowledge_base_id=knowledge_base_id,
+                        filename=filename,
+                    ),
+                    "document.embed",
+                )
         except Exception as exc:
             logger.warning(f"Failed to publish reprocess message for doc {document_id}: {exc}")
 
@@ -102,10 +133,7 @@ def resolve_reprocess_mode(
     if document_status == KnowledgeBaseDocumentStatus.PENDING_REEMBED:
         return KnowledgeBaseDocumentReprocessMode.REEMBED
     if document_status == KnowledgeBaseDocumentStatus.PENDING_REPARSE:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Document requires reparse. Parsed-artifact reprocessing cannot satisfy PENDING_REPARSE.",
-        )
+        return KnowledgeBaseDocumentReprocessMode.REPARSE
     raise HTTPException(
         status_code=status.HTTP_409_CONFLICT,
         detail=f"Document status '{document_status}' is not pending parsed-artifact reprocessing.",

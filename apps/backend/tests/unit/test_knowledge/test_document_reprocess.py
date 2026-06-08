@@ -10,6 +10,7 @@ from fastapi import HTTPException
 @pytest.mark.parametrize(
     ("status", "expected_mode"),
     [
+        (KnowledgeBaseDocumentStatus.PENDING_REPARSE, KnowledgeBaseDocumentReprocessMode.REPARSE),
         (KnowledgeBaseDocumentStatus.PENDING_RECHUNK, KnowledgeBaseDocumentReprocessMode.RECHUNK),
         (KnowledgeBaseDocumentStatus.PENDING_REEMBED, KnowledgeBaseDocumentReprocessMode.REEMBED),
     ],
@@ -31,7 +32,6 @@ def test_resolve_reprocess_mode_explicit_mode_bypasses_status_mapping() -> None:
 @pytest.mark.parametrize(
     "status",
     [
-        KnowledgeBaseDocumentStatus.PENDING_REPARSE,
         KnowledgeBaseDocumentStatus.COMPLETED,
         KnowledgeBaseDocumentStatus.FAILED,
     ],

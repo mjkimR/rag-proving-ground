@@ -1,3 +1,6 @@
+import hashlib
+import json
+from collections.abc import Mapping
 from typing import Any
 
 from langchain_core.documents import Document
@@ -7,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ChunkingConfig(BaseModel):
     """Config for parser-aware semantic chunking."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="allow")
 
     chunk_size: int = 450
     chunk_overlap: int = 50
@@ -17,6 +20,10 @@ class ChunkingConfig(BaseModel):
     )
     include_root_breadcrumb: bool = Field(default=True, description="Keep the root heading when trimming breadcrumbs.")
     breadcrumb_separator: str = " > "
+    enrichment: dict[str, Any] | None = Field(
+        default=None,
+        description="Optional configuration for future chunk enrichment methods.",
+    )
 
 
 class ChunkedDocument(BaseModel):
@@ -46,3 +53,23 @@ class ChunkedDocument(BaseModel):
                 "page_ids": self.page_ids,
             },
         )
+
+
+def resolve_chunking_config(config: ChunkingConfig | Mapping[str, Any] | None) -> ChunkingConfig:
+    """Validate and resolve chunking config."""
+    if isinstance(config, ChunkingConfig):
+        return config
+    if config is None:
+        return ChunkingConfig()
+    return ChunkingConfig.model_validate(config)
+
+
+def knowledge_chunking_config_hash(config: ChunkingConfig) -> str:
+    """Create the stable hash used to identify a chunking configuration."""
+    dumped_dict = config.model_dump(mode="json", exclude_none=True)
+    serialized = json.dumps(
+        dumped_dict,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:16]

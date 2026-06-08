@@ -302,3 +302,30 @@ def test_semantic_chunker_ignores_layout_boilerplate() -> None:
     assert len(chunks) == 1
     assert "Layout Header Text" not in chunks[0].page_content
     assert "Actual content paragraph." in chunks[0].page_content
+
+
+def test_docling_code_rendering() -> None:
+    from rag_core.parsers.schemas import ContentFormat, ParsedDocument, ParsedPage
+
+    doc = ParsedDocument(
+        doc_id="test_doc",
+        parser="docling",
+        pages=[ParsedPage(page_id="p1", page_no=1)],
+        elements=[
+            ParsedElement(
+                element_id="el1",
+                type=ElementType.CODE,
+                format=ContentFormat.TEXT,
+                content="print('hello world')",
+                order=0,
+                ignored=False,
+                page_id="p1",
+            ),
+        ],
+    )
+
+    markdown = doc.to_markdown()
+    html = doc.to_html()
+
+    assert markdown == "```\nprint('hello world')\n```"
+    assert html == "<pre><code>print(&#x27;hello world&#x27;)</code></pre>"

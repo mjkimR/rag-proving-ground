@@ -4,7 +4,12 @@ from typing import Annotated, Any, cast
 from uuid import UUID
 
 from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
-from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
+from app.features.knowledge.knowledge_base_documents.schemas import (
+    ChunkDocumentMessage,
+    EmbedDocumentMessage,
+    KnowledgeBaseDocumentStatus,
+    ParseDocumentMessage,
+)
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_base_documents.usecases.crud import (
     KnowledgeDocumentCleanupTarget,
@@ -20,6 +25,7 @@ from app.features.knowledge.knowledge_bases.schemas import (
 )
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseContextKwargs, KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
+from app.worker.broker import broker
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.base.usecases.crud import (
@@ -32,10 +38,12 @@ from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
 from loguru import logger
 from pydantic import BaseModel
+from rag_core.chunkers import resolve_chunking_config
 from rag_core.embeddings import (
     knowledge_embedding_config_payload,
     resolve_knowledge_embedding_config,
 )
+from rag_core.parsers import resolve_knowledge_parsing_config
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -74,6 +82,7 @@ class PatchKnowledgeBaseUseCase(
     ) -> None:
         super().__init__(service)
         self.doc_service = doc_service
+        self._pending_reprocess = ([], None)
 
     async def _execute(
         self,
@@ -82,7 +91,7 @@ class PatchKnowledgeBaseUseCase(
         obj_data: KnowledgeBasePatch,
         context: KnowledgeBaseContextKwargs | None,
     ) -> KnowledgeBase | None:
-        return await _update_knowledge_base_with_document_transitions(
+        updated_kb, docs_to_reprocess, target_status = await _update_knowledge_base_with_document_transitions(
             session=session,
             kb_service=self.service,
             doc_service=self.doc_service,
@@ -91,6 +100,18 @@ class PatchKnowledgeBaseUseCase(
             partial=True,
             context=context,
         )
+        self._pending_reprocess = (docs_to_reprocess, target_status)
+        return updated_kb
+
+    async def execute(self, *args, **kwargs) -> KnowledgeBase | None:
+        self._pending_reprocess = ([], None)
+        updated_kb = await super().execute(*args, **kwargs)
+
+        docs_to_reprocess, target_status = self._pending_reprocess
+        if updated_kb and docs_to_reprocess and target_status:
+            await _trigger_documents_reprocessing(docs_to_reprocess, target_status)
+
+        return updated_kb
 
 
 class PutKnowledgeBaseUseCase(
@@ -105,6 +126,7 @@ class PutKnowledgeBaseUseCase(
     ) -> None:
         super().__init__(service)
         self.doc_service = doc_service
+        self._pending_reprocess = ([], None)
 
     async def _execute(
         self,
@@ -113,7 +135,7 @@ class PutKnowledgeBaseUseCase(
         obj_data: KnowledgeBasePut,
         context: KnowledgeBaseContextKwargs | None,
     ) -> KnowledgeBase | None:
-        return await _update_knowledge_base_with_document_transitions(
+        updated_kb, docs_to_reprocess, target_status = await _update_knowledge_base_with_document_transitions(
             session=session,
             kb_service=self.service,
             doc_service=self.doc_service,
@@ -122,6 +144,18 @@ class PutKnowledgeBaseUseCase(
             partial=False,
             context=context,
         )
+        self._pending_reprocess = (docs_to_reprocess, target_status)
+        return updated_kb
+
+    async def execute(self, *args, **kwargs) -> KnowledgeBase | None:
+        self._pending_reprocess = ([], None)
+        updated_kb = await super().execute(*args, **kwargs)
+
+        docs_to_reprocess, target_status = self._pending_reprocess
+        if updated_kb and docs_to_reprocess and target_status:
+            await _trigger_documents_reprocessing(docs_to_reprocess, target_status)
+
+        return updated_kb
 
 
 class DeleteKnowledgeBaseUseCase(BaseUseCase):
@@ -205,6 +239,11 @@ class KnowledgeBaseConfigChangeSet:
         return self.parsing_changed or self.chunking_changed or self.embedding_changed
 
     @property
+    def has_changes_reprocess(self) -> bool:
+        # Reprocessing is needed if parsing, chunking, or embedding changes.
+        return self.parsing_changed or self.chunking_changed or self.embedding_changed
+
+    @property
     def target_status(self) -> KnowledgeBaseDocumentStatus | None:
         if self.parsing_changed:
             return KnowledgeBaseDocumentStatus.PENDING_REPARSE
@@ -213,6 +252,15 @@ class KnowledgeBaseConfigChangeSet:
         if self.embedding_changed:
             return KnowledgeBaseDocumentStatus.PENDING_REEMBED
         return None
+
+
+@dataclass(frozen=True)
+class ReprocessDocumentInfo:
+    id: UUID
+    knowledge_base_id: UUID
+    file_hash: str
+    name: str
+    content_type: str | None
 
 
 async def _update_knowledge_base_with_document_transitions(
@@ -224,10 +272,10 @@ async def _update_knowledge_base_with_document_transitions(
     obj_data: KnowledgeBasePut | KnowledgeBasePatch,
     partial: bool,
     context: KnowledgeBaseContextKwargs | None,
-) -> KnowledgeBase | None:
+) -> tuple[KnowledgeBase | None, list[ReprocessDocumentInfo], KnowledgeBaseDocumentStatus | None]:
     kb = await kb_service.repo.get_by_pk(session, obj_pk)
     if not kb:
-        return None
+        return None, [], None
 
     change_set = _detect_config_changes(kb, obj_data, partial=partial)
     apply_mode = getattr(obj_data, "apply_mode", KnowledgeBaseConfigApplyMode.INHERITED_ONLY)
@@ -237,6 +285,7 @@ async def _update_knowledge_base_with_document_transitions(
             detail="Embedding config changes cannot use NEW_ONLY because existing documents cannot freeze a KB-level vector collection.",
         )
 
+    updated_docs = []
     if change_set.has_changes:
         docs = await doc_service.repo.get_all(
             session,
@@ -259,7 +308,62 @@ async def _update_knowledge_base_with_document_transitions(
 
     if updated_kb and change_set.has_changes:
         await refresh_knowledge_base_status(session, kb_service, doc_service, updated_kb.id)
-    return updated_kb
+
+    reprocess_infos = [
+        ReprocessDocumentInfo(
+            id=doc.id,
+            knowledge_base_id=doc.knowledge_base_id,
+            file_hash=doc.file_hash,
+            name=doc.name,
+            content_type=doc.document_info.get("content_type") if doc.document_info else None,
+        )
+        for doc in updated_docs
+    ]
+
+    return updated_kb, reprocess_infos, change_set.target_status
+
+
+async def _trigger_documents_reprocessing(
+    docs: list[ReprocessDocumentInfo],
+    target_status: KnowledgeBaseDocumentStatus,
+) -> None:
+    logger.info(f"Triggering reprocessing for {len(docs)} document(s) with target status {target_status}")
+    for doc in docs:
+        try:
+            if target_status == KnowledgeBaseDocumentStatus.PENDING_REPARSE:
+                logger.info(f"Publishing document.parse message for document {doc.id} (REPARSE)")
+                await broker.publish(
+                    ParseDocumentMessage(
+                        document_id=doc.id,
+                        knowledge_base_id=doc.knowledge_base_id,
+                        file_hash=doc.file_hash,
+                        filename=doc.name,
+                        content_type=doc.content_type,
+                    ),
+                    "document.parse",
+                )
+            elif target_status == KnowledgeBaseDocumentStatus.PENDING_RECHUNK:
+                logger.info(f"Publishing document.chunk message for document {doc.id} (RECHUNK)")
+                await broker.publish(
+                    ChunkDocumentMessage(
+                        document_id=doc.id,
+                        knowledge_base_id=doc.knowledge_base_id,
+                        filename=doc.name,
+                    ),
+                    "document.chunk",
+                )
+            elif target_status == KnowledgeBaseDocumentStatus.PENDING_REEMBED:
+                logger.info(f"Publishing document.embed message for document {doc.id} (REEMBED)")
+                await broker.publish(
+                    EmbedDocumentMessage(
+                        document_id=doc.id,
+                        knowledge_base_id=doc.knowledge_base_id,
+                        filename=doc.name,
+                    ),
+                    "document.embed",
+                )
+        except Exception as exc:
+            logger.error(f"Failed to publish reprocess/ingest message for document {doc.id}: {exc}")
 
 
 def _detect_config_changes(
@@ -273,13 +377,13 @@ def _detect_config_changes(
     return KnowledgeBaseConfigChangeSet(
         parsing_changed=(
             (check_all_fields or "default_parsing_config" in fields_set)
-            and _json_config_value(getattr(obj_data, "default_parsing_config", None))
-            != _json_config_value(kb.default_parsing_config)
+            and _parsing_config_value(getattr(obj_data, "default_parsing_config", None))
+            != _parsing_config_value(kb.default_parsing_config)
         ),
         chunking_changed=(
             (check_all_fields or "default_chunking_config" in fields_set)
-            and _json_config_value(getattr(obj_data, "default_chunking_config", None))
-            != _json_config_value(kb.default_chunking_config)
+            and _chunking_config_value(getattr(obj_data, "default_chunking_config", None))
+            != _chunking_config_value(kb.default_chunking_config)
         ),
         embedding_changed=(
             (check_all_fields or "embedding_config" in fields_set)
@@ -380,3 +484,11 @@ def _json_config_value(value: Any) -> Any:
 
 def _embedding_config_value(value: Any) -> dict[str, str]:
     return knowledge_embedding_config_payload(resolve_knowledge_embedding_config(value))
+
+
+def _parsing_config_value(value: Any) -> dict[str, Any]:
+    return resolve_knowledge_parsing_config(value).model_dump(mode="json", exclude_none=True)
+
+
+def _chunking_config_value(value: Any) -> dict[str, Any]:
+    return resolve_chunking_config(value).model_dump(mode="json", exclude_none=True)

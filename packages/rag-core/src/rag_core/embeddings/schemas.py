@@ -35,6 +35,14 @@ class KnowledgeEmbeddingConfig(BaseModel):
         default=EmbeddingDistanceMetric.COSINE,
         description="Vector distance metric used by the vector store collection.",
     )
+    use_colpali: bool = Field(
+        default=False,
+        description="Whether to use ColPali (vision/multi-vector RAG). Defaults to False.",
+    )
+    colpali_model: str | None = Field(
+        default=None,
+        description="ColPali model name to use when use_colpali is True.",
+    )
 
     @field_validator("model")
     @classmethod
@@ -59,10 +67,13 @@ def resolve_knowledge_embedding_config(
 
     embedding_config = _validate_knowledge_embedding_config(config)
     model = embedding_config.model or default_model or get_litellm_settings().default_embedding_model
-    return embedding_config.model_copy(update={"model": model})
+    colpali_model = None
+    if embedding_config.use_colpali:
+        colpali_model = embedding_config.colpali_model or "vidore/colpali-v1.2-merged"
+    return embedding_config.model_copy(update={"model": model, "colpali_model": colpali_model})
 
 
-def knowledge_embedding_config_payload(config: KnowledgeEmbeddingConfig) -> dict[str, str]:
+def knowledge_embedding_config_payload(config: KnowledgeEmbeddingConfig) -> dict[str, Any]:
     """Return the canonical JSON payload persisted and hashed for an embedding config."""
 
     if config.model is None:
@@ -70,6 +81,8 @@ def knowledge_embedding_config_payload(config: KnowledgeEmbeddingConfig) -> dict
     return {
         "model": config.model,
         "distance": config.distance.value,
+        "use_colpali": config.use_colpali,
+        "colpali_model": config.colpali_model,
     }
 
 
@@ -109,4 +122,7 @@ COLPALI_MODELS: set[str] = {
 
 def is_colpali_model(model_name: str | None) -> bool:
     """Check if the embedding model is a ColPali model."""
-    return model_name in COLPALI_MODELS if model_name else False
+    if not model_name:
+        return False
+    name_lower = model_name.lower()
+    return model_name in COLPALI_MODELS or "colpali" in name_lower or "colsmol" in name_lower

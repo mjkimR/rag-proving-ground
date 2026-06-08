@@ -4,6 +4,7 @@ from rag_core.embeddings import (
     KnowledgeEmbeddingConfig,
     delete_document_vectors,
     indexing,
+    is_colpali_model,
     knowledge_embedding_config_hash,
     knowledge_embedding_config_payload,
     knowledge_vector_collection_name,
@@ -26,9 +27,23 @@ def test_knowledge_embedding_config_hash_is_stable() -> None:
     assert knowledge_embedding_config_payload(config) == {
         "model": "embedding-a",
         "distance": "cosine",
+        "use_colpali": False,
+        "colpali_model": None,
     }
     assert knowledge_embedding_config_hash(config) == knowledge_embedding_config_hash(config)
     assert knowledge_vector_collection_name(knowledge_embedding_config_hash(config)).startswith("vector_store_")
+
+
+def test_resolve_knowledge_embedding_config_with_colpali() -> None:
+    config = resolve_knowledge_embedding_config(
+        {"distance": "cosine", "use_colpali": True, "colpali_model": "vidore/colpali-v1.3-merged"},
+        default_model="ignored",
+    )
+
+    assert config.model == "ignored"
+    assert config.use_colpali is True
+    assert config.colpali_model == "vidore/colpali-v1.3-merged"
+    assert is_colpali_model(config.colpali_model) is True
 
 
 def test_knowledge_embedding_config_hash_changes_with_distance() -> None:

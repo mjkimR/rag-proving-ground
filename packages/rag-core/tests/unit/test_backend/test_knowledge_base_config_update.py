@@ -111,3 +111,23 @@ def test_force_all_resets_custom_configs_and_uses_highest_cost_status() -> None:
     assert doc.chunking_config is None
     assert doc.status == KnowledgeBaseDocumentStatus.PENDING_REPARSE
     assert updated_docs == [doc]
+
+
+def test_detect_config_changes_ignores_identical_parsed_config_with_different_field_subsets() -> None:
+    kb = SimpleNamespace(
+        default_parsing_config={"provider": "docling"},
+        default_chunking_config={"chunk_size": 450},
+        embedding_config={"model": "vllm-embedding", "distance": "cosine"},
+    )
+    # The patch includes default_parsing_config and default_chunking_config with identical logical values
+    # but as full Pydantic models. They should be evaluated as NOT changed.
+    patch = KnowledgeBasePatch(
+        default_parsing_config=KnowledgeParsingConfig(provider="docling"),
+        default_chunking_config=ChunkingConfig(chunk_size=450),
+    )
+
+    change_set = _detect_config_changes(kb, patch, partial=True)
+
+    assert not change_set.parsing_changed
+    assert not change_set.chunking_changed
+    assert not change_set.embedding_changed

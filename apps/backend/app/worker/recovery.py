@@ -2,8 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 from app.features.knowledge.knowledge_base_documents.repos import KnowledgeBaseDocumentRepository
 from app.features.knowledge.knowledge_base_documents.schemas import (
-    IngestDocumentMessage,
     KnowledgeBaseDocumentStatus,
+    ParseDocumentMessage,
 )
 from app_layer_base.core.database.transaction import AsyncTransaction
 from faststream.redis import RedisBroker
@@ -46,14 +46,14 @@ async def recover_stuck_documents(broker: RedisBroker) -> None:
             logger.warning(f"Recovering stuck document: {doc.id} (status: {doc.status})")
             try:
                 await broker.publish(
-                    IngestDocumentMessage(
+                    ParseDocumentMessage(
                         document_id=doc.id,
                         knowledge_base_id=doc.knowledge_base_id,
                         file_hash=doc.file_hash,
                         filename=doc.name,
                         content_type=doc.document_info.get("content_type") if doc.document_info else None,
                     ),
-                    "document.ingest",
+                    "document.parse",
                 )
                 # Update updated_at on successful publish to prevent duplicate scanning in the next cycle
                 doc.updated_at = datetime.now(UTC)

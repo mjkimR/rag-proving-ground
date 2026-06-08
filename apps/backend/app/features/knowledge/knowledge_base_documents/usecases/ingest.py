@@ -5,9 +5,9 @@ from uuid import UUID
 
 from app.features.knowledge.knowledge_base_documents.facade.pipeline import knowledge_original_file_key
 from app.features.knowledge.knowledge_base_documents.schemas import (
-    IngestDocumentMessage,
     KnowledgeBaseDocumentCreate,
     KnowledgeBaseDocumentStatus,
+    ParseDocumentMessage,
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
@@ -116,11 +116,10 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
 
             await refresh_knowledge_base_status(session, self.kb_service, self.doc_service, knowledge_base_id)
             doc_id = doc.id
-            kb_name = kb.name
 
         # 3. Upload file content to MinIO
         storage_client = get_storage_client()
-        original_file_key = knowledge_original_file_key(kb_name, file_hash, filename)
+        original_file_key = knowledge_original_file_key(knowledge_base_id, file_hash, filename)
         try:
             logger.info(f"Uploading file '{filename}' to MinIO path '{original_file_key}'")
             await storage_client.upload_file(original_file_key, content)
@@ -131,11 +130,11 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                 detail=f"Failed to save document to storage: {exc}",
             ) from exc
 
-        # 4. Publish ingest message to Redis
+        # 4. Publish parse message to Redis
         try:
-            logger.info(f"Publishing document.ingest message for document {doc_id}")
+            logger.info(f"Publishing document.parse message for document {doc_id}")
             await broker.publish(
-                IngestDocumentMessage(
+                ParseDocumentMessage(
                     document_id=doc_id,
                     knowledge_base_id=knowledge_base_id,
                     file_hash=file_hash,
@@ -143,7 +142,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                     content_type=file.content_type,
                     provider=provider,
                 ),
-                "document.ingest",
+                "document.parse",
             )
         except Exception as exc:
             logger.warning(f"Failed to publish ingest message for doc {doc_id}: {exc}")

@@ -32,6 +32,7 @@ _LABEL_TO_ELEMENT_TYPE: dict[str, ElementType] = {
     "page_header": ElementType.PAGE_HEADER,
     "page_footer": ElementType.PAGE_FOOTER,
     "document_index": ElementType.SECTION_INDEX,
+    "code": ElementType.CODE,
 }
 
 # Labels that represent layout boilerplate to be marked as ignored during chunking
@@ -332,6 +333,17 @@ def _handle_document_index(item: dict[str, Any], common: dict[str, Any]) -> list
     ]
 
 
+def _handle_code(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.CODE,
+            format=ContentFormat.TEXT,
+            content=_string(item.get("text")) or "",
+        )
+    ]
+
+
 def _handle_default(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
     return [
         ParsedElement(
@@ -358,6 +370,7 @@ _ELEMENT_HANDLERS = {
     "page_header": _handle_page_header,
     "page_footer": _handle_page_footer,
     "document_index": _handle_document_index,
+    "code": _handle_code,
 }
 
 

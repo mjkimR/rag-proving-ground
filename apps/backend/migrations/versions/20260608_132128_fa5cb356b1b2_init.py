@@ -1,8 +1,8 @@
 """init
 
-Revision ID: d1059bb0017e
+Revision ID: fa5cb356b1b2
 Revises: 
-Create Date: 2026-06-05 20:11:00.863707
+Create Date: 2026-06-08 13:21:28.006033
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ from sqlalchemy import Text
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = 'd1059bb0017e'
+revision: str = 'fa5cb356b1b2'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -81,7 +81,7 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['document_id'], ['knowledge_base_documents.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('page_id')
+    sa.UniqueConstraint('document_id', 'page_id', name='uq_knowledge_base_pages_document_page')
     )
     # ### end Alembic commands ###
 

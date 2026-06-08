@@ -1,69 +1,89 @@
-from app.features.knowledge.knowledge_base_documents.facade.pipeline import knowledge_original_file_key
+from app.features.knowledge.knowledge_base_documents.facade.pipeline import (
+    PipelineStageContext,
+    knowledge_original_file_key,
+    load_chunked_document_from_storage,
+    load_parsed_document_from_storage,
+)
+from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
 from app.features.knowledge.knowledge_base_documents.schemas import (
-    IngestDocumentMessage,
+    ChunkDocumentMessage,
+    EmbedDocumentMessage,
     KnowledgeBaseDocumentStatus,
+    ParseDocumentMessage,
 )
 from app.features.knowledge.knowledge_base_pages.schemas import KnowledgeBasePageCreate
+from app.worker.broker import broker
 from app.worker.services import build_pipeline_service
 from app_file_storage import get_storage_client
 from app_layer_base.core.database.transaction import AsyncTransaction
 from faststream.redis import RedisRouter
 from loguru import logger
 from rag_core.embeddings import resolve_knowledge_embedding_config
+from sqlalchemy import update
 from tenacity import retry, stop_after_attempt
 
 router = RedisRouter()
 
 
-@router.subscriber("document.ingest")
+@router.subscriber("document.parse", max_workers=2)
 @retry(stop=stop_after_attempt(3))
-async def handle_ingest(msg: IngestDocumentMessage) -> None:
-    """Process a document ingestion message.
+async def handle_parse(msg: ParseDocumentMessage) -> None:
+    """Process a document parsing stage.
 
     Retrieves the document and knowledge base from DB, downloads the file from
-    MinIO, then runs the full parse → chunk → embed pipeline.
+    MinIO, then runs the parse stage and page generation.
     """
-    logger.info(f"Worker received ingest message for document {msg.document_id}")
+    logger.info(f"Worker received parse message for document {msg.document_id}")
 
     pipeline_service = build_pipeline_service()
 
     try:
-        # 1. Retrieve document and knowledge base details from DB
+        # Fetch KB details outside the locked transaction to prevent pool starvation
         async with AsyncTransaction() as session:
             kb = await pipeline_service.kb_service.repo.get_by_pk(session, msg.knowledge_base_id)
             if not kb:
                 logger.error(f"Knowledge base with ID '{msg.knowledge_base_id}' not found.")
                 return
+            default_parsing_config = kb.default_parsing_config
+            embedding_config_raw = kb.embedding_config
 
-            doc = await pipeline_service.doc_service.repo.get_by_pk(session, msg.document_id)
+        # Retrieve document and mark status inside a short locked transaction
+        async with AsyncTransaction() as session:
+            doc = await pipeline_service.doc_service.repo.get_by_pk_for_update(session, msg.document_id)
             if not doc:
                 logger.error(f"Document with ID '{msg.document_id}' not found.")
                 return
 
-            kb_name = kb.name
-            resolved_parsing_config = (
-                doc.parsing_config if doc.parsing_config is not None else kb.default_parsing_config
-            )
-            resolved_chunking_config = (
-                doc.chunking_config if doc.chunking_config is not None else kb.default_chunking_config
-            )
-            embedding_config = resolve_knowledge_embedding_config(kb.embedding_config)
-            previous_embed_config_hash = kb.embed_config_hash
+            if doc.status in (
+                KnowledgeBaseDocumentStatus.PARSING,
+                KnowledgeBaseDocumentStatus.CHUNKING,
+                KnowledgeBaseDocumentStatus.EMBEDDING,
+                KnowledgeBaseDocumentStatus.COMPLETED,
+            ):
+                logger.info(f"Document {msg.document_id} is already in state {doc.status}. Skipping parse stage.")
+                return
+
+            # Mark status as PARSING immediately inside lock
+            doc.status = KnowledgeBaseDocumentStatus.PARSING
+            await session.flush()
+
+            resolved_parsing_config = doc.parsing_config if doc.parsing_config is not None else default_parsing_config
+            embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
 
         # 2. Download raw file from MinIO
         storage_client = get_storage_client()
-        original_file_key = knowledge_original_file_key(kb_name, msg.file_hash, msg.filename)
+        original_file_key = knowledge_original_file_key(msg.knowledge_base_id, msg.file_hash, msg.filename)
         try:
             content = await storage_client.download_file(original_file_key)
         except Exception as exc:
             logger.error(f"Failed to download file {original_file_key} from storage: {exc}")
             raise exc
 
-        # 3. Run the parser, chunker, and embedding pipeline
+        # 3. Run the parser
         logger.info(f"Worker starting parse stage for document {msg.document_id}")
         parsed_doc = await pipeline_service.parse_or_load_cached(
             document_id=msg.document_id,
-            knowledge_base_name=kb_name,
+            knowledge_base_id=msg.knowledge_base_id,
             file_hash=msg.file_hash,
             filename=msg.filename,
             content=content,
@@ -72,9 +92,7 @@ async def handle_ingest(msg: IngestDocumentMessage) -> None:
             provider_override=msg.provider,
         )
 
-        from rag_core.embeddings import is_colpali_model
-
-        is_vision_rag = is_colpali_model(embedding_config.model)
+        is_vision_rag = embedding_config.use_colpali
 
         if is_vision_rag:
             logger.info(f"ColPali model detected. Rendering pages to images for document {msg.document_id}")
@@ -126,18 +144,175 @@ async def handle_ingest(msg: IngestDocumentMessage) -> None:
             if page_creates:
                 await pipeline_service.page_service.repo.bulk_create(session, page_creates, msg.document_id)
 
+        # 4. Chain: Publish to document.chunk
+        logger.info(f"Worker completed parse stage. Publishing document.chunk for {msg.document_id}")
+        await broker.publish(
+            ChunkDocumentMessage(
+                document_id=msg.document_id,
+                knowledge_base_id=msg.knowledge_base_id,
+                filename=msg.filename,
+            ),
+            "document.chunk",
+        )
+
+    except Exception as exc:
+        logger.error(f"Parse worker execution failed for document {msg.document_id}: {exc}")
+        await _update_status_to_failed(pipeline_service, msg.document_id)
+        raise exc
+
+
+@router.subscriber("document.chunk", max_workers=10)
+@retry(stop=stop_after_attempt(3))
+async def handle_chunk(msg: ChunkDocumentMessage) -> None:
+    """Process a document chunking stage.
+
+    Retrieves the document and knowledge base details from DB, loads parsed
+    document from MinIO, then runs the chunker.
+    """
+    logger.info(f"Worker received chunk message for document {msg.document_id}")
+
+    pipeline_service = build_pipeline_service()
+
+    try:
+        # 1. Retrieve document and mark status inside a short locked transaction
+        async with AsyncTransaction() as session:
+            doc = await pipeline_service.doc_service.repo.get_by_pk_for_update(session, msg.document_id)
+            if not doc:
+                logger.error(f"Document with ID '{msg.document_id}' not found.")
+                return
+
+            if doc.status in (
+                KnowledgeBaseDocumentStatus.CHUNKING,
+                KnowledgeBaseDocumentStatus.EMBEDDING,
+                KnowledgeBaseDocumentStatus.COMPLETED,
+            ):
+                logger.info(f"Document {msg.document_id} is already in state {doc.status}. Skipping chunk stage.")
+                return
+
+            # Mark status as CHUNKING immediately inside lock
+            doc.status = KnowledgeBaseDocumentStatus.CHUNKING
+            await session.flush()
+
+            kb_id = doc.knowledge_base_id
+            document_info = dict(doc.document_info or {})
+            chunking_config_override = doc.chunking_config
+
+        # 2. Retrieve knowledge base details outside the lock to prevent pool starvation
+        async with AsyncTransaction() as session:
+            kb = await pipeline_service.kb_service.repo.get_by_pk(session, kb_id)
+            if not kb:
+                logger.error(f"Knowledge base with ID '{kb_id}' not found.")
+                return
+            default_chunking_config = kb.default_chunking_config
+            embedding_config_raw = kb.embedding_config
+
+        parsed_data_path = document_info.get("parsed_data_path")
+        if not parsed_data_path:
+            logger.error(f"Document {msg.document_id} has no parsed artifact path in document_info.")
+            return
+
+        resolved_chunking_config = (
+            chunking_config_override if chunking_config_override is not None else default_chunking_config
+        )
+        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+
+        # 2. Load parsed artifact from storage
+        try:
+            parsed_doc = await load_parsed_document_from_storage(parsed_data_path)
+        except Exception as exc:
+            logger.error(f"Failed to load parsed document from {parsed_data_path}: {exc}")
+            raise exc
+
+        # 3. Run the chunker
         logger.info(f"Worker starting chunk stage for document {msg.document_id}")
-        chunks = await pipeline_service.rebuild_chunks(
+        await pipeline_service.rebuild_chunks(
             document_id=msg.document_id,
             filename=msg.filename,
             parsed_doc=parsed_doc,
             chunking_config=resolved_chunking_config,
             embedding_config=embedding_config,
-            record_history=True,
-            history_name_prefix="Chunk",
-            failure_detail_prefix="Ingestion",
+            stage_context=PipelineStageContext(
+                name_prefix="Chunk",
+                failure_detail_prefix="Ingestion",
+                record_history=True,
+            ),
         )
 
+        # 4. Chain: Publish to document.embed
+        logger.info(f"Worker completed chunk stage. Publishing document.embed for {msg.document_id}")
+        await broker.publish(
+            EmbedDocumentMessage(
+                document_id=msg.document_id,
+                knowledge_base_id=msg.knowledge_base_id,
+                filename=msg.filename,
+            ),
+            "document.embed",
+        )
+
+    except Exception as exc:
+        logger.error(f"Chunk worker execution failed for document {msg.document_id}: {exc}")
+        await _update_status_to_failed(pipeline_service, msg.document_id)
+        raise exc
+
+
+@router.subscriber("document.embed", max_workers=2)
+@retry(stop=stop_after_attempt(3))
+async def handle_embed(msg: EmbedDocumentMessage) -> None:
+    """Process a document embedding stage.
+
+    Retrieves the document and knowledge base details from DB, loads chunked
+    document from MinIO, then runs the embedder.
+    """
+    logger.info(f"Worker received embed message for document {msg.document_id}")
+
+    pipeline_service = build_pipeline_service()
+
+    try:
+        # 1. Retrieve document and mark status inside a short locked transaction
+        async with AsyncTransaction() as session:
+            doc = await pipeline_service.doc_service.repo.get_by_pk_for_update(session, msg.document_id)
+            if not doc:
+                logger.error(f"Document with ID '{msg.document_id}' not found.")
+                return
+
+            if doc.status in (
+                KnowledgeBaseDocumentStatus.EMBEDDING,
+                KnowledgeBaseDocumentStatus.COMPLETED,
+            ):
+                logger.info(f"Document {msg.document_id} is already in state {doc.status}. Skipping embed stage.")
+                return
+
+            # Mark status as EMBEDDING immediately inside lock
+            doc.status = KnowledgeBaseDocumentStatus.EMBEDDING
+            await session.flush()
+
+            kb_id = doc.knowledge_base_id
+            document_info = dict(doc.document_info or {})
+
+        # 2. Retrieve knowledge base details outside the lock to prevent pool starvation
+        async with AsyncTransaction() as session:
+            kb = await pipeline_service.kb_service.repo.get_by_pk(session, kb_id)
+            if not kb:
+                logger.error(f"Knowledge base with ID '{kb_id}' not found.")
+                return
+            embedding_config_raw = kb.embedding_config
+            previous_embed_config_hash = kb.embed_config_hash
+
+        chunked_data_path = document_info.get("chunked_data_path")
+        if not chunked_data_path:
+            logger.error(f"Document {msg.document_id} has no chunked artifact path in document_info.")
+            return
+
+        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+
+        # 2. Load chunked artifact from storage
+        try:
+            chunks = await load_chunked_document_from_storage(chunked_data_path)
+        except Exception as exc:
+            logger.error(f"Failed to load chunked document from {chunked_data_path}: {exc}")
+            raise exc
+
+        # 3. Run the embedder
         logger.info(f"Worker starting embed stage for document {msg.document_id}")
         await pipeline_service.embed_chunks(
             document_id=msg.document_id,
@@ -146,19 +321,28 @@ async def handle_ingest(msg: IngestDocumentMessage) -> None:
             chunks=chunks,
             embedding_config=embedding_config,
             previous_embed_config_hash=previous_embed_config_hash,
-            history_name_prefix="Embedding",
-            failure_detail_prefix="Ingestion",
+            stage_context=PipelineStageContext(
+                name_prefix="Embedding",
+                failure_detail_prefix="Ingestion",
+            ),
         )
 
         logger.info(f"Worker completed ingest for document {msg.document_id}")
 
     except Exception as exc:
-        logger.error(f"Ingest worker execution failed for document {msg.document_id}: {exc}")
-        try:
-            async with AsyncTransaction() as session:
-                await pipeline_service.doc_service.repo.update_by_pk(
-                    session, msg.document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
-                )
-        except Exception as db_exc:
-            logger.error(f"Failed to update document status to FAILED in catch block: {db_exc}")
+        logger.error(f"Embed worker execution failed for document {msg.document_id}: {exc}")
+        await _update_status_to_failed(pipeline_service, msg.document_id)
         raise exc
+
+
+async def _update_status_to_failed(pipeline_service, document_id) -> None:
+    try:
+        async with AsyncTransaction() as session:
+            stmt = (
+                update(KnowledgeBaseDocument)
+                .where(KnowledgeBaseDocument.id == document_id)
+                .values(status=KnowledgeBaseDocumentStatus.FAILED)
+            )
+            await session.execute(stmt)
+    except Exception as db_exc:
+        logger.error(f"Failed to update document status to FAILED in catch block: {db_exc}")

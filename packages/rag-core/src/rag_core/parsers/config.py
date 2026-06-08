@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from rag_core.config import get_parser_settings
+from rag_core.config import get_native_text_parser_settings, get_parser_settings
 
 KNOWLEDGE_PARSING_HASH_LENGTH = 16
 
@@ -22,6 +22,16 @@ class KnowledgeParsingConfig(BaseModel):
         description="Parser provider name. Defaults to PARSER_PROVIDER when omitted.",
     )
 
+    extension_providers: dict[str, str] | None = Field(
+        default=None,
+        description="Mapping of file extension (including dot, e.g. '.pdf') to parser provider name.",
+    )
+
+    native_max_page_chars: int = Field(
+        default_factory=lambda: get_native_text_parser_settings().max_page_chars,
+        description="Max characters per synthetic page in the native text parser.",
+    )
+
     @field_validator("provider")
     @classmethod
     def normalize_provider(cls, value: str | None) -> str | None:
@@ -31,6 +41,32 @@ class KnowledgeParsingConfig(BaseModel):
         if not normalized:
             raise ValueError("Parser provider cannot be empty.")
         return normalized
+
+    @field_validator("extension_providers")
+    @classmethod
+    def validate_extension_providers(cls, value: dict[str, str] | None) -> dict[str, str] | None:
+        if value is None:
+            return None
+        cleaned = {}
+        for ext, provider in value.items():
+            if not ext or not provider:
+                continue
+            ext_cleaned = ext.strip().lower()
+            if not ext_cleaned.startswith("."):
+                ext_cleaned = f".{ext_cleaned}"
+            cleaned[ext_cleaned] = provider.strip()
+        return cleaned
+
+    def get_provider_for_filename(self, filename: str) -> str:
+        """Resolve the parser provider name for a specific filename."""
+        import os
+
+        from rag_core.config import get_parser_settings
+
+        _, ext = os.path.splitext(filename.lower())
+        if self.extension_providers and ext in self.extension_providers:
+            return self.extension_providers[ext]
+        return self.provider or get_parser_settings().provider
 
 
 KnowledgeParsingConfigInput = KnowledgeParsingConfig | Mapping[str, Any] | None
@@ -59,12 +95,17 @@ def knowledge_parsing_config_payload(config: KnowledgeParsingConfig) -> dict[str
 
 def knowledge_parsing_config_hash(config: KnowledgeParsingConfig) -> str:
     """Create the stable hash used to identify a parsed document artifact."""
+    if config.provider is None:
+        raise ValueError("Knowledge parsing config must be resolved before creating a payload.")
 
-    serialized = json.dumps(
-        knowledge_parsing_config_payload(config),
-        sort_keys=True,
-        separators=(",", ":"),
-    )
+    if config.model_extra:
+        serialized = json.dumps(
+            config.model_dump(mode="json", exclude_none=True),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    else:
+        serialized = config.model_dump_json(exclude_none=True)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:KNOWLEDGE_PARSING_HASH_LENGTH]
 
 
