@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from rag_core.config import get_litellm_settings
 
@@ -20,6 +20,14 @@ class EmbeddingDistanceMetric(StrEnum):
     COSINE = "cosine"
     DOT = "dot"
     EUCLID = "euclid"
+
+
+class RetrievalMode(StrEnum):
+    """Supported retrieval modes for knowledge search."""
+
+    DENSE = "dense"
+    SPARSE = "sparse"
+    HYBRID = "hybrid"
 
 
 class KnowledgeEmbeddingConfig(BaseModel):
@@ -43,6 +51,14 @@ class KnowledgeEmbeddingConfig(BaseModel):
         default=None,
         description="ColPali model name to use when use_colpali is True.",
     )
+    retrieval_mode: RetrievalMode = Field(
+        default=RetrievalMode.DENSE,
+        description="Retrieval mode for searching the index. Can be 'dense', 'sparse', or 'hybrid'.",
+    )
+    sparse_model: str | None = Field(
+        default=None,
+        description="Sparse embedding model name. e.g. 'Qdrant/bm25' for FastEmbed BM25.",
+    )
 
     @field_validator("model")
     @classmethod
@@ -53,6 +69,12 @@ class KnowledgeEmbeddingConfig(BaseModel):
         if not normalized:
             raise ValueError("Embedding model name cannot be empty.")
         return normalized
+
+    @model_validator(mode="after")
+    def validate_retrieval_mode(self) -> "KnowledgeEmbeddingConfig":
+        if self.use_colpali and self.retrieval_mode != RetrievalMode.DENSE:
+            raise NotImplementedError("Hybrid or sparse search with ColPali is not implemented yet.")
+        return self
 
 
 KnowledgeEmbeddingConfigInput = KnowledgeEmbeddingConfig | Mapping[str, Any] | None
@@ -70,7 +92,18 @@ def resolve_knowledge_embedding_config(
     colpali_model = None
     if embedding_config.use_colpali:
         colpali_model = embedding_config.colpali_model or "vidore/colpali-v1.2-merged"
-    return embedding_config.model_copy(update={"model": model, "colpali_model": colpali_model})
+
+    sparse_model = None
+    if embedding_config.retrieval_mode in (RetrievalMode.SPARSE, RetrievalMode.HYBRID):
+        sparse_model = embedding_config.sparse_model or "Qdrant/bm25"
+
+    return embedding_config.model_copy(
+        update={
+            "model": model,
+            "colpali_model": colpali_model,
+            "sparse_model": sparse_model,
+        }
+    )
 
 
 def knowledge_embedding_config_payload(config: KnowledgeEmbeddingConfig) -> dict[str, Any]:
@@ -83,6 +116,8 @@ def knowledge_embedding_config_payload(config: KnowledgeEmbeddingConfig) -> dict
         "distance": config.distance.value,
         "use_colpali": config.use_colpali,
         "colpali_model": config.colpali_model,
+        "retrieval_mode": config.retrieval_mode.value,
+        "sparse_model": config.sparse_model,
     }
 
 

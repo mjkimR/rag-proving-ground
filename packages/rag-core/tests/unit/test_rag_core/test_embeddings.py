@@ -2,6 +2,7 @@ import pytest
 from rag_core.embeddings import (
     EmbeddingDistanceMetric,
     KnowledgeEmbeddingConfig,
+    RetrievalMode,
     delete_document_vectors,
     indexing,
     is_colpali_model,
@@ -29,6 +30,8 @@ def test_knowledge_embedding_config_hash_is_stable() -> None:
         "distance": "cosine",
         "use_colpali": False,
         "colpali_model": None,
+        "retrieval_mode": "dense",
+        "sparse_model": None,
     }
     assert knowledge_embedding_config_hash(config) == knowledge_embedding_config_hash(config)
     assert knowledge_vector_collection_name(knowledge_embedding_config_hash(config)).startswith("vector_store_")
@@ -72,3 +75,20 @@ async def test_delete_document_vectors_delegates_to_provider(monkeypatch: pytest
     assert calls[0][0] == "collection-a"
     assert calls[0][1].filter.must[0].key == "metadata.doc_id"
     assert calls[0][1].filter.must[0].match.value == "doc-123"
+
+
+def test_resolve_knowledge_embedding_config_with_hybrid_sparse() -> None:
+    config_hybrid = resolve_knowledge_embedding_config(
+        {"retrieval_mode": "hybrid", "model": "embedding-a", "sparse_model": "some-sparse-model"},
+    )
+    assert config_hybrid.retrieval_mode == "hybrid"
+    assert config_hybrid.sparse_model == "some-sparse-model"
+
+    config_sparse_default = resolve_knowledge_embedding_config(
+        {"retrieval_mode": "sparse", "model": "embedding-a"},
+    )
+    assert config_sparse_default.retrieval_mode == "sparse"
+    assert config_sparse_default.sparse_model == "Qdrant/bm25"
+
+    with pytest.raises(NotImplementedError, match="Hybrid or sparse search with ColPali is not implemented yet"):
+        KnowledgeEmbeddingConfig(use_colpali=True, retrieval_mode=RetrievalMode.HYBRID)

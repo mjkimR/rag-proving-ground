@@ -33,6 +33,8 @@ async def get_knowledge_vector_store(config: KnowledgeEmbeddingConfig) -> tuple[
         collection_name=collection_name,
         model_name=config.model,
         distance=config.distance.value,
+        retrieval_mode=config.retrieval_mode.value,
+        sparse_model=config.sparse_model,
     )
     return vector_store, collection_name, embed_config_hash
 

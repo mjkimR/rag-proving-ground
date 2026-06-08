@@ -21,7 +21,13 @@ class VectorStoreProvider(ABC):
 
     @abstractmethod
     async def create_vector_store(
-        self, collection_name: str, model_name: str, *, distance: str = "cosine"
+        self,
+        collection_name: str,
+        model_name: str,
+        *,
+        distance: str = "cosine",
+        retrieval_mode: str = "dense",
+        sparse_model: str | None = None,
     ) -> VectorStore:
         """Create and return a VectorStore instance."""
         pass

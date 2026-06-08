@@ -11,16 +11,30 @@ class VectorStoreFactory:
     def __init__(self, provider: VectorStoreProvider):
         self.provider = provider
 
-    async def get_vector_store(self, collection_name: str, model_name: str, *, distance: str = "cosine") -> VectorStore:
+    async def get_vector_store(
+        self,
+        collection_name: str,
+        model_name: str,
+        *,
+        distance: str = "cosine",
+        retrieval_mode: str = "dense",
+        sparse_model: str | None = None,
+    ) -> VectorStore:
         """
         Returns a VectorStore implementation suitable for the client type.
         """
         settings = get_vector_db_settings()
 
-        cache_key = (settings.provider, collection_name, model_name, distance)
+        cache_key = (settings.provider, collection_name, model_name, distance, retrieval_mode, sparse_model)
         if cache_key in vector_store_cache:
             return vector_store_cache[cache_key]
 
-        store = await self.provider.create_vector_store(collection_name, model_name, distance=distance)
+        store = await self.provider.create_vector_store(
+            collection_name,
+            model_name,
+            distance=distance,
+            retrieval_mode=retrieval_mode,
+            sparse_model=sparse_model,
+        )
         vector_store_cache[cache_key] = store
         return store

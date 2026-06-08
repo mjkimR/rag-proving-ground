@@ -274,9 +274,7 @@ async def handle_embed(msg: EmbedDocumentMessage) -> None:
                 logger.error(f"Document with ID '{msg.document_id}' not found.")
                 return
 
-            if doc.status in (
-                KnowledgeBaseDocumentStatus.COMPLETED,
-            ):
+            if doc.status == KnowledgeBaseDocumentStatus.COMPLETED:
                 logger.info(f"Document {msg.document_id} is already in state {doc.status}. Skipping embed stage.")
                 return
 

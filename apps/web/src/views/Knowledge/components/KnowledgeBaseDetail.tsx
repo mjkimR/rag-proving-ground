@@ -146,6 +146,8 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
           distance: kb.embedding_config?.distance || 'cosine',
           use_colpali: kb.embedding_config?.use_colpali || false,
           colpali_model: kb.embedding_config?.colpali_model || 'vidore/colpali-v1.2-merged',
+          retrieval_mode: kb.embedding_config?.retrieval_mode || 'dense',
+          sparse_model: kb.embedding_config?.sparse_model || 'Qdrant/bm25',
         },
         default_chunking_config: {
           chunk_size: kb.default_chunking_config?.chunk_size ?? 1024,
@@ -294,7 +296,9 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
       kb.embedding_config?.model !== values.embedding_config?.model ||
       kb.embedding_config?.distance !== values.embedding_config?.distance ||
       kb.embedding_config?.use_colpali !== values.embedding_config?.use_colpali ||
-      kb.embedding_config?.colpali_model !== values.embedding_config?.colpali_model;
+      kb.embedding_config?.colpali_model !== values.embedding_config?.colpali_model ||
+      kb.embedding_config?.retrieval_mode !== values.embedding_config?.retrieval_mode ||
+      kb.embedding_config?.sparse_model !== values.embedding_config?.sparse_model;
 
     const parsingChanged =
       kb.default_parsing_config?.provider !== values.default_parsing_config?.provider ||
@@ -970,6 +974,46 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                                     <Select.Option value="vidore/colpali-v1.2-merged">vidore/colpali-v1.2-merged (Default)</Select.Option>
                                     <Select.Option value="vidore/colpali-v1.3-merged">vidore/colpali-v1.3-merged</Select.Option>
                                     <Select.Option value="vidore/colSmol-500M-merged">vidore/colSmol-500M-merged</Select.Option>
+                                  </Select>
+                                </Form.Item>
+                              );
+                            }
+                            return null;
+                          }}
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={20}>
+                      <Col span={12}>
+                        <Form.Item
+                          name={['embedding_config', 'retrieval_mode']}
+                          label="Retrieval Mode"
+                          rules={[{ required: true }]}
+                          tooltip="Retrieval mode for knowledge base search (e.g. dense, keyword-based sparse, or combined hybrid)."
+                        >
+                          <Radio.Group size="large" optionType="button" buttonStyle="solid" style={{ width: '100%' }}>
+                            <Radio.Button value="dense" style={{ width: '33.33%', textAlign: 'center' }}>Dense</Radio.Button>
+                            <Radio.Button value="sparse" style={{ width: '33.33%', textAlign: 'center' }}>Sparse</Radio.Button>
+                            <Radio.Button value="hybrid" style={{ width: '33.33%', textAlign: 'center' }}>Hybrid</Radio.Button>
+                          </Radio.Group>
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.embedding_config?.retrieval_mode !== currentValues.embedding_config?.retrieval_mode}>
+                          {({ getFieldValue }) => {
+                            const retrievalMode = getFieldValue(['embedding_config', 'retrieval_mode']);
+                            if (retrievalMode === 'sparse' || retrievalMode === 'hybrid') {
+                              return (
+                                <Form.Item
+                                  name={['embedding_config', 'sparse_model']}
+                                  label="Sparse Embedding Model"
+                                  rules={[{ required: true, message: 'Please select a sparse model' }]}
+                                  tooltip="Model used for sparse retrieval (keyword search)."
+                                >
+                                  <Select size="large" placeholder="Select sparse model">
+                                    <Select.Option value="Qdrant/bm25">Qdrant/bm25 (Default BM25)</Select.Option>
+                                    <Select.Option value="prithivida/Splade_PP_en_v1">Splade_PP_en_v1 (Neural Sparse)</Select.Option>
                                   </Select>
                                 </Form.Item>
                               );

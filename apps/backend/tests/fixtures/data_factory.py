@@ -6,10 +6,17 @@ from app_layer_base.base.repos.base import BaseRepository
 from httpx import AsyncClient
 from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel
+from rag_core.embeddings import KnowledgeEmbeddingConfig
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.fixtures import factory as ft
 from tests.utils.fastapi import resolve_dependency
+
+
+class KnowledgeEmbeddingConfigFactory(ModelFactory):
+    __model__ = KnowledgeEmbeddingConfig
+
+    use_colpali = False
 
 
 def get_model_factory[T: BaseModel](model_class: type[T], _use_default: bool = False) -> type[ModelFactory]:
@@ -18,6 +25,7 @@ def get_model_factory[T: BaseModel](model_class: type[T], _use_default: bool = F
 
     model_factory: dict[type[BaseModel], type[ModelFactory]] = {
         JobProcessHistoryCreate: ft.JobProcessHistoryCreateFactory,
+        KnowledgeEmbeddingConfig: KnowledgeEmbeddingConfigFactory,
     }
 
     factory_class = model_factory.get(model_class)

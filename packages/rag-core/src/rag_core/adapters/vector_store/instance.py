@@ -31,11 +31,22 @@ def get_vector_store_factory() -> VectorStoreFactory:
 
 
 async def get_vector_store(
-    collection_name: str, model_name: str, *, distance: str = "cosine"
+    collection_name: str,
+    model_name: str,
+    *,
+    distance: str = "cosine",
+    retrieval_mode: str = "dense",
+    sparse_model: str | None = None,
 ) -> langchain_core.vectorstores.VectorStore:
     """Get a LangChain VectorStore instance."""
     factory = get_vector_store_factory()
-    return await factory.get_vector_store(collection_name, model_name, distance=distance)
+    return await factory.get_vector_store(
+        collection_name,
+        model_name,
+        distance=distance,
+        retrieval_mode=retrieval_mode,
+        sparse_model=sparse_model,
+    )
 
 
 async def setup_vector_store_provider(settings: VectorDBSettings) -> None:

@@ -44,7 +44,15 @@ class QdrantProvider(VectorStoreProvider):
         except Exception:
             return False
 
-    async def create_vector_store(self, collection_name: str, model_name: str, *, distance: str = "cosine") -> Any:
+    async def create_vector_store(
+        self,
+        collection_name: str,
+        model_name: str,
+        *,
+        distance: str = "cosine",
+        retrieval_mode: str = "dense",
+        sparse_model: str | None = None,
+    ) -> Any:
         from rag_core.embeddings import is_colpali_model
 
         if is_colpali_model(model_name):
@@ -111,6 +119,11 @@ class QdrantProvider(VectorStoreProvider):
                 await self.async_client.create_collection(
                     collection_name=collection_name,
                     vectors_config=conf.VectorParams(size=dimension, distance=distance_metric),
+                    sparse_vectors_config=(
+                        {"sparse": conf.SparseVectorParams(index=conf.SparseIndexParams())}
+                        if retrieval_mode in ("hybrid", "sparse")
+                        else None
+                    ),
                 )
                 # Create payload index on metadata.knowledge_id as partition key
                 await self.async_client.create_payload_index(
@@ -123,6 +136,21 @@ class QdrantProvider(VectorStoreProvider):
                     pass
                 else:
                     raise e
+
+        if retrieval_mode in ("hybrid", "sparse"):
+            with import_error_handler("qdrant"):
+                from langchain_qdrant import FastEmbedSparse, RetrievalMode
+            sparse_embedding = FastEmbedSparse(model_name=sparse_model or "Qdrant/bm25")
+            mode = RetrievalMode.HYBRID if retrieval_mode == "hybrid" else RetrievalMode.SPARSE
+
+            return QdrantVectorStore(
+                client=self.client,
+                collection_name=collection_name,
+                embedding=embedding_model,
+                sparse_embedding=sparse_embedding,
+                retrieval_mode=mode,
+                sparse_vector_name="sparse",
+            )
 
         return QdrantVectorStore(
             client=self.client,

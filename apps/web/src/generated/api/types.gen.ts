@@ -926,6 +926,16 @@ export type KnowledgeEmbeddingConfig = {
      * ColPali model name to use when use_colpali is True.
      */
     colpali_model?: string | null;
+    /**
+     * Retrieval mode for searching the index. Can be 'dense', 'sparse', or 'hybrid'.
+     */
+    retrieval_mode?: RetrievalMode;
+    /**
+     * Sparse Model
+     *
+     * Sparse embedding model name. e.g. 'Qdrant/bm25' for FastEmbed BM25.
+     */
+    sparse_model?: string | null;
 };
 
 /**
@@ -1370,6 +1380,13 @@ export type RerankerConfig = {
 };
 
 /**
+ * RetrievalMode
+ *
+ * Supported retrieval modes for knowledge search.
+ */
+export type RetrievalMode = 'dense' | 'sparse' | 'hybrid';
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -1554,6 +1571,33 @@ export type GetKnowledgeBasesApiV1KnowledgeBasesGetData = {
          * limit for pagination
          */
         limit?: number;
+        /**
+         * Name
+         *
+         * Filter by name (case-insensitive substring)
+         */
+        name?: string | null;
+        /**
+         * Status
+         *
+         * Filter by status (exact match)
+         */
+        status?: string | null;
+        /**
+         * Order By
+         *
+         * **Order by options:**
+         *
+         * * `created_at`: Sort by creation time
+         * * `updated_at`: Sort by update time
+         * * `name_order`: Sort by name
+         *
+         * **Usage:**
+         * * Prefix with `-` for descending order (e.g., `-title`).
+         * * Multiple fields can be separated by commas (e.g., `-created_at,title`).
+         * * **Default:** `-created_at`
+         */
+        order_by?: string | null;
     };
     url: '/api/v1/knowledge_bases';
 };
@@ -1795,6 +1839,39 @@ export type GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocuments
          * limit for pagination
          */
         limit?: number;
+        /**
+         * Name
+         *
+         * Filter by name (case-insensitive substring)
+         */
+        name?: string | null;
+        /**
+         * Status
+         *
+         * Filter by status (exact match)
+         */
+        status?: string | null;
+        /**
+         * Knowledge Base Id
+         *
+         * Filter by knowledge base ID (exact match)
+         */
+        knowledge_base_id?: string | null;
+        /**
+         * Order By
+         *
+         * **Order by options:**
+         *
+         * * `created_at`: Sort by creation time
+         * * `updated_at`: Sort by update time
+         * * `name`: Sort by name
+         *
+         * **Usage:**
+         * * Prefix with `-` for descending order (e.g., `-title`).
+         * * Multiple fields can be separated by commas (e.g., `-created_at,title`).
+         * * **Default:** `-created_at`
+         */
+        order_by?: string | null;
     };
     url: '/api/v1/knowledge_bases/{knowledge_base_id}/documents';
 };
@@ -1863,6 +1940,39 @@ export type GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetData = {
          * limit for pagination
          */
         limit?: number;
+        /**
+         * Name
+         *
+         * Filter by name (case-insensitive substring)
+         */
+        name?: string | null;
+        /**
+         * Status
+         *
+         * Filter by status (exact match)
+         */
+        status?: string | null;
+        /**
+         * Knowledge Base Id
+         *
+         * Filter by knowledge base ID (exact match)
+         */
+        knowledge_base_id?: string | null;
+        /**
+         * Order By
+         *
+         * **Order by options:**
+         *
+         * * `created_at`: Sort by creation time
+         * * `updated_at`: Sort by update time
+         * * `name`: Sort by name
+         *
+         * **Usage:**
+         * * Prefix with `-` for descending order (e.g., `-title`).
+         * * Multiple fields can be separated by commas (e.g., `-created_at,title`).
+         * * **Default:** `-created_at`
+         */
+        order_by?: string | null;
     };
     url: '/api/v1/knowledge_base_documents';
 };
@@ -2124,22 +2234,6 @@ export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetData = {
     path?: never;
     query?: {
         /**
-         * Resource Type
-         */
-        resource_type?: string | null;
-        /**
-         * Resource Id
-         */
-        resource_id?: string | null;
-        /**
-         * Stage
-         */
-        stage?: string | null;
-        /**
-         * Outcome
-         */
-        outcome?: string | null;
-        /**
          * Offset
          *
          * offset for pagination
@@ -2151,6 +2245,57 @@ export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetData = {
          * limit for pagination
          */
         limit?: number;
+        /**
+         * Resource Type
+         *
+         * Filter by resource type
+         */
+        resource_type?: string | null;
+        /**
+         * Resource Id
+         *
+         * Filter by resource ID
+         */
+        resource_id?: string | null;
+        /**
+         * Stage
+         *
+         * Filter by stage
+         */
+        stage?: string | null;
+        /**
+         * Outcome
+         *
+         * Filter by outcome
+         */
+        outcome?: string | null;
+        /**
+         * Provider
+         *
+         * Filter by provider
+         */
+        provider?: string | null;
+        /**
+         * Model Name
+         *
+         * Filter by model name
+         */
+        model_name?: string | null;
+        /**
+         * Order By
+         *
+         * **Order by options:**
+         *
+         * * `created_at`: Sort by creation time
+         * * `updated_at`: Sort by update time
+         * * `duration_seconds`: Sort by duration in seconds
+         *
+         * **Usage:**
+         * * Prefix with `-` for descending order (e.g., `-title`).
+         * * Multiple fields can be separated by commas (e.g., `-created_at,title`).
+         * * **Default:** `-created_at`
+         */
+        order_by?: string | null;
     };
     url: '/api/v1/job_process_histories';
 };
@@ -2235,6 +2380,39 @@ export type GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetData = {
          * limit for pagination
          */
         limit?: number;
+        /**
+         * Document Id
+         *
+         * Filter by document ID (exact match)
+         */
+        document_id?: string | null;
+        /**
+         * Page Id
+         *
+         * Filter by page ID (exact match)
+         */
+        page_id?: string | null;
+        /**
+         * Page Number
+         *
+         * Filter by page number (exact match)
+         */
+        page_number?: number | null;
+        /**
+         * Order By
+         *
+         * **Order by options:**
+         *
+         * * `page_number`: Sort by page number
+         * * `created_at`: Sort by creation time
+         * * `updated_at`: Sort by update time
+         *
+         * **Usage:**
+         * * Prefix with `-` for descending order (e.g., `-title`).
+         * * Multiple fields can be separated by commas (e.g., `-created_at,title`).
+         * * **Default:** `page_number`
+         */
+        order_by?: string | null;
     };
     url: '/api/v1/knowledge_base_pages';
 };
