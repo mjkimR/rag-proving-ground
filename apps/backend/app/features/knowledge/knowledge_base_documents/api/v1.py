@@ -1,6 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
+from app.features.knowledge.knowledge_base_documents.query_options import get_knowledge_base_documents_query_options
 from app.features.knowledge.knowledge_base_documents.schemas import (
     KnowledgeBaseDocumentCreate,
     KnowledgeBaseDocumentPatch,
@@ -21,7 +22,6 @@ from app.features.knowledge.knowledge_base_documents.usecases.crud import (
     PutKnowledgeBaseDocumentUseCase,
 )
 from app.features.knowledge.knowledge_base_documents.usecases.reprocess import ReprocessKnowledgeBaseDocumentUseCase
-from app_layer_base.base.deps.params.page import PaginationParam
 from app_layer_base.base.exceptions.basic import NotFoundException
 from app_layer_base.base.repos.query_options import ListQueryOptions
 from app_layer_base.base.schemas.delete_resp import DeleteResponse
@@ -42,9 +42,8 @@ async def create_knowledge_base_document(
 @router.get("", response_model=PaginatedList[KnowledgeBaseDocumentRead])
 async def get_knowledge_base_documents(
     use_case: Annotated[GetMultiKnowledgeBaseDocumentUseCase, Depends()],
-    pagination: PaginationParam,
+    query_options: Annotated[ListQueryOptions, Depends(get_knowledge_base_documents_query_options)],
 ):
-    query_options = ListQueryOptions(offset=pagination.offset, limit=pagination.limit)
     return await use_case.execute(query_options=query_options)
 
 

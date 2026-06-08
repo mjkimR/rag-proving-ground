@@ -1,16 +1,16 @@
 from typing import Annotated
 from uuid import UUID
 
+from app.features.history.job_process_histories.query_options import get_job_process_histories_query_options
 from app.features.history.job_process_histories.schemas import JobProcessHistoryRead
 from app.features.history.job_process_histories.usecases.crud import (
     GetJobProcessHistoryUseCase,
     GetMultiJobProcessHistoryUseCase,
 )
-from app_layer_base.base.deps.params.page import PaginationParam
 from app_layer_base.base.exceptions.basic import NotFoundException
 from app_layer_base.base.repos.query_options import ListQueryOptions
 from app_layer_base.base.schemas.paginated import PaginatedList
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/job_process_histories", tags=["JobProcessHistory"], dependencies=[])
 
@@ -18,24 +18,8 @@ router = APIRouter(prefix="/job_process_histories", tags=["JobProcessHistory"], 
 @router.get("", response_model=PaginatedList[JobProcessHistoryRead])
 async def get_job_process_histories(
     use_case: Annotated[GetMultiJobProcessHistoryUseCase, Depends()],
-    pagination: PaginationParam,
-    resource_type: Annotated[str | None, Query()] = None,
-    resource_id: Annotated[UUID | None, Query()] = None,
-    stage: Annotated[str | None, Query()] = None,
-    outcome: Annotated[str | None, Query()] = None,
+    query_options: Annotated[ListQueryOptions, Depends(get_job_process_histories_query_options)],
 ):
-    model = use_case.service.repo.model
-    where = []
-    if resource_type is not None:
-        where.append(model.resource_type == resource_type)
-    if resource_id is not None:
-        where.append(model.resource_id == resource_id)
-    if stage is not None:
-        where.append(model.stage == stage)
-    if outcome is not None:
-        where.append(model.outcome == outcome)
-
-    query_options = ListQueryOptions(offset=pagination.offset, limit=pagination.limit, where=tuple(where))
     return await use_case.execute(query_options=query_options)
 
 
