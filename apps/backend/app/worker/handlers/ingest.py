@@ -182,7 +182,6 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
                 return
 
             if doc.status in (
-                KnowledgeBaseDocumentStatus.CHUNKING,
                 KnowledgeBaseDocumentStatus.EMBEDDING,
                 KnowledgeBaseDocumentStatus.COMPLETED,
             ):
@@ -276,7 +275,6 @@ async def handle_embed(msg: EmbedDocumentMessage) -> None:
                 return
 
             if doc.status in (
-                KnowledgeBaseDocumentStatus.EMBEDDING,
                 KnowledgeBaseDocumentStatus.COMPLETED,
             ):
                 logger.info(f"Document {msg.document_id} is already in state {doc.status}. Skipping embed stage.")
