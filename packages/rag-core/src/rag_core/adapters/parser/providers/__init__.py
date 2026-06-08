@@ -4,16 +4,19 @@ from rag_core.adapters.parser.registry import ParserRegistry
 
 if TYPE_CHECKING:
     from rag_core.adapters.parser.providers.docling import DoclingParser
+    from rag_core.adapters.parser.providers.native_text import NativeTextParser
 
 _DEFAULTS_REGISTERED = False
 
 __all__ = [
     "DoclingParser",
+    "NativeTextParser",
     "register_default_parsers",
 ]
 
 _lazy_imports: dict[str, str] = {
     "DoclingParser": ".docling",
+    "NativeTextParser": ".native_text",
 }
 
 
@@ -34,6 +37,8 @@ def register_default_parsers() -> None:
         return
 
     from rag_core.adapters.parser.providers.docling import DoclingParser
+    from rag_core.adapters.parser.providers.native_text import NativeTextParser
 
     ParserRegistry.register(DoclingParser)
+    ParserRegistry.register(NativeTextParser)
     _DEFAULTS_REGISTERED = True

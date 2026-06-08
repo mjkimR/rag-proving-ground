@@ -1,10 +1,8 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
 from rag_core.parsers.pdf_page_renderer import render_and_store_pdf_pages
 
 
-@pytest.mark.asyncio
 async def test_render_and_store_pdf_pages(mocker):
     # Mock storage client
     mock_storage = MagicMock()

@@ -32,6 +32,17 @@ class ParserSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
+class NativeTextParserSettings(BaseSettings):
+    """Settings used by the Native Text parser provider."""
+
+    max_page_chars: int = Field(
+        default=2000,
+        validation_alias="NATIVE_MAX_PAGE_CHARS",
+    )
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
 class HTTPClientSettings(BaseSettings):
     """
     Settings for the global HTTP client (httpx).
@@ -70,6 +81,11 @@ def get_litellm_settings() -> LiteLLMSettings:
 @lru_cache
 def get_parser_settings() -> ParserSettings:
     return ParserSettings()
+
+
+@lru_cache
+def get_native_text_parser_settings() -> NativeTextParserSettings:
+    return NativeTextParserSettings()
 
 
 @lru_cache

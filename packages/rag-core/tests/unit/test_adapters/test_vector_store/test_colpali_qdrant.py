@@ -1,12 +1,10 @@
 from unittest.mock import MagicMock
 
-import pytest
 from langchain_core.documents import Document
 from PIL import Image
 from rag_core.adapters.vector_store.providers.colpali_qdrant import ColPaliQdrantStore
 
 
-@pytest.mark.asyncio
 async def test_colpali_qdrant_store_aadd_documents(mocker):
     # Mock clients
     mock_qdrant = MagicMock()
@@ -45,7 +43,6 @@ async def test_colpali_qdrant_store_aadd_documents(mocker):
     mock_async_qdrant.upsert.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_colpali_qdrant_store_asimilarity_search_with_score(mocker):
     # Mock clients
     mock_qdrant = MagicMock()

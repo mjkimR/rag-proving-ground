@@ -16,7 +16,6 @@ from app.features.history.job_process_histories.usecases.crud import (
     GetJobProcessHistoryUseCase,
     GetMultiJobProcessHistoryUseCase,
 )
-from app_layer_base.base.deps.params.page import PaginationParams
 from app_layer_base.base.exceptions.basic import NotFoundException
 from app_layer_base.base.schemas.paginated import PaginatedList
 from fastapi.routing import APIRoute
@@ -29,8 +28,9 @@ def test_job_process_history_router_exposes_only_read_methods() -> None:
     assert route_methods == {"GET"}
 
 
-@pytest.mark.asyncio
 async def test_get_job_process_histories_returns_paginated_results_with_filters() -> None:
+    from app_layer_base.base.repos.query_options import ListQueryOptions
+
     class FakeUseCase:
         service = SimpleNamespace(repo=SimpleNamespace(model=JobProcessHistory))
 
@@ -44,13 +44,20 @@ async def test_get_job_process_histories_returns_paginated_results_with_filters(
     use_case = FakeUseCase()
     resource_id = uuid4()
 
+    query_options = ListQueryOptions(
+        offset=10,
+        limit=20,
+        where=(
+            JobProcessHistory.resource_type == "knowledge_base_document",
+            JobProcessHistory.resource_id == resource_id,
+            JobProcessHistory.stage == "parsing",
+            JobProcessHistory.outcome == "SUCCESS",
+        ),
+    )
+
     result = await get_job_process_histories(
         use_case=cast(GetMultiJobProcessHistoryUseCase, use_case),
-        pagination=PaginationParams(offset=10, limit=20),
-        resource_type="knowledge_base_document",
-        resource_id=resource_id,
-        stage="parsing",
-        outcome="SUCCESS",
+        query_options=query_options,
     )
 
     assert result.total_count == 0
@@ -60,7 +67,6 @@ async def test_get_job_process_histories_returns_paginated_results_with_filters(
     assert len(use_case.query_options.where) == 4
 
 
-@pytest.mark.asyncio
 async def test_get_job_process_history_returns_one_history_row() -> None:
     history_id = uuid4()
     history = SimpleNamespace(id=history_id)
@@ -73,7 +79,6 @@ async def test_get_job_process_history_returns_one_history_row() -> None:
     assert result is history
 
 
-@pytest.mark.asyncio
 async def test_get_job_process_history_missing_row_returns_404() -> None:
     use_case = SimpleNamespace(execute=lambda job_process_history_id: _async_return(None))
 
@@ -83,7 +88,6 @@ async def test_get_job_process_history_missing_row_returns_404() -> None:
         )
 
 
-@pytest.mark.asyncio
 async def test_job_process_history_service_record_creates_history_row() -> None:
     class FakeRepo:
         async def create(self, session, obj_in, **update_fields):

@@ -1,10 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 from rag_core.adapters.vector_store.providers.qdrant import QdrantProvider
 
 
-@pytest.mark.asyncio
 async def test_qdrant_delete_points_collection_not_exists() -> None:
     client = MagicMock()
     async_client = AsyncMock()
@@ -17,7 +15,6 @@ async def test_qdrant_delete_points_collection_not_exists() -> None:
     async_client.delete.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_qdrant_delete_points_collection_exists() -> None:
     client = MagicMock()
     async_client = MagicMock()  # Use MagicMock since we might want to check async methods or wait mocks

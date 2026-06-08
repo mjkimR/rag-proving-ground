@@ -39,10 +39,59 @@ def register_parser(parser_class: type[Parser]) -> None:
     ParserRegistry.register(parser_class)
 
 
+def _is_text_format(parser_input: ParserInput) -> bool:
+    """Check if the document is a plain text, Markdown, or HTML file."""
+    filename = (parser_input.filename or "").lower()
+    mimetype = (parser_input.content_type or "").lower()
+
+    return filename.endswith((".txt", ".text", ".md", ".markdown", ".html", ".htm")) or mimetype in (
+        "text/plain",
+        "text/markdown",
+        "text/x-markdown",
+        "text/html",
+    )
+
+
 def get_parser(provider: str | None = None) -> Parser:
     """Get the configured parser engine."""
     provider = provider or get_parser_settings().provider
     return ParserFactory.create_parser(provider=provider)
+
+
+def _ensure_elements(doc: Any) -> Any:
+    """Ensure a ParsedDocument has elements if they are missing but text exists."""
+    if not hasattr(doc, "elements") or doc.elements:
+        return doc
+
+    from rag_core.adapters.parser.providers.native_text import NativeTextParser
+
+    logger.warning(
+        "ParsedDocument has no elements; reconstructing elements from markdown/html/text "
+        "with NativeTextParser fallback."
+    )
+    parser = NativeTextParser()
+    elements = []
+
+    markdown_val = getattr(doc, "markdown", None)
+    html_val = getattr(doc, "html", None)
+    text_val = getattr(doc, "text", None)
+    doc_id = getattr(doc, "doc_id", "document")
+
+    if markdown_val and markdown_val.strip():
+        elements = parser._parse_markdown(markdown_val, doc_id)
+    elif html_val and html_val.strip():
+        elements = parser._parse_html(html_val, doc_id)
+    elif text_val and text_val.strip():
+        elements = parser._parse_plain_text(text_val, doc_id)
+
+    if elements:
+        for idx, el in enumerate(elements):
+            el.order = idx
+        pages, elements = parser._assign_synthetic_pages(elements, doc_id)
+        doc.elements = elements
+        doc.pages = pages
+
+    return doc
 
 
 async def parse_document(
@@ -53,6 +102,9 @@ async def parse_document(
     parsing_config_hash: str | None = None,
 ) -> Any:
     """Parse a document with the configured parser engine."""
+    if provider is None and _is_text_format(parser_input):
+        provider = "native_text"
+
     parser = get_parser(provider=provider)
 
     if parsing_config_hash is None:
@@ -65,6 +117,7 @@ async def parse_document(
         start_time = time.perf_counter()
         result = await parser.parse(parser_input)
         duration_sec = time.perf_counter() - start_time
+        result = _ensure_elements(result)
         if hasattr(result, "metadata") and isinstance(result.metadata, dict):
             result.metadata["cache_hit"] = False
             result.metadata["parse_duration_sec"] = duration_sec
@@ -102,6 +155,8 @@ async def parse_document(
     start_time = time.perf_counter()
     result = await parser.parse(parser_input)
     duration_sec = time.perf_counter() - start_time
+
+    result = _ensure_elements(result)
 
     await cache.store_result(
         content_hash,

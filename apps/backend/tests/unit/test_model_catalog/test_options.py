@@ -1,8 +1,6 @@
-import pytest
 from app.features.model_catalog.usecases.options import GetModelCatalogOptionsUseCase
 
 
-@pytest.mark.asyncio
 async def test_get_model_catalog_options_use_case(mocker) -> None:
     mock_get = mocker.patch("app.features.model_catalog.usecases.options.get_model_options")
     mock_get.return_value = {

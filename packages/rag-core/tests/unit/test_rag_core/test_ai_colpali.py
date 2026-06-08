@@ -1,11 +1,9 @@
 from unittest.mock import MagicMock
 
-import pytest
 from PIL import Image
 from rag_core.ai.colpali import ColPaliModel
 
 
-@pytest.mark.asyncio
 async def test_colpali_model_encode_queries(mocker):
     # Mock httpx.AsyncClient response
     mock_response = MagicMock()
@@ -23,7 +21,6 @@ async def test_colpali_model_encode_queries(mocker):
     mock_post.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_colpali_model_encode_images(mocker):
     # Mock httpx.AsyncClient response
     mock_response = MagicMock()
