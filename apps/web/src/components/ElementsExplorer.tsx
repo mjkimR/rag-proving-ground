@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export interface BoundingBox {
   left: number;
@@ -51,6 +51,7 @@ const ELEMENT_COLORS: Record<string, string> = {
   page_header: "var(--badge-layout, #9ca3af)", // Warm Gray
   page_footer: "var(--badge-layout, #9ca3af)", // Warm Gray
   section_index: "var(--badge-index, #f43f5e)", // Rose
+  code: "var(--badge-code, #8b5cf6)", // Purple/Indigo for Code block
 };
 
 const getTypeColor = (type: string): string => {
@@ -82,6 +83,24 @@ export function ElementPreview({ element }: ElementPreviewProps) {
       >
         🖼️ [Image Element {element.asset?.uri ? `- ${element.asset.uri}` : ""}]
       </div>
+    );
+  }
+
+  if (element.type === "code") {
+    return (
+      <pre
+        style={{
+          fontFamily: "monospace",
+          background: "var(--bg-code-preview, #f1f5f9)",
+          padding: "8px",
+          borderRadius: "4px",
+          margin: 0,
+          fontSize: "12px",
+          overflowX: "auto",
+        }}
+      >
+        <code>{element.content}</code>
+      </pre>
     );
   }
 
@@ -178,19 +197,22 @@ export function ElementsExplorer({ elements, onElementClick }: ElementsExplorerP
   const [hideIgnored, setHideIgnored] = useState<boolean>(false);
 
   // Get unique element types for the filter bar
-  const elementTypes = ["all", ...Array.from(new Set(elements.map((el) => el.type)))];
+  const elementTypes = useMemo(() => ["all", ...Array.from(new Set(elements.map((el) => el.type)))], [elements]);
 
   // Filter & sort elements by order
-  const sortedElements = [...elements].sort((a, b) => a.order - b.order);
+  const sortedElements = useMemo(() => [...elements].sort((a, b) => a.order - b.order), [elements]);
 
   // First filter by type selection
-  const typeFilteredElements =
-    selectedType === "all" ? sortedElements : sortedElements.filter((el) => el.type === selectedType);
+  const typeFilteredElements = useMemo(() =>
+    selectedType === "all" ? sortedElements : sortedElements.filter((el) => el.type === selectedType),
+    [sortedElements, selectedType]
+  );
 
   // Then filter out ignored elements if the toggle is active
-  const filteredElements = hideIgnored
-    ? typeFilteredElements.filter((el) => !el.ignored)
-    : typeFilteredElements;
+  const filteredElements = useMemo(() =>
+    hideIgnored ? typeFilteredElements.filter((el) => !el.ignored) : typeFilteredElements,
+    [typeFilteredElements, hideIgnored]
+  );
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);

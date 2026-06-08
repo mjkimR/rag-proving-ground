@@ -4,6 +4,10 @@ import type { PreviewMode } from "./types";
 import { ControlPanel } from "./components/ControlPanel";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { FullscreenComparison } from "./components/FullscreenComparison";
+import { 
+  getModelCatalogOptionsApiV1ModelCatalogOptionsGet,
+  documentParseApiV1DocParseParsePost 
+} from "@/generated/api";
 
 type DocumentWorkbenchProps = {
   copilotEnabled: boolean;
@@ -38,6 +42,17 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
   const [parsedDoc, setParsedDoc] = useState<any>(null);
   const [activeElement, setActiveElement] = useState<any>(null);
   const [ignoreCache, setIgnoreCache] = useState<boolean>(false);
+  const [parserProviders, setParserProviders] = useState<string[]>(["docling"]);
+
+  useEffect(() => {
+    getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true })
+      .then((res) => {
+        if (res.data?.parser_providers) {
+          setParserProviders(res.data.parser_providers);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch parser providers:", err));
+  }, []);
 
   const activeSummary = useMemo(() => {
     if (mode === "compare-markdown") return "Side-by-side: PDF & Markdown active";
@@ -80,24 +95,19 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
     setParseError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (provider) {
-        formData.append("provider", provider);
-      }
-      formData.append("ignore_cache", String(ignoreCache));
-
-      const response = await fetch("/api/v1/doc_parse/parse", {
-        method: "POST",
-        body: formData,
+      const response = await documentParseApiV1DocParseParsePost({
+        body: {
+          file,
+          provider: provider || null,
+          ignore_cache: ignoreCache,
+        },
+        throwOnError: true,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
-        throw new Error(errorData.detail || `Server error: ${response.status}`);
+      const data = response.data;
+      if (!data) {
+        throw new Error("No data returned from parser");
       }
-
-      const data = await response.json();
       setParsedDoc(data);
       setMarkdown(data.markdown || data.text || "");
       setHtml(data.html || "");
@@ -136,6 +146,7 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
           handleFileChange={handleFileChange}
           provider={provider}
           setProvider={setProvider}
+          parserProviders={parserProviders}
           handleParse={handleParse}
           isParsing={isParsing}
           file={file}

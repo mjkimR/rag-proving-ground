@@ -50,6 +50,13 @@ export const DocumentList: React.FC<DocumentListProps> = ({
       });
     },
     enabled: !!selectedKnowledgeId,
+    refetchInterval: (query) => {
+      const items = query.state.data?.data?.items || [];
+      const hasActive = items.some(
+        (doc: any) => !['COMPLETED', 'FAILED', 'READY'].includes(doc.status)
+      );
+      return hasActive ? 2000 : false;
+    },
   });
 
   // 2. Upload file mutation

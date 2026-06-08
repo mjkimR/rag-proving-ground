@@ -80,11 +80,23 @@ services:
       timeout: 5s
       retries: 5
 
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight
+    ports:
+      - "18001:5540"
+    volumes:
+      - redis_insight_data:/db
+    profiles:
+      - basic
+      - redis
+
 volumes:
   storage_object_data:
   vector_db_data:
   meta_db_data:
   redis_data:
+  redis_insight_data:
 
 networks:
   default:

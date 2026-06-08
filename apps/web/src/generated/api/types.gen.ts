@@ -152,6 +152,15 @@ export type ChunkingConfig = {
      * Breadcrumb Separator
      */
     breadcrumb_separator?: string;
+    /**
+     * Enrichment
+     *
+     * Optional configuration for future chunk enrichment methods.
+     */
+    enrichment?: {
+        [key: string]: unknown;
+    } | null;
+    [key: string]: unknown;
 };
 
 /**
@@ -200,7 +209,7 @@ export type DeleteResponse = {
  *
  * Normalized semantic categories for parser layout elements.
  */
-export type ElementType = 'heading' | 'paragraph' | 'list' | 'list_item' | 'table' | 'image' | 'equation' | 'caption' | 'footnote' | 'page_header' | 'page_footer' | 'section_index' | 'unknown';
+export type ElementType = 'heading' | 'paragraph' | 'list' | 'list_item' | 'table' | 'image' | 'equation' | 'caption' | 'footnote' | 'page_header' | 'page_footer' | 'section_index' | 'code' | 'unknown';
 
 /**
  * EmbeddingDistanceMetric
@@ -507,7 +516,7 @@ export type KnowledgeBaseDocumentRead = {
 /**
  * KnowledgeBaseDocumentReprocessMode
  */
-export type KnowledgeBaseDocumentReprocessMode = 'AUTO' | 'RECHUNK' | 'REEMBED';
+export type KnowledgeBaseDocumentReprocessMode = 'AUTO' | 'REPARSE' | 'RECHUNK' | 'REEMBED';
 
 /**
  * KnowledgeBaseDocumentReprocessRequest
@@ -905,6 +914,18 @@ export type KnowledgeEmbeddingConfig = {
      * Vector distance metric used by the vector store collection.
      */
     distance?: EmbeddingDistanceMetric;
+    /**
+     * Use Colpali
+     *
+     * Whether to use ColPali (vision/multi-vector RAG). Defaults to False.
+     */
+    use_colpali?: boolean;
+    /**
+     * Colpali Model
+     *
+     * ColPali model name to use when use_colpali is True.
+     */
+    colpali_model?: string | null;
 };
 
 /**
@@ -919,6 +940,20 @@ export type KnowledgeParsingConfig = {
      * Parser provider name. Defaults to PARSER_PROVIDER when omitted.
      */
     provider?: string | null;
+    /**
+     * Extension Providers
+     *
+     * Mapping of file extension (including dot, e.g. '.pdf') to parser provider name.
+     */
+    extension_providers?: {
+        [key: string]: string;
+    } | null;
+    /**
+     * Native Max Page Chars
+     *
+     * Max characters per synthetic page in the native text parser.
+     */
+    native_max_page_chars?: number;
     [key: string]: unknown;
 };
 

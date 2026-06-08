@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Modal, Form, Input, Select, InputNumber, Switch, Tabs, Radio, Alert, Space, Typography
+  Modal, Form, Input, Select, InputNumber, Switch, Radio, Alert, Space, Typography, Steps, Button
 } from 'antd';
 import { Settings, Info } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,12 +9,31 @@ import {
   getModelCatalogOptionsApiV1ModelCatalogOptionsGet
 } from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseRead, KnowledgeBaseConfigApplyMode } from '@/generated/api/types.gen';
+import { PARSER_LABELS } from '@/views/DocumentWorkbench/types';
 
 const { Text, Paragraph } = Typography;
 
-const PARSER_LABELS: Record<string, string> = {
-  docling: 'Docling (Recommended)',
+const normalizeExtensions = (obj: any): Record<string, string> => {
+  if (!obj) return {};
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null && String(v).trim() !== '')
+  ) as Record<string, string>;
 };
+
+const CONFIG_STEP_FIELDS = [
+  [
+    'name',
+    ['default_parsing_config', 'provider'],
+    ['default_parsing_config', 'extension_providers']
+  ],
+  [
+    ['default_chunking_config', 'chunk_size'],
+    ['default_chunking_config', 'chunk_overlap'],
+    ['default_chunking_config', 'merge_max_chars'],
+    ['default_chunking_config', 'breadcrumb_depth'],
+    ['default_chunking_config', 'breadcrumb_separator']
+  ]
+];
 
 interface KnowledgeBaseSettingsModalProps {
   visible: boolean;
@@ -41,7 +60,8 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
   const embeddingModels = configOptions?.data?.embedding_models || [];
   const parserProviders = configOptions?.data?.parser_providers || [];
   const [form] = Form.useForm();
-  const [activeTab, setActiveTab] = useState('embedding');
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showParserOverrides, setShowParserOverrides] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [pendingValues, setPendingValues] = useState<any>(null);
   const [loadType, setLoadType] = useState<'low' | 'high' | 'reembed'>('low');
@@ -54,6 +74,8 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
         embedding_config: {
           model: kb.embedding_config?.model || 'text-embedding-3-small',
           distance: kb.embedding_config?.distance || 'cosine',
+          use_colpali: kb.embedding_config?.use_colpali || false,
+          colpali_model: kb.embedding_config?.colpali_model || 'vidore/colpali-v1.2-merged',
         },
         default_chunking_config: {
           chunk_size: kb.default_chunking_config?.chunk_size ?? 1024,
@@ -65,9 +87,11 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
         },
         default_parsing_config: {
           provider: kb.default_parsing_config?.provider || 'docling',
+          extension_providers: kb.default_parsing_config?.extension_providers || {},
         }
       });
-      setActiveTab('embedding');
+      setCurrentStep(0);
+      setShowParserOverrides(false);
       setConfirmVisible(false);
       setPendingValues(null);
     }
@@ -105,10 +129,14 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
     // Detect what has changed
     const embeddingChanged =
       kb.embedding_config?.model !== values.embedding_config?.model ||
-      kb.embedding_config?.distance !== values.embedding_config?.distance;
+      kb.embedding_config?.distance !== values.embedding_config?.distance ||
+      kb.embedding_config?.use_colpali !== values.embedding_config?.use_colpali ||
+      kb.embedding_config?.colpali_model !== values.embedding_config?.colpali_model;
 
     const parsingChanged =
-      kb.default_parsing_config?.provider !== values.default_parsing_config?.provider;
+      kb.default_parsing_config?.provider !== values.default_parsing_config?.provider ||
+      JSON.stringify(normalizeExtensions(kb.default_parsing_config?.extension_providers)) !==
+        JSON.stringify(normalizeExtensions(values.default_parsing_config?.extension_providers));
 
     const chunkingChanged =
       kb.default_chunking_config?.chunk_size !== values.default_chunking_config?.chunk_size ||
@@ -145,7 +173,10 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
       name: pendingValues.name,
       embedding_config: pendingValues.embedding_config,
       default_chunking_config: pendingValues.default_chunking_config,
-      default_parsing_config: pendingValues.default_parsing_config,
+      default_parsing_config: {
+        ...pendingValues.default_parsing_config,
+        extension_providers: normalizeExtensions(pendingValues.default_parsing_config?.extension_providers)
+      },
       apply_mode: applyMode,
     };
 
@@ -153,6 +184,22 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
       id: kb.id,
       body,
     });
+  };
+
+  const handlePrev = () => {
+    setCurrentStep((prev) => prev - 1);
+  };
+
+  const handleNext = async () => {
+    try {
+      const fieldsToValidate = CONFIG_STEP_FIELDS[currentStep];
+      if (fieldsToValidate) {
+        await form.validateFields(fieldsToValidate);
+      }
+      setCurrentStep((prev) => prev + 1);
+    } catch (errorInfo) {
+      console.warn('Form validation failed:', errorInfo);
+    }
   };
 
   return (
@@ -167,156 +214,233 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
         open={visible && !confirmVisible}
         onCancel={onClose}
         width={680}
-        okText="Apply Changes"
-        onOk={() => form.submit()}
-        confirmLoading={patchMutation.isPending}
+        footer={[
+          <Button key="cancel" onClick={onClose}>
+            Cancel
+          </Button>,
+          currentStep > 0 && (
+            <Button key="prev" onClick={handlePrev}>
+              Previous
+            </Button>
+          ),
+          currentStep < 2 && (
+            <Button key="next" type="primary" onClick={handleNext}>
+              Next
+            </Button>
+          ),
+          currentStep === 2 && (
+            <Button key="submit" type="primary" onClick={() => form.submit()} loading={patchMutation.isPending}>
+              Apply Changes
+            </Button>
+          ),
+        ].filter(Boolean)}
       >
+        <Steps
+          current={currentStep}
+          size="small"
+          style={{ marginBottom: '24px', marginTop: '16px' }}
+          items={[
+            { title: 'General & Parsing' },
+            { title: 'Chunking Strategy' },
+            { title: 'Vector Database' }
+          ]}
+        />
         <Form
           form={form}
           layout="vertical"
           onFinish={handlePreSave}
           style={{ marginTop: '16px' }}
         >
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            className="font-outfit"
-            items={[
-              {
-                key: 'embedding',
-                label: 'Embedding Settings',
-                children: (
-                  <div style={{ padding: '8px 4px' }}>
-                    <Alert
-                      title="Vector Database Physical Indexing"
-                      description="Embedding configurations establish a physical collection inside Qdrant. Modifying these values requires all documents to be re-embedded."
-                      type="warning"
-                      showIcon
-                      style={{ marginBottom: '20px' }}
-                    />
-                    <Form.Item
-                      name="name"
-                      label="Knowledge Base Name"
-                      rules={[{ required: true, message: 'Please enter a name' }]}
-                    >
-                      <Input placeholder="e.g. legal_documents" />
-                    </Form.Item>
+          {/* Step 0: General & Parsing */}
+          <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
+            <Paragraph type="secondary">
+              Configure the default parsing settings used to read uploaded files. Altering parser configurations on existing documents requires re-parsing them (High Load).
+            </Paragraph>
+            <Form.Item
+              name="name"
+              label="Knowledge Base Name"
+              rules={[{ required: true, message: 'Please enter a name' }]}
+            >
+              <Input placeholder="e.g. legal_documents" />
+            </Form.Item>
 
+            <Form.Item
+              name={['default_parsing_config', 'provider']}
+              label="Default Parsing Provider"
+              rules={[{ required: true }]}
+            >
+              <Select style={{ width: '200px' }} loading={configLoading}>
+                {parserProviders.map((provider) => (
+                  <Select.Option key={provider} value={provider}>
+                    {PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <div style={{ marginTop: '20px' }}>
+              <Button
+                type="link"
+                onClick={() => setShowParserOverrides(!showParserOverrides)}
+                style={{ padding: 0, display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '13px', marginBottom: '12px' }}
+              >
+                {showParserOverrides ? 'Hide Extension-Specific Parser Overrides' : 'Show Extension-Specific Parser Overrides'}
+              </Button>
+              {showParserOverrides && (
+                <div>
+                  <Text strong className="font-outfit" style={{ display: 'block', marginBottom: '8px' }}>
+                    Extension-Specific Overrides
+                  </Text>
+                  <Paragraph type="secondary" style={{ fontSize: '12px', marginBottom: '16px' }}>
+                    Optionally override the default parser for specific file types.
+                  </Paragraph>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    {['.pdf', '.docx', '.txt', '.html', '.md'].map((ext) => (
+                      <Form.Item
+                        key={ext}
+                        name={['default_parsing_config', 'extension_providers', ext]}
+                        label={`Files ending in ${ext}`}
+                        style={{ marginBottom: '12px' }}
+                      >
+                        <Select placeholder="Use Default Provider" allowClear loading={configLoading}>
+                          {parserProviders.map((provider) => (
+                            <Select.Option key={provider} value={provider}>
+                              {PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Step 1: Chunking Strategy */}
+          <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
+            <Paragraph type="secondary">
+              Determine how parsed documents are split into manageable chunks for semantic indexing. Modifying chunking settings only (Low Load) is computationally fast since parsing is cached.
+            </Paragraph>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <Form.Item
+                name={['default_chunking_config', 'chunk_size']}
+                label="Chunk Size (Characters)"
+                rules={[{ required: true }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={100} max={10000} />
+              </Form.Item>
+
+              <Form.Item
+                name={['default_chunking_config', 'chunk_overlap']}
+                label="Chunk Overlap (Characters)"
+                rules={[{ required: true }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={0} max={2000} />
+              </Form.Item>
+
+              <Form.Item
+                name={['default_chunking_config', 'merge_max_chars']}
+                label="Merge Max Characters"
+                rules={[{ required: true }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={100} max={20000} />
+              </Form.Item>
+
+              <Form.Item
+                name={['default_chunking_config', 'breadcrumb_depth']}
+                label="Breadcrumb Prefix Depth"
+                rules={[{ required: true }]}
+              >
+                <InputNumber style={{ width: '100%' }} min={0} max={10} />
+              </Form.Item>
+            </div>
+
+            <Form.Item
+              name={['default_chunking_config', 'breadcrumb_separator']}
+              label="Breadcrumb Separator"
+              rules={[{ required: true }]}
+            >
+              <Input style={{ width: '120px' }} />
+            </Form.Item>
+
+            <Form.Item
+              name={['default_chunking_config', 'include_root_breadcrumb']}
+              label="Include Root Breadcrumb"
+              valuePropName="checked"
+            >
+              <Switch />
+            </Form.Item>
+          </div>
+
+          {/* Step 2: Vector Database */}
+          <div style={{ display: currentStep === 2 ? 'block' : 'none' }}>
+            <Alert
+              title="Vector Database Physical Indexing"
+              description="Embedding configurations establish a physical collection inside Qdrant. Modifying these values requires all documents to be re-embedded."
+              type="warning"
+              showIcon
+              style={{ marginBottom: '20px' }}
+            />
+            
+            <Form.Item
+              name={['embedding_config', 'model']}
+              label="Embedding Model"
+              rules={[{ required: true, message: 'Please select or enter an embedding model' }]}
+              tooltip="Must match a LiteLLM embedding model configured on your proxy backend."
+            >
+              <Select loading={configLoading}>
+                {embeddingModels.map((model) => (
+                  <Select.Option key={model} value={model}>
+                    {model} {model === 'text-embedding-3-small' ? '(Default)' : ''}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name={['embedding_config', 'use_colpali']}
+              label="Use ColPali (Vision RAG)"
+              valuePropName="checked"
+              tooltip="Enable ColPali to use multi-vector vision representation. This processes document pages as images."
+            >
+              <Switch />
+            </Form.Item>
+
+            <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.embedding_config?.use_colpali !== currentValues.embedding_config?.use_colpali}>
+              {({ getFieldValue }) => {
+                const useColpali = getFieldValue(['embedding_config', 'use_colpali']);
+                if (useColpali) {
+                  return (
                     <Form.Item
-                      name={['embedding_config', 'model']}
-                      label="Embedding Model"
-                      rules={[{ required: true, message: 'Please select or enter an embedding model' }]}
-                      tooltip="Must match a LiteLLM embedding model configured on your proxy backend."
+                      name={['embedding_config', 'colpali_model']}
+                      label="ColPali Model"
+                      rules={[{ required: true, message: 'Please select a ColPali model' }]}
                     >
-                      <Select loading={configLoading}>
-                        {embeddingModels.map((model) => (
-                          <Select.Option key={model} value={model}>
-                            {model} {model === 'text-embedding-3-small' ? '(Default)' : ''}
-                          </Select.Option>
-                        ))}
+                      <Select placeholder="Select ColPali model">
+                        <Select.Option value="vidore/colpali-v1.2-merged">vidore/colpali-v1.2-merged (Default)</Select.Option>
+                        <Select.Option value="vidore/colpali-v1.3-merged">vidore/colpali-v1.3-merged</Select.Option>
+                        <Select.Option value="vidore/colSmol-500M-merged">vidore/colSmol-500M-merged</Select.Option>
                       </Select>
                     </Form.Item>
+                  );
+                }
+                return null;
+              }}
+            </Form.Item>
 
-                    <Form.Item
-                      name={['embedding_config', 'distance']}
-                      label="Distance Metric"
-                      rules={[{ required: true }]}
-                    >
-                      <Radio.Group optionType="button" buttonStyle="solid">
-                        <Radio.Button value="cosine">Cosine Similarity</Radio.Button>
-                        <Radio.Button value="dot">Dot Product</Radio.Button>
-                        <Radio.Button value="euclid">Euclidean Distance</Radio.Button>
-                      </Radio.Group>
-                    </Form.Item>
-                  </div>
-                )
-              },
-              {
-                key: 'parsing',
-                label: 'Default Parsing Config',
-                children: (
-                  <div style={{ padding: '8px 4px' }}>
-                    <Paragraph type="secondary">
-                      Specify the default parsing framework used to read files. Changes in parsing are resource-heavy (High Load) because documents need to be re-read and analyzed.
-                    </Paragraph>
-                    <Form.Item
-                      name={['default_parsing_config', 'provider']}
-                      label="Parsing Provider"
-                      rules={[{ required: true }]}
-                    >
-                      <Select style={{ width: '200px' }} loading={configLoading}>
-                        {parserProviders.map((provider) => (
-                          <Select.Option key={provider} value={provider}>
-                            {PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </div>
-                )
-              },
-              {
-                key: 'chunking',
-                label: 'Default Chunking Config',
-                children: (
-                  <div style={{ padding: '8px 4px' }}>
-                    <Paragraph type="secondary">
-                      Determine how parsed documents are split into manageable chunks for semantic indexing. Modifying chunking settings only (Low Load) is computationally fast since parsing is cached.
-                    </Paragraph>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <Form.Item
-                        name={['default_chunking_config', 'chunk_size']}
-                        label="Chunk Size (Characters)"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber style={{ width: '100%' }} min={100} max={10000} />
-                      </Form.Item>
-
-                      <Form.Item
-                        name={['default_chunking_config', 'chunk_overlap']}
-                        label="Chunk Overlap (Characters)"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber style={{ width: '100%' }} min={0} max={2000} />
-                      </Form.Item>
-
-                      <Form.Item
-                        name={['default_chunking_config', 'merge_max_chars']}
-                        label="Merge Max Characters"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber style={{ width: '100%' }} min={100} max={20000} />
-                      </Form.Item>
-
-                      <Form.Item
-                        name={['default_chunking_config', 'breadcrumb_depth']}
-                        label="Breadcrumb Prefix Depth"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber style={{ width: '100%' }} min={0} max={10} />
-                      </Form.Item>
-                    </div>
-
-                    <Form.Item
-                      name={['default_chunking_config', 'breadcrumb_separator']}
-                      label="Breadcrumb Separator"
-                      rules={[{ required: true }]}
-                    >
-                      <Input style={{ width: '120px' }} />
-                    </Form.Item>
-
-                    <Form.Item
-                      name={['default_chunking_config', 'include_root_breadcrumb']}
-                      label="Include Root Breadcrumb"
-                      valuePropName="checked"
-                    >
-                      <Switch />
-                    </Form.Item>
-                  </div>
-                )
-              }
-            ]}
-          />
+            <Form.Item
+              name={['embedding_config', 'distance']}
+              label="Distance Metric"
+              rules={[{ required: true }]}
+            >
+              <Radio.Group optionType="button" buttonStyle="solid">
+                <Radio.Button value="cosine">Cosine Similarity</Radio.Button>
+                <Radio.Button value="dot">Dot Product</Radio.Button>
+                <Radio.Button value="euclid">Euclidean Distance</Radio.Button>
+              </Radio.Group>
+            </Form.Item>
+          </div>
         </Form>
       </Modal>
 

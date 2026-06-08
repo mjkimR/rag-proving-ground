@@ -218,8 +218,10 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
                   >
                     <Select>
                       <Select.Option value="docling">Docling</Select.Option>
+                      <Select.Option value="native_text">Native Text</Select.Option>
                       <Select.Option value="marker">Marker</Select.Option>
                     </Select>
+
                   </Form.Item>
                 </div>
               ) : (
@@ -333,6 +335,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
                 className="font-outfit"
               >
                 <Select.Option value="AUTO">Auto Detect</Select.Option>
+                <Select.Option value="REPARSE">Re-parse & Re-index</Select.Option>
                 <Select.Option value="RECHUNK">Re-chunk Only</Select.Option>
                 <Select.Option value="REEMBED">Re-embed Only</Select.Option>
               </Select>

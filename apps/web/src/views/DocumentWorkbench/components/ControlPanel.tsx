@@ -1,5 +1,6 @@
 import { Maximize2 } from "lucide-react";
-import { modeLabels } from "../types";
+import { modeLabels, PARSER_LABELS } from "../types";
+
 import type { ChangeEvent } from "react";
 import type { PreviewMode } from "../types";
 
@@ -8,6 +9,7 @@ type ControlPanelProps = {
   handleFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
   provider: string;
   setProvider: (provider: string) => void;
+  parserProviders: string[];
   handleParse: () => void;
   isParsing: boolean;
   file: File | null;
@@ -27,6 +29,7 @@ export function ControlPanel({
   handleFileChange,
   provider,
   setProvider,
+  parserProviders,
   handleParse,
   isParsing,
   file,
@@ -37,6 +40,7 @@ export function ControlPanel({
   setIgnoreCache,
   parsedDocMetadata,
 }: ControlPanelProps) {
+
   return (
     <aside className="control-panel" style={{ position: "relative" }}>
       {/* Immersive Full Screen Trigger Button */}
@@ -94,7 +98,11 @@ export function ControlPanel({
           onChange={(e) => setProvider(e.target.value)}
           className="provider-select"
         >
-          <option value="docling">Docling Serve</option>
+          {parserProviders.map((p) => (
+            <option key={p} value={p}>
+              {PARSER_LABELS[p] || p.charAt(0).toUpperCase() + p.slice(1)}
+            </option>
+          ))}
         </select>
 
         <button

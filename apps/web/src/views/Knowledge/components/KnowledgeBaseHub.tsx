@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Card, Table, Button, Input, Tag, Space, Typography, Modal, Form,
-  Select, InputNumber, Radio, Switch, Row, Col, Badge, Empty, message
+  Select, InputNumber, Radio, Switch, Row, Col, Badge, Empty, message, Steps
 } from 'antd';
 import {
   Plus, Trash2, Database, ArrowRight, Search, Sparkles, Cpu,
@@ -18,6 +18,28 @@ import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
 
 const { Title, Text, Paragraph } = Typography;
 
+const normalizeExtensions = (obj: any): Record<string, string> => {
+  if (!obj) return {};
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null && String(v).trim() !== '')
+  ) as Record<string, string>;
+};
+
+const HUB_STEP_FIELDS = [
+  [
+    'name',
+    'parsing_provider',
+    'extension_providers'
+  ],
+  [
+    'chunk_size',
+    'chunk_overlap',
+    'merge_max_chars',
+    'breadcrumb_depth',
+    'breadcrumb_separator'
+  ]
+];
+
 interface KnowledgeBaseHubProps {
   onSelect: (kb: KnowledgeBaseRead) => void;
 }
@@ -25,7 +47,8 @@ interface KnowledgeBaseHubProps {
 export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showParserOverrides, setShowParserOverrides] = useState(false);
   const [form] = Form.useForm();
 
   // 1. Fetch Knowledge Bases
@@ -63,9 +86,12 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
         embedding_config: {
           model: values.embedding_model || 'text-embedding-3-small',
           distance: values.distance_metric || 'cosine',
+          use_colpali: values.use_colpali || false,
+          colpali_model: values.colpali_model || null,
         },
         default_parsing_config: {
           provider: values.parsing_provider || 'docling',
+          extension_providers: normalizeExtensions(values.extension_providers || {}),
         },
         default_chunking_config: {
           chunk_size: values.chunk_size ?? 1024,
@@ -86,7 +112,8 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
       message.success('Knowledge Base created successfully!');
       setCreateModalVisible(false);
       form.resetFields();
-      setShowAdvanced(false);
+      setCurrentStep(0);
+      setShowParserOverrides(false);
       refetchKbs();
       if (response.data) {
         onSelect(response.data);
@@ -121,6 +148,22 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
       });
     }
   });
+
+  const handlePrevHub = () => {
+    setCurrentStep((prev) => prev - 1);
+  };
+
+  const handleNextHub = async () => {
+    try {
+      const fieldsToValidate = HUB_STEP_FIELDS[currentStep];
+      if (fieldsToValidate) {
+        await form.validateFields(fieldsToValidate);
+      }
+      setCurrentStep((prev) => prev + 1);
+    } catch (errorInfo) {
+      console.warn('Form validation failed:', errorInfo);
+    }
+  };
 
   const handleCreate = (values: any) => {
     createKbMutation.mutate(values);
@@ -172,6 +215,8 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           className="font-outfit shadow-button"
           onClick={() => {
             setCreateModalVisible(true);
+            setCurrentStep(0);
+            setShowParserOverrides(false);
             const defaultEmbed = embeddingModels.includes('text-embedding-3-small') ? 'text-embedding-3-small' : (embeddingModels[0] || '');
             const defaultParser = parserProviders.includes('docling') ? 'docling' : (parserProviders[0] || '');
             form.setFieldsValue({
@@ -413,15 +458,40 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
         open={createModalVisible}
         onCancel={() => {
           setCreateModalVisible(false);
-          setShowAdvanced(false);
         }}
-        okText="Create collection"
-        cancelText="Cancel"
-        onOk={() => form.submit()}
-        confirmLoading={createKbMutation.isPending}
+        footer={[
+          <Button key="cancel" onClick={() => setCreateModalVisible(false)}>
+            Cancel
+          </Button>,
+          currentStep > 0 && (
+            <Button key="prev" onClick={handlePrevHub}>
+              Previous
+            </Button>
+          ),
+          currentStep < 2 && (
+            <Button key="next" type="primary" onClick={handleNextHub}>
+              Next
+            </Button>
+          ),
+          currentStep === 2 && (
+            <Button key="submit" type="primary" onClick={() => form.submit()} loading={createKbMutation.isPending}>
+              Create Collection
+            </Button>
+          ),
+        ].filter(Boolean)}
         width={620}
         styles={{ body: { padding: '12px 0' } }}
       >
+        <Steps
+          current={currentStep}
+          size="small"
+          style={{ marginBottom: '24px', padding: '0 4px' }}
+          items={[
+            { title: 'General & Parsing' },
+            { title: 'Chunking Strategy' },
+            { title: 'Vector Database' }
+          ]}
+        />
         <Form
           form={form}
           layout="vertical"
@@ -430,149 +500,220 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
         >
           <div style={{ padding: '0 4px' }}>
             
-            <Form.Item
-              name="name"
-              label="Collection Name"
-              rules={[
-                { required: true, message: 'Please enter a name for the database' },
-                { pattern: /^[a-zA-Z0-9_\-\s]+$/, message: 'Only alphanumeric characters, spaces, hyphens, and underscores are allowed' }
-              ]}
-              tooltip="The collection name must be unique. Spaces will be replaced with underscores, and converted to lowercase."
-            >
-              <Input placeholder="e.g. Legal Documents or financial_report_2026" className="font-outfit" size="large" />
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="parsing_provider"
-                  label="Default Document Parser"
-                  rules={[{ required: true }]}
-                  tooltip="The default parser provider used for file ingestion. Docling is highly accurate with PDFs, tables, and complex documents."
-                >
-                  <Select size="large" loading={configLoading}>
-                    {parserProviders.map((provider) => (
-                      <Select.Option key={provider} value={provider}>
-                        {provider.charAt(0).toUpperCase() + provider.slice(1)} {provider === 'docling' ? '(Deep Layout)' : ''}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="embedding_model"
-                  label="Embedding Model"
-                  rules={[{ required: true }]}
-                  tooltip="The vectorizer model used to compute chunk embeddings. Must match LiteLLM configurations."
-                >
-                  <Select size="large" loading={configLoading}>
-                    {embeddingModels.map((model) => (
-                      <Select.Option key={model} value={model}>
-                        {model}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item
-              name="distance_metric"
-              label="Distance Similarity Metric"
-              rules={[{ required: true }]}
-            >
-              <Radio.Group optionType="button" buttonStyle="solid" style={{ width: '100%' }}>
-                <Row gutter={8} style={{ width: '100%', margin: 0 }}>
-                  <Col span={8} style={{ padding: '0 4px' }}><Radio.Button value="cosine" style={{ width: '100%', textAlign: 'center', borderRadius: '8px' }}>Cosine</Radio.Button></Col>
-                  <Col span={8} style={{ padding: '0 4px' }}><Radio.Button value="dot" style={{ width: '100%', textAlign: 'center', borderRadius: '8px' }}>Dot Product</Radio.Button></Col>
-                  <Col span={8} style={{ padding: '0 4px' }}><Radio.Button value="euclid" style={{ width: '100%', textAlign: 'center', borderRadius: '8px' }}>Euclidean</Radio.Button></Col>
-                </Row>
-              </Radio.Group>
-            </Form.Item>
-
-            {/* Collapsible advanced configurations */}
-            <div style={{ marginTop: '16px' }}>
-              <Button
-                type="link"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                style={{ padding: 0, display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '13px' }}
+            {/* Step 0: General & Parsing */}
+            <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
+              <Form.Item
+                name="name"
+                label="Collection Name"
+                rules={[
+                  { required: true, message: 'Please enter a name for the database' },
+                  { pattern: /^[a-zA-Z0-9_\-\s]+$/, message: 'Only alphanumeric characters, spaces, hyphens, and underscores are allowed' }
+                ]}
+                tooltip="The collection name must be unique. Spaces will be replaced with underscores, and converted to lowercase."
               >
-                {showAdvanced ? 'Hide Advanced Strategy Defaults' : 'Show Advanced Strategy Defaults (Chunking, Overlaps)'}
-              </Button>
+                <Input placeholder="e.g. Legal Documents or financial_report_2026" className="font-outfit" size="large" />
+              </Form.Item>
 
-              {showAdvanced && (
-                <Card style={{ marginTop: '12px', background: 'rgba(0,0,0,0.01)', border: '1px solid var(--border-color)', borderRadius: '10px' }} styles={{ body: { padding: '16px' } }}>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="chunk_size"
-                        label="Chunk Size (Characters)"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber min={100} max={10000} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="chunk_overlap"
-                        label="Chunk Overlap"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber min={0} max={2000} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="merge_max_chars"
-                        label="Merge Max Characters"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber min={100} max={20000} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="breadcrumb_depth"
-                        label="Breadcrumb Depth"
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber min={0} max={10} style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="breadcrumb_separator"
-                        label="Separator"
-                        rules={[{ required: true }]}
-                      >
-                        <Input style={{ width: '100%' }} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="include_root_breadcrumb"
-                        label="Include Root Breadcrumb"
-                        valuePropName="checked"
-                      >
-                        <Switch />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Card>
-              )}
+              <Form.Item
+                name="parsing_provider"
+                label="Default Document Parser"
+                rules={[{ required: true }]}
+                tooltip="The default parser provider used for file ingestion. Docling is highly accurate with PDFs, tables, and complex documents."
+              >
+                <Select size="large" loading={configLoading}>
+                  {parserProviders.map((provider) => (
+                    <Select.Option key={provider} value={provider}>
+                      {provider.charAt(0).toUpperCase() + provider.slice(1)} {provider === 'docling' ? '(Deep Layout)' : ''}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+                <Button
+                  type="link"
+                  onClick={() => setShowParserOverrides(!showParserOverrides)}
+                  style={{ padding: 0, display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '13px', marginBottom: '12px' }}
+                >
+                  {showParserOverrides ? 'Hide Extension-Specific Parser Overrides' : 'Show Extension-Specific Parser Overrides'}
+                </Button>
+                {showParserOverrides && (
+                  <div>
+                    <Text strong style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>
+                      Extension-Specific Parser Overrides
+                    </Text>
+                    <Paragraph type="secondary" style={{ fontSize: '12px', marginBottom: '16px' }}>
+                      Optionally override the default parser for specific file types.
+                    </Paragraph>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      {['.pdf', '.docx', '.txt', '.html', '.md'].map((ext) => (
+                        <Form.Item
+                          key={ext}
+                          name={['extension_providers', ext]}
+                          label={`Files ending in ${ext}`}
+                          style={{ marginBottom: '8px' }}
+                        >
+                          <Select placeholder="Use Default Parser" allowClear loading={configLoading} size="small">
+                            {parserProviders.map((provider) => (
+                              <Select.Option key={provider} value={provider}>
+                                {provider.charAt(0).toUpperCase() + provider.slice(1)}
+                              </Select.Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Warning Alert */}
-            <div style={{ marginTop: '20px' }}>
-              <AlertTriangle size={15} style={{ color: '#faad14', verticalAlign: 'middle', marginRight: '6px', display: 'inline-block' }} />
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Creating a database maps directly to a high-performance collection inside Qdrant and sets up permanent defaults.
-              </span>
+            {/* Step 1: Chunking Strategy */}
+            <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
+              <Paragraph type="secondary" style={{ fontSize: '13px', marginBottom: '16px' }}>
+                Configure how the documents will be split into chunks during ingestion.
+              </Paragraph>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="chunk_size"
+                    label="Chunk Size (Characters)"
+                    rules={[{ required: true }]}
+                  >
+                    <InputNumber min={100} max={10000} style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="chunk_overlap"
+                    label="Chunk Overlap"
+                    rules={[{ required: true }]}
+                  >
+                    <InputNumber min={0} max={2000} style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="merge_max_chars"
+                    label="Merge Max Characters"
+                    rules={[{ required: true }]}
+                  >
+                    <InputNumber min={100} max={20000} style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="breadcrumb_depth"
+                    label="Breadcrumb Depth"
+                    rules={[{ required: true }]}
+                  >
+                    <InputNumber min={0} max={10} style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="breadcrumb_separator"
+                    label="Separator"
+                    rules={[{ required: true }]}
+                  >
+                    <Input style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="include_root_breadcrumb"
+                    label="Include Root Breadcrumb"
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            {/* Step 2: Vector Database */}
+            <div style={{ display: currentStep === 2 ? 'block' : 'none' }}>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item
+                    name="embedding_model"
+                    label="Embedding Model"
+                    rules={[{ required: true }]}
+                    tooltip="The vectorizer model used to compute chunk embeddings. Must match LiteLLM configurations."
+                  >
+                    <Select size="large" loading={configLoading}>
+                      {embeddingModels.map((model) => (
+                        <Select.Option key={model} value={model}>
+                          {model}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="use_colpali"
+                    label="Use ColPali (Vision RAG)"
+                    valuePropName="checked"
+                    tooltip="Enable ColPali to use multi-vector vision representation. This processes document pages as images."
+                  >
+                    <Switch />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.use_colpali !== currentValues.use_colpali}>
+                    {({ getFieldValue }) => {
+                      const useColpali = getFieldValue('use_colpali');
+                      if (useColpali) {
+                        return (
+                          <Form.Item
+                            name="colpali_model"
+                            label="ColPali Model"
+                            rules={[{ required: true, message: 'Please select a ColPali model' }]}
+                            tooltip="Multi-vector vision model for page image embeddings."
+                          >
+                            <Select size="large" placeholder="Select ColPali model">
+                              <Select.Option value="vidore/colpali-v1.2-merged">vidore/colpali-v1.2-merged (Default)</Select.Option>
+                              <Select.Option value="vidore/colpali-v1.3-merged">vidore/colpali-v1.3-merged</Select.Option>
+                              <Select.Option value="vidore/colSmol-500M-merged">vidore/colSmol-500M-merged</Select.Option>
+                            </Select>
+                          </Form.Item>
+                        );
+                      }
+                      return null;
+                    }}
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item
+                name="distance_metric"
+                label="Distance Similarity Metric"
+                rules={[{ required: true }]}
+              >
+                <Radio.Group optionType="button" buttonStyle="solid" style={{ width: '100%' }}>
+                  <Row gutter={8} style={{ width: '100%', margin: 0 }}>
+                    <Col span={8} style={{ padding: '0 4px' }}><Radio.Button value="cosine" style={{ width: '100%', textAlign: 'center', borderRadius: '8px' }}>Cosine</Radio.Button></Col>
+                    <Col span={8} style={{ padding: '0 4px' }}><Radio.Button value="dot" style={{ width: '100%', textAlign: 'center', borderRadius: '8px' }}>Dot Product</Radio.Button></Col>
+                    <Col span={8} style={{ padding: '0 4px' }}><Radio.Button value="euclid" style={{ width: '100%', textAlign: 'center', borderRadius: '8px' }}>Euclidean</Radio.Button></Col>
+                  </Row>
+                </Radio.Group>
+              </Form.Item>
+
+              {/* Warning Alert */}
+              <div style={{ marginTop: '20px' }}>
+                <AlertTriangle size={15} style={{ color: '#faad14', verticalAlign: 'middle', marginRight: '6px', display: 'inline-block' }} />
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Creating a database maps directly to a high-performance collection inside Qdrant and sets up permanent defaults.
+                </span>
+              </div>
             </div>
 
           </div>
