@@ -3,6 +3,7 @@ default:
     @just --list
 
 # Initialize workspace modules (all, backend, or web)
+[arg("module", pattern="all|backend|web")]
 init module="all":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -25,6 +26,7 @@ init-dev:
     @just init all
 
 # Run linters and formatters (all, backend, or web)
+[arg("module", pattern="all|backend|web")]
 lint module="all":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -40,11 +42,11 @@ lint module="all":
     if should_run "$target" "web"; then
         path=$(resolve_module_path "web")
         echo "Linting React frontend ($path)..."
-        # Optional: Add eslint/formatter check here once configured
-        echo "React frontend formatting is integrated."
+        npm --prefix "$path" run lint
     fi
 
 # Run static type checks (all, backend, or web)
+[arg("module", pattern="all|backend|web")]
 check module="all":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -63,11 +65,36 @@ check module="all":
     fi
 
 # Run server for a specific module or all in development mode (backend, web, or all)
+[arg("module", pattern="all|backend|web")]
 dev module="all":
     @bash ./scripts/dev-run.sh "{{ module }}"
 
-# Run Python tests from pyproject testpaths. Can specify target paths (e.g. just test packages/rag-core/tests/unit)
-test +paths="":
+# Run lint first, then static checks and tests in parallel
+[arg("module", pattern="all|backend|web")]
+verify module="all":
+    @just lint "{{ module }}"
+    @just _verify-readonly "{{ module }}"
+
+[private]
+[parallel]
+_verify-readonly module="all": (check module) (test module)
+
+# Run tests for a module (all, backend, or web)
+[arg("module", pattern="all|backend|web")]
+test module="all":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ./scripts/_lib.sh
+    target=$(resolve_module "{{ module }}") || exit $?
+
+    if should_run "$target" "backend"; then
+        bash ./scripts/run-tests.sh
+    else
+        echo "No Python tests configured for web-only module."
+    fi
+
+# Run Python tests from explicit pytest paths
+test-file +paths:
     @bash ./scripts/run-tests.sh {{ paths }}
 
 # Kill any dangling development servers (FastAPI on 8389, Vite on 5173)

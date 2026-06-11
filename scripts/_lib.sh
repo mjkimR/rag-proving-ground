@@ -6,8 +6,8 @@ AVAILABLE_MODULES="all backend web"
 
 resolve_module() {
     case "$1" in
-        backend|back|api) echo "backend" ;;
-        web|front|frontend|ui) echo "web" ;;
+        backend) echo "backend" ;;
+        web) echo "web" ;;
         all) echo "all" ;;
         *)
             echo "Unknown module '$1'. Expected one of: $AVAILABLE_MODULES" >&2

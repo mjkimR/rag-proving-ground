@@ -19,14 +19,20 @@ done
 
 services=()
 has_all=false
+compose_files=(-f infra/models/docker-compose.yml)
+
+case "$(uname -m)" in
+    arm64|aarch64)
+        if [ -f infra/models/docker-compose.arm.yml ]; then
+            compose_files+=(-f infra/models/docker-compose.arm.yml)
+        fi
+        ;;
+esac
 
 for arg in "${normalized_args[@]}"; do
     case "$arg" in
         all)
             has_all=true
-            ;;
-        rerank)
-            services+=("tei-reranker")
             ;;
         colpali)
             services+=("infinity-colpali")
@@ -42,8 +48,8 @@ done
 # If no arguments provided, or 'all' is explicitly requested
 if [ "${#normalized_args[@]}" -eq 0 ] || [ "$has_all" = true ]; then
     echo "Starting all model services..."
-    docker compose -f infra/models/docker-compose.yml up -d
+    docker compose "${compose_files[@]}" up -d
 else
     echo "Starting specified model services: ${services[*]}..."
-    docker compose -f infra/models/docker-compose.yml up -d "${services[@]}"
+    docker compose "${compose_files[@]}" up -d "${services[@]}"
 fi
