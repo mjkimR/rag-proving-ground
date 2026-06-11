@@ -115,12 +115,36 @@ class QdrantProvider(VectorStoreProvider):
             except Exception as exc:
                 raise RuntimeError(f"Failed to retrieve embedding dimension for '{model_name}': {exc}") from exc
 
+            requires_idf = False
+            if retrieval_mode in ("hybrid", "sparse") and sparse_model:
+                from loguru import logger
+
+                from rag_core.ai.sparse.providers import register_default_sparse_models
+                from rag_core.ai.sparse.registry import SparseEmbeddingRegistry
+
+                register_default_sparse_models()
+                try:
+                    model_class = SparseEmbeddingRegistry.get_model_class(sparse_model)
+                    requires_idf = getattr(model_class, "requires_server_side_idf", False)
+                except ValueError as exc:
+                    logger.error(
+                        f"Unsupported sparse model variant: {sparse_model}. Ingestion scoring will be compromised."
+                    )
+                    raise RuntimeError(
+                        f"Cannot configure vector store with unknown sparse provider: {sparse_model}"
+                    ) from exc
+
             try:
                 await self.async_client.create_collection(
                     collection_name=collection_name,
                     vectors_config=conf.VectorParams(size=dimension, distance=distance_metric),
                     sparse_vectors_config=(
-                        {"sparse": conf.SparseVectorParams(index=conf.SparseIndexParams())}
+                        {
+                            "sparse": conf.SparseVectorParams(
+                                index=conf.SparseIndexParams(),
+                                modifier=(conf.Modifier.IDF if requires_idf else None),
+                            )
+                        }
                         if retrieval_mode in ("hybrid", "sparse")
                         else None
                     ),

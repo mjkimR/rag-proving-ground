@@ -8,6 +8,7 @@ class SparseEmbeddingModel(SparseEmbeddings, ABC):
     """Abstract interface for sparse embedding model providers."""
 
     name: ClassVar[str]
+    requires_server_side_idf: ClassVar[bool] = False
 
     @classmethod
     @abstractmethod

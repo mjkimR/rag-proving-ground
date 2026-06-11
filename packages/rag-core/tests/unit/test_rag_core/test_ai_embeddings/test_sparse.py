@@ -26,30 +26,24 @@ def test_korean_morpheme_bm25_embeddings_maps_tokens_to_sparse_vectors() -> None
     assert all(value > 0 for value in query.values)
 
 
-def test_korean_morpheme_bm25_embeddings_uses_fitted_idf() -> None:
+def test_korean_morpheme_bm25_embeddings_calculates_tf_saturation() -> None:
     embeddings = KoreanMorphemeBM25Embeddings(
         tokenizer=lambda text: text.split(),
-        token_mapper={"common": 1, "rare": 2}.__getitem__,
+        token_mapper={"token": 1}.__getitem__,
+        k1=1.5,
+        b=0.75,
+        avg_length=100.0,
     )
+    # 10 tokens: len = 10
+    # frequency of "token" = 10
+    vector = embeddings.embed_documents([" ".join(["token"] * 10)])[0]
 
-    embeddings.embed_documents(["common rare", "common"])
-    query = embeddings.embed_query("common rare")
-
-    values_by_index = dict(zip(query.indices, query.values, strict=True))
-    assert values_by_index[2] > values_by_index[1]
-    assert math.isclose(values_by_index[2], math.log(1 + 1.5 / 1.5), rel_tol=0.2)
-
-
-def test_korean_morpheme_bm25_embeddings_warns_when_querying_without_corpus() -> None:
-    embeddings = KoreanMorphemeBM25Embeddings(
-        tokenizer=lambda text: text.split(),
-        token_mapper={"검색": 20}.__getitem__,
-    )
-
-    with pytest.warns(RuntimeWarning, match=r"embed_query\(\) was called before embed_documents"):
-        vector = embeddings.embed_query("검색")
-
-    assert vector == SparseVector(indices=[20], values=[1.0])
+    # Formula: tf_weight = (10 * 2.5) / (10 + 1.5 * (1 - 0.75 + 0.75 * (10 / 100)))
+    # denominator_norm = 0.25 + 0.75 * 0.1 = 0.325
+    # tf_weight = 25 / (10 + 1.5 * 0.325) = 25 / 10.4875 ≈ 2.38379
+    assert len(vector.indices) == 1
+    assert vector.indices[0] == 1
+    assert math.isclose(vector.values[0], 2.38379, rel_tol=1e-4)
 
 
 def test_korean_morpheme_bm25_embeddings_filters_kiwi_pos_tags() -> None:
@@ -68,10 +62,10 @@ def test_korean_morpheme_bm25_embeddings_filters_kiwi_pos_tags() -> None:
     )
     embeddings._kiwi = DummyKiwi()
 
-    with pytest.warns(RuntimeWarning):
-        vector = embeddings.embed_query("검색을 하다")
+    vector = embeddings.embed_query("검색을 하다")
 
     assert vector.indices == [10, 20]
+    assert vector.values == [1.0, 1.0]
 
 
 def test_qdrant_bm25_sparse_embeddings_wraps_fastembed_bm25(monkeypatch: pytest.MonkeyPatch) -> None:

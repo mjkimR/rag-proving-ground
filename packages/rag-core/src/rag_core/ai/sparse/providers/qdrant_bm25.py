@@ -16,6 +16,7 @@ class QdrantBM25SparseEmbeddings(SparseEmbeddingModel):
     """Thin wrapper around FastEmbed's sparse models."""
 
     name: ClassVar[str] = "en-bm25"
+    requires_server_side_idf: ClassVar[bool] = False
 
     @classmethod
     def from_config(cls, **kwargs: Any) -> QdrantBM25SparseEmbeddings:

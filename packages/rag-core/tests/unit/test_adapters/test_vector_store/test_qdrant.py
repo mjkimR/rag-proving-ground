@@ -80,4 +80,59 @@ async def test_qdrant_create_vector_store_hybrid(monkeypatch) -> None:
     kwargs = async_client.create_collection.call_args[1]
     assert kwargs["collection_name"] == "hybrid_collection"
     assert "sparse_vectors_config" in kwargs
-    assert kwargs["sparse_vectors_config"] is not None
+    sparse_config = kwargs["sparse_vectors_config"]
+    assert sparse_config is not None
+    assert "sparse" in sparse_config
+    assert sparse_config["sparse"].modifier is None
+
+
+async def test_qdrant_create_vector_store_hybrid_korean(monkeypatch) -> None:
+    from qdrant_client.http import models as conf
+
+    client = MagicMock()
+    mock_collection_info = MagicMock()
+    mock_collection_info.config.params.vectors.size = 3
+    mock_collection_info.config.params.vectors.distance = conf.Distance.COSINE
+    mock_collection_info.config.params.sparse_vectors = {"sparse": MagicMock()}
+    client.get_collection.return_value = mock_collection_info
+
+    async_client = AsyncMock()
+    async_client.collection_exists.return_value = False
+
+    from langchain_core.embeddings import Embeddings
+
+    class DummyEmbeddingModel(Embeddings):
+        def embed_documents(self, texts: list[str]) -> list[list[float]]:
+            return [[0.1, 0.2, 0.3]]
+
+        def embed_query(self, text: str) -> list[float]:
+            return [0.1, 0.2, 0.3]
+
+    monkeypatch.setattr(
+        "rag_core.adapters.vector_store.providers.qdrant.get_embedding_model",
+        lambda name: DummyEmbeddingModel(),
+    )
+
+    provider = QdrantProvider(client, async_client=async_client)
+
+    monkeypatch.setattr(
+        "rag_core.ai.models.get_sparse_embedding_model",
+        lambda name: MagicMock(),
+    )
+
+    await provider.create_vector_store(
+        collection_name="hybrid_collection_ko",
+        model_name="dummy-dense-model",
+        distance="cosine",
+        retrieval_mode="hybrid",
+        sparse_model="ko-kiwi-bm25",
+    )
+
+    async_client.create_collection.assert_awaited_once()
+    kwargs = async_client.create_collection.call_args[1]
+    assert kwargs["collection_name"] == "hybrid_collection_ko"
+    assert "sparse_vectors_config" in kwargs
+    sparse_config = kwargs["sparse_vectors_config"]
+    assert sparse_config is not None
+    assert "sparse" in sparse_config
+    assert sparse_config["sparse"].modifier == conf.Modifier.IDF
