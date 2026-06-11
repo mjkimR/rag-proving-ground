@@ -9,6 +9,7 @@ import { Knowledge } from './views/Knowledge';
 import { DocumentWorkbench } from './views/DocumentWorkbench';
 import { Chat } from './views/Chat';
 import { Playground } from './views/Playground';
+import { Providers } from './views/Providers';
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import { API_BASE_URL, COPILOT_RUNTIME_URL } from '@/lib/config';
@@ -42,6 +43,8 @@ const ContentSwitcher: React.FC = () => {
       return <DocumentWorkbench copilotEnabled={Boolean(copilotRuntimeUrl)} />;
     case 'chat':
       return <Chat />;
+    case 'providers':
+      return <Providers />;
     case 'dashboard':
     default:
       return <Dashboard />;

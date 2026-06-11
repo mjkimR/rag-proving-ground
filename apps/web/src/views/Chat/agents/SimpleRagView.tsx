@@ -3,7 +3,7 @@ import { Spin, Alert, message } from 'antd';
 import { AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useThemeStore } from '@/stores/themeStore';
-import { getModelCatalogOptionsApiV1ModelCatalogOptionsGet } from '@/generated/api/sdk.gen';
+import { getProviderOptionsApiV1ProvidersOptionsGet } from '@/generated/api/sdk.gen';
 import type { RerankerConfig } from '@/generated/api/types.gen';
 import { useChatThread } from '../hooks/useChatThread';
 import { useChatStream } from '../hooks/useChatStream';
@@ -32,7 +32,7 @@ export const SimpleRagView: React.FC<AgentViewProps> = ({
 
   const { data: modelOptions } = useQuery({
     queryKey: ['modelOptions'],
-    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+    queryFn: () => getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true }),
   });
 
   const { threadId, isInitializing, errorMsg, resetThread } = useChatThread(assistantId);

@@ -1,1 +1,0 @@
-"""Test model catalog package."""

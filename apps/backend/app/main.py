@@ -28,11 +28,125 @@ from rag_core.adapters.vector_store import lifespan_vector_store
 from starlette.responses import RedirectResponse
 
 
+async def init_db_and_seed_models_parsers() -> None:
+    """Seed models and parsers on startup if tables are empty, and load cache registries."""
+    from app.features.providers.ai_models.models import AIModel
+    from app.features.providers.cache import refresh_ai_models_cache, refresh_document_parsers_cache
+    from app.features.providers.document_parsers.models import DocumentParser
+    from app_layer_base.core.database.transaction import AsyncTransaction
+    from rag_core.adapters.parser.registry import ParserRegistry
+    from rag_core.ai.models import _fetch_raw_model_info_from_gateway, get_litellm_settings
+    from rag_core.config import get_parser_settings
+    from sqlalchemy import select
+
+    async with AsyncTransaction() as session:
+        # 1. AI Models Seeding
+        models_stmt = select(AIModel)
+        models_res = await session.execute(models_stmt)
+        if not models_res.scalars().all():
+            logger.info("AI Models table is empty. Seeding from LiteLLM gateway...")
+            settings = get_litellm_settings()
+            try:
+                model_list = _fetch_raw_model_info_from_gateway()
+            except Exception as e:
+                logger.warning(f"Could not connect to LiteLLM gateway during startup seeding: {e}. Using placeholders.")
+                model_list = [
+                    {"model_name": settings.default_llm_model, "metadata": {"role": "llm"}},
+                    {"model_name": settings.default_embedding_model, "metadata": {"role": "embedding"}},
+                    {"model_name": settings.default_reranker_model, "metadata": {"role": "reranker"}},
+                ]
+
+            for entry in model_list:
+                name = entry.get("model_name")
+                if not name:
+                    continue
+
+                metadata = entry.get("metadata") or {}
+                role = metadata.get("role") or metadata.get("type")
+                if not role and "tags" in metadata:
+                    tags = metadata.get("tags") or []
+                    if "embedding" in tags:
+                        role = "embedding"
+                    elif "reranker" in tags:
+                        role = "reranker"
+                    elif "llm" in tags or "chat" in tags:
+                        role = "llm"
+                if not role:
+                    name_lower = name.lower()
+                    if "embedding" in name_lower or ("bge" in name_lower and "rerank" not in name_lower):
+                        role = "embedding"
+                    elif "reranker" in name_lower or "rerank" in name_lower:
+                        role = "reranker"
+                    else:
+                        role = "llm"
+
+                # Check default status
+                is_default = (
+                    (role == "llm" and name == settings.default_llm_model)
+                    or (role == "embedding" and name == settings.default_embedding_model)
+                    or (role == "reranker" and name == settings.default_reranker_model)
+                )
+
+                litellm_params = entry.get("litellm_params") or {}
+                raw_model_val = litellm_params.get("model") or ""
+                provider = "custom"
+                if "/" in raw_model_val:
+                    provider = raw_model_val.split("/")[0]
+                elif "/" in name:
+                    provider = name.split("/")[0]
+
+                connection_info = {
+                    "model": raw_model_val,
+                    "api_base": litellm_params.get("api_base"),
+                    "api_key": litellm_params.get("api_key"),
+                }
+
+                session.add(
+                    AIModel(
+                        name=name,
+                        provider=provider,
+                        model_type=role,
+                        is_active=True,
+                        is_default=is_default,
+                        connection_info=connection_info,
+                        extra_metadata={"model_params": metadata.get("model_params") or {}},
+                    )
+                )
+
+        # 2. Document Parsers Seeding
+        parsers_stmt = select(DocumentParser)
+        parsers_res = await session.execute(parsers_stmt)
+        if not parsers_res.scalars().all():
+            logger.info("Document Parsers table is empty. Seeding from ParserRegistry...")
+            parser_settings = get_parser_settings()
+            parsers_list = ParserRegistry.list_parsers()
+
+            for name in parsers_list:
+                is_default = name == parser_settings.provider
+                session.add(
+                    DocumentParser(
+                        name=name,
+                        is_active=True,
+                        is_default=is_default,
+                        connection_info={},
+                        extra_metadata={},
+                    )
+                )
+
+        await session.flush()
+
+        # 3. Reload cache registries
+        await refresh_ai_models_cache(session)
+        await refresh_document_parsers_cache(session)
+
+
 def get_lifespan():
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         logger.info("Starting app lifespan")
         async with lifespan_http_client(app), lifespan_file_storage(app), lifespan_vector_store(app):
+            # Seed and populate registry caches on boot
+            await init_db_and_seed_models_parsers()
             await broker.connect()
             yield
             await broker.stop()

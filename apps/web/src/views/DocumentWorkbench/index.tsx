@@ -5,7 +5,7 @@ import { ControlPanel } from "./components/ControlPanel";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { FullscreenComparison } from "./components/FullscreenComparison";
 import { 
-  getModelCatalogOptionsApiV1ModelCatalogOptionsGet,
+  getProviderOptionsApiV1ProvidersOptionsGet,
   documentParseApiV1DocParseParsePost 
 } from "@/generated/api";
 import type { ParsedElement } from "../../components/ElementsExplorer";
@@ -61,7 +61,7 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
   const [parserProviders, setParserProviders] = useState<string[]>(["docling"]);
 
   useEffect(() => {
-    getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true })
+    getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true })
       .then((res) => {
         if (res.data?.parser_providers) {
           setParserProviders(res.data.parser_providers);

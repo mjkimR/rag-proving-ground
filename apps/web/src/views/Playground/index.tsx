@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { GitMerge, Search, SlidersHorizontal } from 'lucide-react';
 import {
   getKnowledgeBasesApiV1KnowledgeBasesGet,
-  getModelCatalogOptionsApiV1ModelCatalogOptionsGet,
+  getProviderOptionsApiV1ProvidersOptionsGet,
   searchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPost,
 } from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseSearchResponse, RerankerConfig } from '@/generated/api/types.gen';
@@ -29,7 +29,7 @@ export const Playground: React.FC = () => {
 
   const modelQuery = useQuery({
     queryKey: ['configOptions'],
-    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+    queryFn: () => getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true }),
   });
 
   const knowledgeBases = useMemo(() => kbQuery.data?.data?.items || [], [kbQuery.data]);

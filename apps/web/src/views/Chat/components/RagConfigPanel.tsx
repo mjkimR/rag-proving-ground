@@ -3,7 +3,7 @@ import { Card, Input, InputNumber, Select, Space, Switch, Typography } from 'ant
 import { useQuery } from '@tanstack/react-query';
 import {
   getKnowledgeBasesApiV1KnowledgeBasesGet,
-  getModelCatalogOptionsApiV1ModelCatalogOptionsGet,
+  getProviderOptionsApiV1ProvidersOptionsGet,
 } from '@/generated/api/sdk.gen';
 
 const { Text } = Typography;
@@ -43,7 +43,7 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
 }) => {
   const { data: modelOptions } = useQuery({
     queryKey: ['modelOptions'],
-    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+    queryFn: () => getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true }),
   });
 
   const kbQuery = useQuery({

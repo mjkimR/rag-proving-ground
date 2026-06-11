@@ -1,7 +1,7 @@
 import React from 'react';
 import { Col, Row } from 'antd';
 import { useQuery } from '@tanstack/react-query';
-import { getKnowledgeBasesApiV1KnowledgeBasesGet, healthApiHealthGet, getModelCatalogOptionsApiV1ModelCatalogOptionsGet } from '@/generated/api/sdk.gen';
+import { getKnowledgeBasesApiV1KnowledgeBasesGet, healthApiHealthGet, getProviderOptionsApiV1ProvidersOptionsGet } from '@/generated/api/sdk.gen';
 
 import { DashboardStats } from './components/DashboardStats';
 import { KnowledgeBasesCard } from './components/KnowledgeBasesCard';
@@ -25,7 +25,7 @@ export const Dashboard: React.FC = () => {
   // 3. Fetch Model Catalog Options
   const { data: configOptions, isLoading: catalogLoading } = useQuery({
     queryKey: ['configOptions'],
-    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+    queryFn: () => getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true }),
   });
 
   const embeddingModels = configOptions?.data?.embedding_models || [];

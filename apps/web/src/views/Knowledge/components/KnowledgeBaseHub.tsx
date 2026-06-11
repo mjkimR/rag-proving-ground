@@ -12,7 +12,7 @@ import {
   getKnowledgeBasesApiV1KnowledgeBasesGet,
   createKnowledgeBaseApiV1KnowledgeBasesPost,
   deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete,
-  getModelCatalogOptionsApiV1ModelCatalogOptionsGet
+  getProviderOptionsApiV1ProvidersOptionsGet
 } from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
 import styles from './KnowledgeBaseHub.module.css';
@@ -77,7 +77,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
   // Fetch dynamic configuration options
   const { data: configOptions, isLoading: configLoading } = useQuery({
     queryKey: ['configOptions'],
-    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+    queryFn: () => getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true }),
   });
 
   const embeddingModels = configOptions?.data?.embedding_models || [];

@@ -34,6 +34,22 @@ async def _get_cache() -> ParserCache:
     return ParserCache(client)
 
 
+# Global registry for active and default parsers populated from database
+_ACTIVE_PARSERS: dict[str, dict[str, Any]] = {}
+_DEFAULT_PARSER: dict[str, Any] | None = None
+
+
+def update_parser_registry(parsers: list[dict[str, Any]]) -> None:
+    """Update the in-memory active and default parser registry."""
+    global _ACTIVE_PARSERS, _DEFAULT_PARSER
+    _ACTIVE_PARSERS = {p["name"]: p for p in parsers if p.get("is_active", True)}
+    _DEFAULT_PARSER = None
+    for p in parsers:
+        if p.get("is_active", True) and p.get("is_default", False):
+            _DEFAULT_PARSER = p
+            break
+
+
 def register_parser(parser_class: type[Parser]) -> None:
     """Register a parser provider."""
     ParserRegistry.register(parser_class)
@@ -54,8 +70,26 @@ def _is_text_format(parser_input: ParserInput) -> bool:
 
 def get_parser(provider: str | None = None) -> Parser:
     """Get the configured parser engine."""
-    provider = provider or get_parser_settings().provider
-    return ParserFactory.create_parser(provider=provider)
+    resolved_provider = provider
+    if not resolved_provider:
+        resolved_provider = _DEFAULT_PARSER["name"] if _DEFAULT_PARSER else get_parser_settings().provider
+
+    parser = ParserFactory.create_parser(provider=resolved_provider)
+
+    # Override configuration attributes dynamically if registered in DB config
+    cached_parser = _ACTIVE_PARSERS.get(resolved_provider)
+    if cached_parser and cached_parser.get("connection_info"):
+        conn_info = cached_parser["connection_info"]
+        if resolved_provider == "docling":
+            if hasattr(parser, "base_url") and "base_url" in conn_info:
+                parser.base_url = conn_info["base_url"].rstrip("/")  # type: ignore
+            if hasattr(parser, "timeout") and "timeout" in conn_info:
+                parser.timeout = float(conn_info["timeout"])  # type: ignore
+        elif resolved_provider == "native_text":
+            if hasattr(parser, "max_page_chars") and "max_page_chars" in conn_info:
+                parser.max_page_chars = int(conn_info["max_page_chars"])  # type: ignore
+
+    return parser
 
 
 def _ensure_elements(doc: Any) -> Any:

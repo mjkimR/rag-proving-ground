@@ -6,7 +6,7 @@ import { Settings, Info } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch,
-  getModelCatalogOptionsApiV1ModelCatalogOptionsGet
+  getProviderOptionsApiV1ProvidersOptionsGet
 } from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseRead, KnowledgeBaseConfigApplyMode, KnowledgeBasePatch } from '@/generated/api/types.gen';
 import { PARSER_LABELS } from '@/views/DocumentWorkbench/types';
@@ -110,7 +110,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
   // Fetch dynamic configuration options
   const { data: configOptions, isLoading: configLoading } = useQuery({
     queryKey: ['configOptions'],
-    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+    queryFn: () => getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true }),
     enabled: visible,
   });
 

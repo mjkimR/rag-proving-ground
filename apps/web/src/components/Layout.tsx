@@ -72,6 +72,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: <MessageSquare size={18} />,
       label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Agent Chat</span>,
     },
+    {
+      key: 'providers',
+      icon: <Server size={18} />,
+      label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Providers & Models</span>,
+    },
   ];
 
   return (
@@ -223,9 +228,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   ? 'Retrieval Playground'
                 : activeTab === 'workbench'
                   ? 'Showcase Workbench'
-                  : activeTab === 'chat'
-                    ? 'Agent Chat Proving'
-                    : 'Dashboard Overview'}
+                : activeTab === 'chat'
+                  ? 'Agent Chat Proving'
+                : activeTab === 'providers'
+                  ? 'Providers & Models Registry'
+                  : 'Dashboard Overview'}
             </h2>
           </div>
 

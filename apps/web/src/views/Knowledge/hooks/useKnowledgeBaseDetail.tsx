@@ -9,7 +9,7 @@ import {
   patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch,
   deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete,
   getJobProcessHistoriesApiV1JobProcessHistoriesGet,
-  getModelCatalogOptionsApiV1ModelCatalogOptionsGet,
+  getProviderOptionsApiV1ProvidersOptionsGet,
 } from '@/generated/api/sdk.gen';
 import { AlertCircle } from 'lucide-react';
 import type {
@@ -112,7 +112,7 @@ export const useKnowledgeBaseDetail = ({
   // Fetch dynamic configuration options
   const { data: configOptions, isLoading: configLoading } = useQuery({
     queryKey: ['configOptions'],
-    queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
+    queryFn: () => getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true }),
   });
 
   const embeddingModels = configOptions?.data?.embedding_models || [];

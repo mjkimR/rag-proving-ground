@@ -5,6 +5,226 @@ export type ClientOptions = {
 };
 
 /**
+ * AIModelCreate
+ */
+export type AiModelCreate = {
+    /**
+     * Name
+     *
+     * The name of the ai_model.
+     */
+    name: string;
+    /**
+     * Provider
+     *
+     * The provider of the model (e.g. openai, gemini, etc.)
+     */
+    provider: string;
+    /**
+     * Model Type
+     *
+     * The type of the model (llm, embedding, reranker)
+     */
+    model_type: string;
+    /**
+     * Is Active
+     *
+     * Whether the model is active
+     */
+    is_active?: boolean;
+    /**
+     * Is Default
+     *
+     * Whether this is the default model for its type
+     */
+    is_default?: boolean;
+    /**
+     * Connection Info
+     *
+     * Connection parameters
+     */
+    connection_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Extra Metadata
+     *
+     * Additional metadata
+     */
+    extra_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * AIModelPatch
+ */
+export type AiModelPatch = {
+    /**
+     * Name
+     *
+     * The name of the ai_model.
+     */
+    name?: string | null;
+    /**
+     * Provider
+     *
+     * The provider of the model.
+     */
+    provider?: string | null;
+    /**
+     * Model Type
+     *
+     * The type of the model.
+     */
+    model_type?: string | null;
+    /**
+     * Is Active
+     *
+     * Whether the model is active
+     */
+    is_active?: boolean | null;
+    /**
+     * Is Default
+     *
+     * Whether this is the default model
+     */
+    is_default?: boolean | null;
+    /**
+     * Connection Info
+     *
+     * Connection parameters
+     */
+    connection_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Extra Metadata
+     *
+     * Additional metadata
+     */
+    extra_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * AIModelPut
+ */
+export type AiModelPut = {
+    /**
+     * Name
+     *
+     * The name of the ai_model.
+     */
+    name: string;
+    /**
+     * Provider
+     *
+     * The provider of the model (e.g. openai, gemini, etc.)
+     */
+    provider: string;
+    /**
+     * Model Type
+     *
+     * The type of the model (llm, embedding, reranker)
+     */
+    model_type: string;
+    /**
+     * Is Active
+     *
+     * Whether the model is active
+     */
+    is_active?: boolean;
+    /**
+     * Is Default
+     *
+     * Whether this is the default model for its type
+     */
+    is_default?: boolean;
+    /**
+     * Connection Info
+     *
+     * Connection parameters
+     */
+    connection_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Extra Metadata
+     *
+     * Additional metadata
+     */
+    extra_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * AIModelRead
+ */
+export type AiModelRead = {
+    /**
+     * Name
+     *
+     * The name of the ai_model.
+     */
+    name: string;
+    /**
+     * Provider
+     *
+     * The provider of the model (e.g. openai, gemini, etc.)
+     */
+    provider: string;
+    /**
+     * Model Type
+     *
+     * The type of the model (llm, embedding, reranker)
+     */
+    model_type: string;
+    /**
+     * Is Active
+     *
+     * Whether the model is active
+     */
+    is_active?: boolean;
+    /**
+     * Is Default
+     *
+     * Whether this is the default model for its type
+     */
+    is_default?: boolean;
+    /**
+     * Connection Info
+     *
+     * Connection parameters
+     */
+    connection_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Extra Metadata
+     *
+     * Additional metadata
+     */
+    extra_metadata?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
  * AssetRef
  *
  * Reference to binary or visual data stored outside text content.
@@ -202,6 +422,178 @@ export type DeleteResponse = {
     meta?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * DocumentParserCreate
+ */
+export type DocumentParserCreate = {
+    /**
+     * Name
+     *
+     * The name of the document_parser.
+     */
+    name: string;
+    /**
+     * Is Active
+     *
+     * Whether the parser is active
+     */
+    is_active?: boolean;
+    /**
+     * Is Default
+     *
+     * Whether this is the default parser
+     */
+    is_default?: boolean;
+    /**
+     * Connection Info
+     *
+     * Connection parameters
+     */
+    connection_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Extra Metadata
+     *
+     * Additional metadata
+     */
+    extra_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * DocumentParserPatch
+ */
+export type DocumentParserPatch = {
+    /**
+     * Name
+     *
+     * The name of the document_parser.
+     */
+    name?: string | null;
+    /**
+     * Is Active
+     *
+     * Whether the parser is active
+     */
+    is_active?: boolean | null;
+    /**
+     * Is Default
+     *
+     * Whether this is the default parser
+     */
+    is_default?: boolean | null;
+    /**
+     * Connection Info
+     *
+     * Connection parameters
+     */
+    connection_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Extra Metadata
+     *
+     * Additional metadata
+     */
+    extra_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * DocumentParserPut
+ */
+export type DocumentParserPut = {
+    /**
+     * Name
+     *
+     * The name of the document_parser.
+     */
+    name: string;
+    /**
+     * Is Active
+     *
+     * Whether the parser is active
+     */
+    is_active?: boolean;
+    /**
+     * Is Default
+     *
+     * Whether this is the default parser
+     */
+    is_default?: boolean;
+    /**
+     * Connection Info
+     *
+     * Connection parameters
+     */
+    connection_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Extra Metadata
+     *
+     * Additional metadata
+     */
+    extra_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * DocumentParserRead
+ */
+export type DocumentParserRead = {
+    /**
+     * Name
+     *
+     * The name of the document_parser.
+     */
+    name: string;
+    /**
+     * Is Active
+     *
+     * Whether the parser is active
+     */
+    is_active?: boolean;
+    /**
+     * Is Default
+     *
+     * Whether this is the default parser
+     */
+    is_default?: boolean;
+    /**
+     * Connection Info
+     *
+     * Connection parameters
+     */
+    connection_info?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Extra Metadata
+     *
+     * Additional metadata
+     */
+    extra_metadata?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
 };
 
 /**
@@ -968,36 +1360,6 @@ export type KnowledgeParsingConfig = {
 };
 
 /**
- * ModelCatalogOptions
- */
-export type ModelCatalogOptions = {
-    /**
-     * Embedding Models
-     *
-     * List of available embedding models
-     */
-    embedding_models: Array<string>;
-    /**
-     * Llm Models
-     *
-     * List of available LLM models
-     */
-    llm_models: Array<string>;
-    /**
-     * Reranker Models
-     *
-     * List of available reranker models
-     */
-    reranker_models: Array<string>;
-    /**
-     * Parser Providers
-     *
-     * List of available parser providers
-     */
-    parser_providers: Array<string>;
-};
-
-/**
  * MultiKnowledgeBaseSearchRequest
  */
 export type MultiKnowledgeBaseSearchRequest = {
@@ -1029,6 +1391,70 @@ export type MultiKnowledgeBaseSearchRequest = {
      * Reranker options for merged results.
      */
     reranker_config?: RerankerConfig | null;
+};
+
+/**
+ * PaginatedList[AIModelRead]
+ */
+export type PaginatedListAiModelRead = {
+    /**
+     * Items
+     */
+    items: Array<AiModelRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
+ * PaginatedList[DocumentParserRead]
+ */
+export type PaginatedListDocumentParserRead = {
+    /**
+     * Items
+     */
+    items: Array<DocumentParserRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
 };
 
 /**
@@ -1360,6 +1786,36 @@ export type Provenance = {
 };
 
 /**
+ * ProviderOptions
+ */
+export type ProviderOptions = {
+    /**
+     * Embedding Models
+     *
+     * List of available embedding models
+     */
+    embedding_models: Array<string>;
+    /**
+     * Llm Models
+     *
+     * List of available LLM models
+     */
+    llm_models: Array<string>;
+    /**
+     * Reranker Models
+     *
+     * List of available reranker models
+     */
+    reranker_models: Array<string>;
+    /**
+     * Parser Providers
+     *
+     * List of available parser providers
+     */
+    parser_providers: Array<string>;
+};
+
+/**
  * RerankerConfig
  *
  * Safe client-controlled reranker options.
@@ -1412,6 +1868,50 @@ export type ValidationError = {
     ctx?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * PaginatedList[AIModelRead]
+ */
+export type PaginatedListAiModelReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<AiModelRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
+ * PaginatedList[DocumentParserRead]
+ */
+export type PaginatedListDocumentParserReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<DocumentParserRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
 };
 
 /**
@@ -2348,21 +2848,21 @@ export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetRe
 
 export type GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponse = GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses[keyof GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses];
 
-export type GetModelCatalogOptionsApiV1ModelCatalogOptionsGetData = {
+export type GetProviderOptionsApiV1ProvidersOptionsGetData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/api/v1/model_catalog/options';
+    url: '/api/v1/providers/options';
 };
 
-export type GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses = {
+export type GetProviderOptionsApiV1ProvidersOptionsGetResponses = {
     /**
      * Successful Response
      */
-    200: ModelCatalogOptions;
+    200: ProviderOptions;
 };
 
-export type GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponse = GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses[keyof GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses];
+export type GetProviderOptionsApiV1ProvidersOptionsGetResponse = GetProviderOptionsApiV1ProvidersOptionsGetResponses[keyof GetProviderOptionsApiV1ProvidersOptionsGetResponses];
 
 export type GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetData = {
     body?: never;
@@ -2579,3 +3079,461 @@ export type PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutRes
 };
 
 export type PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponse = PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponses[keyof PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponses];
+
+export type GetDocumentParsersApiV1DocumentParsersGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/document_parsers';
+};
+
+export type GetDocumentParsersApiV1DocumentParsersGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDocumentParsersApiV1DocumentParsersGetError = GetDocumentParsersApiV1DocumentParsersGetErrors[keyof GetDocumentParsersApiV1DocumentParsersGetErrors];
+
+export type GetDocumentParsersApiV1DocumentParsersGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListDocumentParserRead;
+};
+
+export type GetDocumentParsersApiV1DocumentParsersGetResponse = GetDocumentParsersApiV1DocumentParsersGetResponses[keyof GetDocumentParsersApiV1DocumentParsersGetResponses];
+
+export type CreateDocumentParserApiV1DocumentParsersPostData = {
+    body: DocumentParserCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/document_parsers';
+};
+
+export type CreateDocumentParserApiV1DocumentParsersPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateDocumentParserApiV1DocumentParsersPostError = CreateDocumentParserApiV1DocumentParsersPostErrors[keyof CreateDocumentParserApiV1DocumentParsersPostErrors];
+
+export type CreateDocumentParserApiV1DocumentParsersPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentParserRead;
+};
+
+export type CreateDocumentParserApiV1DocumentParsersPostResponse = CreateDocumentParserApiV1DocumentParsersPostResponses[keyof CreateDocumentParserApiV1DocumentParsersPostResponses];
+
+export type DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Document Parser Id
+         */
+        document_parser_id: string;
+    };
+    query?: never;
+    url: '/api/v1/document_parsers/{document_parser_id}';
+};
+
+export type DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteError = DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteErrors[keyof DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteErrors];
+
+export type DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteResponse = DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteResponses[keyof DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteResponses];
+
+export type GetDocumentParserApiV1DocumentParsersDocumentParserIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Document Parser Id
+         */
+        document_parser_id: string;
+    };
+    query?: never;
+    url: '/api/v1/document_parsers/{document_parser_id}';
+};
+
+export type GetDocumentParserApiV1DocumentParsersDocumentParserIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDocumentParserApiV1DocumentParsersDocumentParserIdGetError = GetDocumentParserApiV1DocumentParsersDocumentParserIdGetErrors[keyof GetDocumentParserApiV1DocumentParsersDocumentParserIdGetErrors];
+
+export type GetDocumentParserApiV1DocumentParsersDocumentParserIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentParserRead;
+};
+
+export type GetDocumentParserApiV1DocumentParsersDocumentParserIdGetResponse = GetDocumentParserApiV1DocumentParsersDocumentParserIdGetResponses[keyof GetDocumentParserApiV1DocumentParsersDocumentParserIdGetResponses];
+
+export type PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchData = {
+    body: DocumentParserPatch;
+    path: {
+        /**
+         * Document Parser Id
+         */
+        document_parser_id: string;
+    };
+    query?: never;
+    url: '/api/v1/document_parsers/{document_parser_id}';
+};
+
+export type PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchError = PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchErrors[keyof PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchErrors];
+
+export type PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentParserRead;
+};
+
+export type PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchResponse = PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchResponses[keyof PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchResponses];
+
+export type PutDocumentParserApiV1DocumentParsersDocumentParserIdPutData = {
+    body: DocumentParserPut;
+    path: {
+        /**
+         * Document Parser Id
+         */
+        document_parser_id: string;
+    };
+    query?: never;
+    url: '/api/v1/document_parsers/{document_parser_id}';
+};
+
+export type PutDocumentParserApiV1DocumentParsersDocumentParserIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutDocumentParserApiV1DocumentParsersDocumentParserIdPutError = PutDocumentParserApiV1DocumentParsersDocumentParserIdPutErrors[keyof PutDocumentParserApiV1DocumentParsersDocumentParserIdPutErrors];
+
+export type PutDocumentParserApiV1DocumentParsersDocumentParserIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentParserRead;
+};
+
+export type PutDocumentParserApiV1DocumentParsersDocumentParserIdPutResponse = PutDocumentParserApiV1DocumentParsersDocumentParserIdPutResponses[keyof PutDocumentParserApiV1DocumentParsersDocumentParserIdPutResponses];
+
+export type SyncDocumentParsersApiV1DocumentParsersSyncPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/document_parsers/sync';
+};
+
+export type SyncDocumentParsersApiV1DocumentParsersSyncPostResponses = {
+    /**
+     * Response Sync Document Parsers Api V1 Document Parsers Sync Post
+     *
+     * Successful Response
+     */
+    200: Array<DocumentParserRead>;
+};
+
+export type SyncDocumentParsersApiV1DocumentParsersSyncPostResponse = SyncDocumentParsersApiV1DocumentParsersSyncPostResponses[keyof SyncDocumentParsersApiV1DocumentParsersSyncPostResponses];
+
+export type TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostData = {
+    body?: never;
+    path: {
+        /**
+         * Document Parser Id
+         */
+        document_parser_id: string;
+    };
+    query?: never;
+    url: '/api/v1/document_parsers/{document_parser_id}/test';
+};
+
+export type TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostError = TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostErrors[keyof TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostErrors];
+
+export type TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetAiModelsApiV1AiModelsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/ai_models';
+};
+
+export type GetAiModelsApiV1AiModelsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetAiModelsApiV1AiModelsGetError = GetAiModelsApiV1AiModelsGetErrors[keyof GetAiModelsApiV1AiModelsGetErrors];
+
+export type GetAiModelsApiV1AiModelsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListAiModelRead;
+};
+
+export type GetAiModelsApiV1AiModelsGetResponse = GetAiModelsApiV1AiModelsGetResponses[keyof GetAiModelsApiV1AiModelsGetResponses];
+
+export type CreateAiModelApiV1AiModelsPostData = {
+    body: AiModelCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai_models';
+};
+
+export type CreateAiModelApiV1AiModelsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateAiModelApiV1AiModelsPostError = CreateAiModelApiV1AiModelsPostErrors[keyof CreateAiModelApiV1AiModelsPostErrors];
+
+export type CreateAiModelApiV1AiModelsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: AiModelRead;
+};
+
+export type CreateAiModelApiV1AiModelsPostResponse = CreateAiModelApiV1AiModelsPostResponses[keyof CreateAiModelApiV1AiModelsPostResponses];
+
+export type DeleteAiModelApiV1AiModelsAiModelIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Ai Model Id
+         */
+        ai_model_id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai_models/{ai_model_id}';
+};
+
+export type DeleteAiModelApiV1AiModelsAiModelIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteAiModelApiV1AiModelsAiModelIdDeleteError = DeleteAiModelApiV1AiModelsAiModelIdDeleteErrors[keyof DeleteAiModelApiV1AiModelsAiModelIdDeleteErrors];
+
+export type DeleteAiModelApiV1AiModelsAiModelIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteAiModelApiV1AiModelsAiModelIdDeleteResponse = DeleteAiModelApiV1AiModelsAiModelIdDeleteResponses[keyof DeleteAiModelApiV1AiModelsAiModelIdDeleteResponses];
+
+export type GetAiModelApiV1AiModelsAiModelIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Ai Model Id
+         */
+        ai_model_id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai_models/{ai_model_id}';
+};
+
+export type GetAiModelApiV1AiModelsAiModelIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetAiModelApiV1AiModelsAiModelIdGetError = GetAiModelApiV1AiModelsAiModelIdGetErrors[keyof GetAiModelApiV1AiModelsAiModelIdGetErrors];
+
+export type GetAiModelApiV1AiModelsAiModelIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: AiModelRead;
+};
+
+export type GetAiModelApiV1AiModelsAiModelIdGetResponse = GetAiModelApiV1AiModelsAiModelIdGetResponses[keyof GetAiModelApiV1AiModelsAiModelIdGetResponses];
+
+export type PatchAiModelApiV1AiModelsAiModelIdPatchData = {
+    body: AiModelPatch;
+    path: {
+        /**
+         * Ai Model Id
+         */
+        ai_model_id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai_models/{ai_model_id}';
+};
+
+export type PatchAiModelApiV1AiModelsAiModelIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchAiModelApiV1AiModelsAiModelIdPatchError = PatchAiModelApiV1AiModelsAiModelIdPatchErrors[keyof PatchAiModelApiV1AiModelsAiModelIdPatchErrors];
+
+export type PatchAiModelApiV1AiModelsAiModelIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: AiModelRead;
+};
+
+export type PatchAiModelApiV1AiModelsAiModelIdPatchResponse = PatchAiModelApiV1AiModelsAiModelIdPatchResponses[keyof PatchAiModelApiV1AiModelsAiModelIdPatchResponses];
+
+export type PutAiModelApiV1AiModelsAiModelIdPutData = {
+    body: AiModelPut;
+    path: {
+        /**
+         * Ai Model Id
+         */
+        ai_model_id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai_models/{ai_model_id}';
+};
+
+export type PutAiModelApiV1AiModelsAiModelIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutAiModelApiV1AiModelsAiModelIdPutError = PutAiModelApiV1AiModelsAiModelIdPutErrors[keyof PutAiModelApiV1AiModelsAiModelIdPutErrors];
+
+export type PutAiModelApiV1AiModelsAiModelIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: AiModelRead;
+};
+
+export type PutAiModelApiV1AiModelsAiModelIdPutResponse = PutAiModelApiV1AiModelsAiModelIdPutResponses[keyof PutAiModelApiV1AiModelsAiModelIdPutResponses];
+
+export type SyncAiModelsApiV1AiModelsSyncPostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/ai_models/sync';
+};
+
+export type SyncAiModelsApiV1AiModelsSyncPostResponses = {
+    /**
+     * Response Sync Ai Models Api V1 Ai Models Sync Post
+     *
+     * Successful Response
+     */
+    200: Array<AiModelRead>;
+};
+
+export type SyncAiModelsApiV1AiModelsSyncPostResponse = SyncAiModelsApiV1AiModelsSyncPostResponses[keyof SyncAiModelsApiV1AiModelsSyncPostResponses];
+
+export type TestAiModelApiV1AiModelsAiModelIdTestPostData = {
+    body?: never;
+    path: {
+        /**
+         * Ai Model Id
+         */
+        ai_model_id: string;
+    };
+    query?: never;
+    url: '/api/v1/ai_models/{ai_model_id}/test';
+};
+
+export type TestAiModelApiV1AiModelsAiModelIdTestPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type TestAiModelApiV1AiModelsAiModelIdTestPostError = TestAiModelApiV1AiModelsAiModelIdTestPostErrors[keyof TestAiModelApiV1AiModelsAiModelIdTestPostErrors];
+
+export type TestAiModelApiV1AiModelsAiModelIdTestPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};

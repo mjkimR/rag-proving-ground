@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CreateKnowledgeBaseApiV1KnowledgeBasesPostData, CreateKnowledgeBaseApiV1KnowledgeBasesPostErrors, CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostData, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostErrors, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostResponses, CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostData, CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostErrors, CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostResponses, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteData, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteErrors, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteResponses, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteData, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteErrors, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteResponses, DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteData, DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteErrors, DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteResponses, DocumentParseApiV1DocParseParsePostData, DocumentParseApiV1DocParseParsePostErrors, DocumentParseApiV1DocParseParsePostResponses, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetData, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetErrors, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetResponses, GetJobProcessHistoriesApiV1JobProcessHistoriesGetData, GetJobProcessHistoriesApiV1JobProcessHistoriesGetErrors, GetJobProcessHistoriesApiV1JobProcessHistoriesGetResponses, GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetData, GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetErrors, GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetData, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetErrors, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetResponses, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetData, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetErrors, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetResponses, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetData, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetErrors, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetResponses, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetData, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetErrors, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses, GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetData, GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetErrors, GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetResponses, GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetData, GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetErrors, GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetResponses, GetKnowledgeBasesApiV1KnowledgeBasesGetData, GetKnowledgeBasesApiV1KnowledgeBasesGetErrors, GetKnowledgeBasesApiV1KnowledgeBasesGetResponses, GetModelCatalogOptionsApiV1ModelCatalogOptionsGetData, GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetData, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetErrors, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetResponses, HealthApiHealthGetData, HealthApiHealthGetResponses, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchData, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchErrors, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchResponses, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchData, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchErrors, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchResponses, PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchData, PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchErrors, PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchResponses, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutData, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutErrors, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutResponses, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutData, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutErrors, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutResponses, PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutData, PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutErrors, PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponses, ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostData, ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostErrors, ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostResponses, RootGetData, RootGetResponses, SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostData, SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostErrors, SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostResponses, SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostData, SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostErrors, SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostResponses, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostData, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostErrors, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostResponses } from './types.gen';
+import type { CreateAiModelApiV1AiModelsPostData, CreateAiModelApiV1AiModelsPostErrors, CreateAiModelApiV1AiModelsPostResponses, CreateDocumentParserApiV1DocumentParsersPostData, CreateDocumentParserApiV1DocumentParsersPostErrors, CreateDocumentParserApiV1DocumentParsersPostResponses, CreateKnowledgeBaseApiV1KnowledgeBasesPostData, CreateKnowledgeBaseApiV1KnowledgeBasesPostErrors, CreateKnowledgeBaseApiV1KnowledgeBasesPostResponses, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostData, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostErrors, CreateKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsPostResponses, CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostData, CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostErrors, CreateKnowledgeBasePageApiV1KnowledgeBasePagesPostResponses, DeleteAiModelApiV1AiModelsAiModelIdDeleteData, DeleteAiModelApiV1AiModelsAiModelIdDeleteErrors, DeleteAiModelApiV1AiModelsAiModelIdDeleteResponses, DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteData, DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteErrors, DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteResponses, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteData, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteErrors, DeleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDeleteResponses, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteData, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteErrors, DeleteKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDeleteResponses, DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteData, DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteErrors, DeleteKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdDeleteResponses, DocumentParseApiV1DocParseParsePostData, DocumentParseApiV1DocParseParsePostErrors, DocumentParseApiV1DocParseParsePostResponses, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetData, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetErrors, DownloadKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdDownloadGetResponses, GetAiModelApiV1AiModelsAiModelIdGetData, GetAiModelApiV1AiModelsAiModelIdGetErrors, GetAiModelApiV1AiModelsAiModelIdGetResponses, GetAiModelsApiV1AiModelsGetData, GetAiModelsApiV1AiModelsGetErrors, GetAiModelsApiV1AiModelsGetResponses, GetDocumentParserApiV1DocumentParsersDocumentParserIdGetData, GetDocumentParserApiV1DocumentParsersDocumentParserIdGetErrors, GetDocumentParserApiV1DocumentParsersDocumentParserIdGetResponses, GetDocumentParsersApiV1DocumentParsersGetData, GetDocumentParsersApiV1DocumentParsersGetErrors, GetDocumentParsersApiV1DocumentParsersGetResponses, GetJobProcessHistoriesApiV1JobProcessHistoriesGetData, GetJobProcessHistoriesApiV1JobProcessHistoriesGetErrors, GetJobProcessHistoriesApiV1JobProcessHistoriesGetResponses, GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetData, GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetErrors, GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetData, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetErrors, GetKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdGetResponses, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetData, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetErrors, GetKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdGetResponses, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetData, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetErrors, GetKnowledgeBaseDocumentsApiV1KnowledgeBaseDocumentsGetResponses, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetData, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetErrors, GetKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGetResponses, GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetData, GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetErrors, GetKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdGetResponses, GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetData, GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetErrors, GetKnowledgeBasePagesApiV1KnowledgeBasePagesGetResponses, GetKnowledgeBasesApiV1KnowledgeBasesGetData, GetKnowledgeBasesApiV1KnowledgeBasesGetErrors, GetKnowledgeBasesApiV1KnowledgeBasesGetResponses, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetData, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetErrors, GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdParsedGetResponses, GetProviderOptionsApiV1ProvidersOptionsGetData, GetProviderOptionsApiV1ProvidersOptionsGetResponses, HealthApiHealthGetData, HealthApiHealthGetResponses, PatchAiModelApiV1AiModelsAiModelIdPatchData, PatchAiModelApiV1AiModelsAiModelIdPatchErrors, PatchAiModelApiV1AiModelsAiModelIdPatchResponses, PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchData, PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchErrors, PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchResponses, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchData, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchErrors, PatchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatchResponses, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchData, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchErrors, PatchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatchResponses, PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchData, PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchErrors, PatchKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPatchResponses, PutAiModelApiV1AiModelsAiModelIdPutData, PutAiModelApiV1AiModelsAiModelIdPutErrors, PutAiModelApiV1AiModelsAiModelIdPutResponses, PutDocumentParserApiV1DocumentParsersDocumentParserIdPutData, PutDocumentParserApiV1DocumentParsersDocumentParserIdPutErrors, PutDocumentParserApiV1DocumentParsersDocumentParserIdPutResponses, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutData, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutErrors, PutKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPutResponses, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutData, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutErrors, PutKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPutResponses, PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutData, PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutErrors, PutKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPutResponses, ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostData, ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostErrors, ReprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPostResponses, RootGetData, RootGetResponses, SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostData, SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostErrors, SearchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPostResponses, SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostData, SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostErrors, SearchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPostResponses, SyncAiModelsApiV1AiModelsSyncPostData, SyncAiModelsApiV1AiModelsSyncPostResponses, SyncDocumentParsersApiV1DocumentParsersSyncPostData, SyncDocumentParsersApiV1DocumentParsersSyncPostResponses, TestAiModelApiV1AiModelsAiModelIdTestPostData, TestAiModelApiV1AiModelsAiModelIdTestPostErrors, TestAiModelApiV1AiModelsAiModelIdTestPostResponses, TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostData, TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostErrors, TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostResponses, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostData, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostErrors, UploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -232,9 +232,9 @@ export const getJobProcessHistoriesApiV1JobProcessHistoriesGet = <ThrowOnError e
 export const getJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGet = <ThrowOnError extends boolean = false>(options: Options<GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetData, ThrowOnError>) => (options.client ?? client).get<GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetResponses, GetJobProcessHistoryApiV1JobProcessHistoriesJobProcessHistoryIdGetErrors, ThrowOnError>({ url: '/api/v1/job_process_histories/{job_process_history_id}', ...options });
 
 /**
- * Get Model Catalog Options
+ * Get Provider Options
  */
-export const getModelCatalogOptionsApiV1ModelCatalogOptionsGet = <ThrowOnError extends boolean = false>(options?: Options<GetModelCatalogOptionsApiV1ModelCatalogOptionsGetData, ThrowOnError>) => (options?.client ?? client).get<GetModelCatalogOptionsApiV1ModelCatalogOptionsGetResponses, unknown, ThrowOnError>({ url: '/api/v1/model_catalog/options', ...options });
+export const getProviderOptionsApiV1ProvidersOptionsGet = <ThrowOnError extends boolean = false>(options?: Options<GetProviderOptionsApiV1ProvidersOptionsGetData, ThrowOnError>) => (options?.client ?? client).get<GetProviderOptionsApiV1ProvidersOptionsGetResponses, unknown, ThrowOnError>({ url: '/api/v1/providers/options', ...options });
 
 /**
  * Get Knowledge Base Pages
@@ -286,3 +286,125 @@ export const putKnowledgeBasePageApiV1KnowledgeBasePagesKnowledgeBasePageIdPut =
         ...options.headers
     }
 });
+
+/**
+ * Get Document Parsers
+ */
+export const getDocumentParsersApiV1DocumentParsersGet = <ThrowOnError extends boolean = false>(options?: Options<GetDocumentParsersApiV1DocumentParsersGetData, ThrowOnError>) => (options?.client ?? client).get<GetDocumentParsersApiV1DocumentParsersGetResponses, GetDocumentParsersApiV1DocumentParsersGetErrors, ThrowOnError>({ url: '/api/v1/document_parsers', ...options });
+
+/**
+ * Create Document Parser
+ */
+export const createDocumentParserApiV1DocumentParsersPost = <ThrowOnError extends boolean = false>(options: Options<CreateDocumentParserApiV1DocumentParsersPostData, ThrowOnError>) => (options.client ?? client).post<CreateDocumentParserApiV1DocumentParsersPostResponses, CreateDocumentParserApiV1DocumentParsersPostErrors, ThrowOnError>({
+    url: '/api/v1/document_parsers',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Document Parser
+ */
+export const deleteDocumentParserApiV1DocumentParsersDocumentParserIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteResponses, DeleteDocumentParserApiV1DocumentParsersDocumentParserIdDeleteErrors, ThrowOnError>({ url: '/api/v1/document_parsers/{document_parser_id}', ...options });
+
+/**
+ * Get Document Parser
+ */
+export const getDocumentParserApiV1DocumentParsersDocumentParserIdGet = <ThrowOnError extends boolean = false>(options: Options<GetDocumentParserApiV1DocumentParsersDocumentParserIdGetData, ThrowOnError>) => (options.client ?? client).get<GetDocumentParserApiV1DocumentParsersDocumentParserIdGetResponses, GetDocumentParserApiV1DocumentParsersDocumentParserIdGetErrors, ThrowOnError>({ url: '/api/v1/document_parsers/{document_parser_id}', ...options });
+
+/**
+ * Patch Document Parser
+ */
+export const patchDocumentParserApiV1DocumentParsersDocumentParserIdPatch = <ThrowOnError extends boolean = false>(options: Options<PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchData, ThrowOnError>) => (options.client ?? client).patch<PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchResponses, PatchDocumentParserApiV1DocumentParsersDocumentParserIdPatchErrors, ThrowOnError>({
+    url: '/api/v1/document_parsers/{document_parser_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Put Document Parser
+ */
+export const putDocumentParserApiV1DocumentParsersDocumentParserIdPut = <ThrowOnError extends boolean = false>(options: Options<PutDocumentParserApiV1DocumentParsersDocumentParserIdPutData, ThrowOnError>) => (options.client ?? client).put<PutDocumentParserApiV1DocumentParsersDocumentParserIdPutResponses, PutDocumentParserApiV1DocumentParsersDocumentParserIdPutErrors, ThrowOnError>({
+    url: '/api/v1/document_parsers/{document_parser_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Sync Document Parsers
+ */
+export const syncDocumentParsersApiV1DocumentParsersSyncPost = <ThrowOnError extends boolean = false>(options?: Options<SyncDocumentParsersApiV1DocumentParsersSyncPostData, ThrowOnError>) => (options?.client ?? client).post<SyncDocumentParsersApiV1DocumentParsersSyncPostResponses, unknown, ThrowOnError>({ url: '/api/v1/document_parsers/sync', ...options });
+
+/**
+ * Test Document Parser
+ */
+export const testDocumentParserApiV1DocumentParsersDocumentParserIdTestPost = <ThrowOnError extends boolean = false>(options: Options<TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostData, ThrowOnError>) => (options.client ?? client).post<TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostResponses, TestDocumentParserApiV1DocumentParsersDocumentParserIdTestPostErrors, ThrowOnError>({ url: '/api/v1/document_parsers/{document_parser_id}/test', ...options });
+
+/**
+ * Get Ai Models
+ */
+export const getAiModelsApiV1AiModelsGet = <ThrowOnError extends boolean = false>(options?: Options<GetAiModelsApiV1AiModelsGetData, ThrowOnError>) => (options?.client ?? client).get<GetAiModelsApiV1AiModelsGetResponses, GetAiModelsApiV1AiModelsGetErrors, ThrowOnError>({ url: '/api/v1/ai_models', ...options });
+
+/**
+ * Create Ai Model
+ */
+export const createAiModelApiV1AiModelsPost = <ThrowOnError extends boolean = false>(options: Options<CreateAiModelApiV1AiModelsPostData, ThrowOnError>) => (options.client ?? client).post<CreateAiModelApiV1AiModelsPostResponses, CreateAiModelApiV1AiModelsPostErrors, ThrowOnError>({
+    url: '/api/v1/ai_models',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Ai Model
+ */
+export const deleteAiModelApiV1AiModelsAiModelIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteAiModelApiV1AiModelsAiModelIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteAiModelApiV1AiModelsAiModelIdDeleteResponses, DeleteAiModelApiV1AiModelsAiModelIdDeleteErrors, ThrowOnError>({ url: '/api/v1/ai_models/{ai_model_id}', ...options });
+
+/**
+ * Get Ai Model
+ */
+export const getAiModelApiV1AiModelsAiModelIdGet = <ThrowOnError extends boolean = false>(options: Options<GetAiModelApiV1AiModelsAiModelIdGetData, ThrowOnError>) => (options.client ?? client).get<GetAiModelApiV1AiModelsAiModelIdGetResponses, GetAiModelApiV1AiModelsAiModelIdGetErrors, ThrowOnError>({ url: '/api/v1/ai_models/{ai_model_id}', ...options });
+
+/**
+ * Patch Ai Model
+ */
+export const patchAiModelApiV1AiModelsAiModelIdPatch = <ThrowOnError extends boolean = false>(options: Options<PatchAiModelApiV1AiModelsAiModelIdPatchData, ThrowOnError>) => (options.client ?? client).patch<PatchAiModelApiV1AiModelsAiModelIdPatchResponses, PatchAiModelApiV1AiModelsAiModelIdPatchErrors, ThrowOnError>({
+    url: '/api/v1/ai_models/{ai_model_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Put Ai Model
+ */
+export const putAiModelApiV1AiModelsAiModelIdPut = <ThrowOnError extends boolean = false>(options: Options<PutAiModelApiV1AiModelsAiModelIdPutData, ThrowOnError>) => (options.client ?? client).put<PutAiModelApiV1AiModelsAiModelIdPutResponses, PutAiModelApiV1AiModelsAiModelIdPutErrors, ThrowOnError>({
+    url: '/api/v1/ai_models/{ai_model_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Sync Ai Models
+ */
+export const syncAiModelsApiV1AiModelsSyncPost = <ThrowOnError extends boolean = false>(options?: Options<SyncAiModelsApiV1AiModelsSyncPostData, ThrowOnError>) => (options?.client ?? client).post<SyncAiModelsApiV1AiModelsSyncPostResponses, unknown, ThrowOnError>({ url: '/api/v1/ai_models/sync', ...options });
+
+/**
+ * Test Ai Model
+ */
+export const testAiModelApiV1AiModelsAiModelIdTestPost = <ThrowOnError extends boolean = false>(options: Options<TestAiModelApiV1AiModelsAiModelIdTestPostData, ThrowOnError>) => (options.client ?? client).post<TestAiModelApiV1AiModelsAiModelIdTestPostResponses, TestAiModelApiV1AiModelsAiModelIdTestPostErrors, ThrowOnError>({ url: '/api/v1/ai_models/{ai_model_id}/test', ...options });

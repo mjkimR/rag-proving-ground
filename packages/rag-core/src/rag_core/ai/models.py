@@ -43,6 +43,27 @@ _LLM_MODEL_CACHE: dict[str, BaseChatModel] = {}
 _EMBEDDING_MODEL_CACHE: dict[str, Embeddings] = {}
 _RERANKER_MODEL_CACHE: dict[str, BaseDocumentCompressor] = {}
 
+# Global registry for active models populated from the database
+_ACTIVE_MODELS: dict[str, dict[str, Any]] = {}
+_DEFAULT_MODELS: dict[str, dict[str, Any]] = {}
+
+
+def update_model_registry(models: list[dict[str, Any]]) -> None:
+    """Update the in-memory active and default model registry."""
+    global _ACTIVE_MODELS, _DEFAULT_MODELS
+    _ACTIVE_MODELS = {m["name"]: m for m in models if m.get("is_active", True)}
+    _DEFAULT_MODELS = {}
+    for m in models:
+        if m.get("is_active", True) and m.get("is_default", False):
+            _DEFAULT_MODELS[m["model_type"]] = m
+
+
+def clear_gateway_cache() -> None:
+    """Clear the lru_cache for LiteLLM gateway information."""
+    _fetch_raw_model_info_from_gateway.cache_clear()
+    _get_model_metadata_map.cache_clear()
+    _fetch_model_options_from_gateway.cache_clear()
+
 
 def _resolve_model_params(
     passed_kwargs: dict[str, Any],
@@ -84,9 +105,63 @@ def _resolve_model_params(
 
 def get_llm_model(model_name: str | None = None, **kwargs: Any) -> BaseChatModel | Runnable:
     settings = get_litellm_settings()
-    resolved_model_name = model_name or settings.default_llm_model
-    model = _gateway_openai_model(resolved_model_name)
 
+    # 1. Resolve model name
+    resolved_model_name = model_name
+    if not resolved_model_name:
+        default_model = _DEFAULT_MODELS.get("llm")
+        resolved_model_name = default_model["name"] if default_model else settings.default_llm_model
+
+    # 2. Check registry
+    cached_model = _ACTIVE_MODELS.get(resolved_model_name)
+    if cached_model:
+        connection_info = cached_model.get("connection_info") or {}
+        model = connection_info.get("model") or _gateway_openai_model(resolved_model_name)
+        api_base = connection_info.get("api_base") or settings.base_url
+        api_key_val = connection_info.get("api_key")
+
+        default_settings = {
+            TEMPERATURE: settings.temperature,
+            MAX_TOKENS: settings.max_tokens,
+            REQUEST_TIMEOUT: settings.timeout,
+            MAX_RETRIES: settings.max_retries,
+        }
+
+        # Merge parameters from metadata and connection_info
+        model_params = dict(cached_model.get("metadata", {}).get("model_params") or {})
+        model_params.update({k: v for k, v in connection_info.items() if k in LLM_STANDARD_PARAMS})
+
+        resolved_params, bind_kwargs = _resolve_model_params(
+            passed_kwargs=kwargs,
+            yaml_params=model_params,
+            standard_keys=LLM_STANDARD_PARAMS,
+            default_settings=default_settings,
+        )
+
+        model_kwargs: dict[str, Any] = {
+            "model": model,
+            "api_base": api_base,
+            **resolved_params,
+        }
+
+        cache_key = _json_cache_key(model_kwargs)
+        if cache_key not in _LLM_MODEL_CACHE:
+            api_key = api_key_val
+            if not api_key:
+                api_key = settings.api_key.get_secret_value() if settings.api_key else None
+
+            _LLM_MODEL_CACHE[cache_key] = ChatLiteLLM(
+                **model_kwargs,
+                api_key=api_key,
+                streaming=True,
+            )
+        cached_model_inst = _LLM_MODEL_CACHE[cache_key]
+        if not bind_kwargs:
+            return cached_model_inst
+        return cached_model_inst.bind(**bind_kwargs)
+
+    # 3. Fallback to gateway defaults
+    model = _gateway_openai_model(resolved_model_name)
     metadata = get_model_metadata(resolved_model_name)
     yaml_model_params = metadata.get("model_params") or {}
 
@@ -117,17 +192,65 @@ def get_llm_model(model_name: str | None = None, **kwargs: Any) -> BaseChatModel
             api_key=settings.api_key.get_secret_value(),
             streaming=True,
         )
-    cached_model = _LLM_MODEL_CACHE[cache_key]
+    cached_model_inst = _LLM_MODEL_CACHE[cache_key]
     if not bind_kwargs:
-        return cached_model
-    return cached_model.bind(**bind_kwargs)
+        return cached_model_inst
+    return cached_model_inst.bind(**bind_kwargs)
 
 
 def get_embedding_model(model_name: str | None = None, **kwargs: Any) -> Embeddings:
     settings = get_litellm_settings()
-    resolved_model_name = model_name or settings.default_embedding_model
-    model = _gateway_openai_model(resolved_model_name)
 
+    # 1. Resolve model name
+    resolved_model_name = model_name
+    if not resolved_model_name:
+        default_model = _DEFAULT_MODELS.get("embedding")
+        resolved_model_name = default_model["name"] if default_model else settings.default_embedding_model
+
+    # 2. Check registry
+    cached_model = _ACTIVE_MODELS.get(resolved_model_name)
+    if cached_model:
+        connection_info = cached_model.get("connection_info") or {}
+        model = connection_info.get("model") or _gateway_openai_model(resolved_model_name)
+        api_base = connection_info.get("api_base") or settings.base_url
+        api_key_val = connection_info.get("api_key")
+
+        default_settings = {
+            REQUEST_TIMEOUT: settings.timeout,
+            MAX_RETRIES: settings.max_retries,
+        }
+
+        model_params = dict(cached_model.get("metadata", {}).get("model_params") or {})
+        model_params.update({k: v for k, v in connection_info.items() if k in SHARED_STANDARD_PARAMS})
+
+        resolved_params, remaining_kwargs = _resolve_model_params(
+            passed_kwargs=kwargs,
+            yaml_params=model_params,
+            standard_keys=SHARED_STANDARD_PARAMS,
+            default_settings=default_settings,
+        )
+
+        constructor_kwargs: dict[str, Any] = {
+            "model": model,
+            "api_base": api_base,
+            **resolved_params,
+        }
+        constructor_kwargs.update(remaining_kwargs)
+
+        cache_key = _json_cache_key(constructor_kwargs)
+        if cache_key not in _EMBEDDING_MODEL_CACHE:
+            api_key = api_key_val
+            if not api_key:
+                api_key = settings.api_key.get_secret_value() if settings.api_key else None
+
+            _EMBEDDING_MODEL_CACHE[cache_key] = LiteLLMEmbeddings(
+                **constructor_kwargs,
+                api_key=api_key,
+            )
+        return _EMBEDDING_MODEL_CACHE[cache_key]
+
+    # 3. Fallback
+    model = _gateway_openai_model(resolved_model_name)
     metadata = get_model_metadata(resolved_model_name)
     yaml_model_params = metadata.get("model_params") or {}
 
@@ -148,8 +271,6 @@ def get_embedding_model(model_name: str | None = None, **kwargs: Any) -> Embeddi
         "api_base": settings.base_url,
         **resolved_params,
     }
-
-    # Merge remaining kwargs passed to the function
     constructor_kwargs.update(remaining_kwargs)
 
     cache_key = _json_cache_key(constructor_kwargs)
@@ -163,8 +284,52 @@ def get_embedding_model(model_name: str | None = None, **kwargs: Any) -> Embeddi
 
 def get_reranker_model(model_name: str | None = None, **kwargs: Any) -> BaseDocumentCompressor:
     settings = get_litellm_settings()
-    resolved_model_name = model_name or settings.default_reranker_model
 
+    # 1. Resolve model name
+    resolved_model_name = model_name
+    if not resolved_model_name:
+        default_model = _DEFAULT_MODELS.get("reranker")
+        resolved_model_name = default_model["name"] if default_model else settings.default_reranker_model
+
+    # 2. Check registry
+    cached_model = _ACTIVE_MODELS.get(resolved_model_name)
+    if cached_model:
+        connection_info = cached_model.get("connection_info") or {}
+        model = connection_info.get("model") or resolved_model_name
+        api_base = connection_info.get("api_base") or _gateway_base_url(settings.base_url)
+        api_key_val = connection_info.get("api_key")
+
+        default_settings = {
+            REQUEST_TIMEOUT: settings.timeout,
+            MAX_RETRIES: settings.max_retries,
+        }
+
+        model_params = dict(cached_model.get("metadata", {}).get("model_params") or {})
+        model_params.update({k: v for k, v in connection_info.items() if k in SHARED_STANDARD_PARAMS})
+
+        resolved_params, remaining_kwargs = _resolve_model_params(
+            passed_kwargs=kwargs,
+            yaml_params=model_params,
+            standard_keys=SHARED_STANDARD_PARAMS,
+            default_settings=default_settings,
+        )
+
+        constructor_kwargs: dict[str, Any] = {
+            "model": model,
+            "api_base": api_base,
+            **resolved_params,
+        }
+        constructor_kwargs.update(remaining_kwargs)
+
+        cache_key = _json_cache_key(constructor_kwargs)
+        if cache_key not in _RERANKER_MODEL_CACHE:
+            _RERANKER_MODEL_CACHE[cache_key] = LiteLLMRerankCompressor(
+                **constructor_kwargs,
+                api_key=api_key_val or settings.api_key,
+            )
+        return _RERANKER_MODEL_CACHE[cache_key]
+
+    # 3. Fallback
     metadata = get_model_metadata(resolved_model_name)
     yaml_model_params = metadata.get("model_params") or {}
 
@@ -185,8 +350,6 @@ def get_reranker_model(model_name: str | None = None, **kwargs: Any) -> BaseDocu
         "api_base": _gateway_base_url(settings.base_url),
         **resolved_params,
     }
-
-    # Merge remaining kwargs passed to the function
     constructor_kwargs.update(remaining_kwargs)
 
     cache_key = _json_cache_key(constructor_kwargs)
