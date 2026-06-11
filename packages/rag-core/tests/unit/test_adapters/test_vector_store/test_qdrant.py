@@ -60,8 +60,8 @@ async def test_qdrant_create_vector_store_hybrid(monkeypatch) -> None:
     provider = QdrantProvider(client, async_client=async_client)
 
     class DummyFastEmbedSparse:
-        def __init__(self, model_name: str):
-            self.model_name = model_name
+        def __init__(self, *args, **kwargs):
+            self.model_name = kwargs.get("model_name", "Qdrant/bm25")
 
     monkeypatch.setattr(
         "langchain_qdrant.FastEmbedSparse",
@@ -73,7 +73,7 @@ async def test_qdrant_create_vector_store_hybrid(monkeypatch) -> None:
         model_name="dummy-dense-model",
         distance="cosine",
         retrieval_mode="hybrid",
-        sparse_model="Qdrant/bm25",
+        sparse_model="en-bm25",
     )
 
     async_client.create_collection.assert_awaited_once()

@@ -13,6 +13,8 @@ from langchain_core.runnables import Runnable
 from langchain_litellm import ChatLiteLLM, LiteLLMEmbeddings
 
 from rag_core.ai.reranker import LiteLLMRerankCompressor
+from rag_core.ai.sparse import SparseEmbeddings as SparseEmbeddings
+from rag_core.ai.sparse import get_sparse_embedding_model as get_sparse_embedding_model
 from rag_core.config import get_litellm_settings
 
 logging.getLogger("LiteLLM").setLevel(logging.CRITICAL)

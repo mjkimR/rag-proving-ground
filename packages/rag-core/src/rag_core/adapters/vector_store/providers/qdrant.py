@@ -139,8 +139,10 @@ class QdrantProvider(VectorStoreProvider):
 
         if retrieval_mode in ("hybrid", "sparse"):
             with import_error_handler("qdrant"):
-                from langchain_qdrant import FastEmbedSparse, RetrievalMode
-            sparse_embedding = FastEmbedSparse(model_name=sparse_model or "Qdrant/bm25")
+                from langchain_qdrant import RetrievalMode
+            from rag_core.ai.models import get_sparse_embedding_model
+
+            sparse_embedding = get_sparse_embedding_model(sparse_model)
             mode = RetrievalMode.HYBRID if retrieval_mode == "hybrid" else RetrievalMode.SPARSE
 
             return QdrantVectorStore(

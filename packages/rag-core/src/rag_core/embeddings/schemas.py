@@ -30,6 +30,13 @@ class RetrievalMode(StrEnum):
     HYBRID = "hybrid"
 
 
+class SparseEmbeddingModel(StrEnum):
+    """Supported sparse embedding models for knowledge search."""
+
+    EN_BM25 = "en-bm25"
+    KO_KIWI_BM25 = "ko-kiwi-bm25"
+
+
 class KnowledgeEmbeddingConfig(BaseModel):
     """Embedding settings that define a physical vector index."""
 
@@ -95,7 +102,7 @@ def resolve_knowledge_embedding_config(
 
     sparse_model = None
     if embedding_config.retrieval_mode in (RetrievalMode.SPARSE, RetrievalMode.HYBRID):
-        sparse_model = embedding_config.sparse_model or "Qdrant/bm25"
+        sparse_model = embedding_config.sparse_model or SparseEmbeddingModel.EN_BM25.value
 
     return embedding_config.model_copy(
         update={

@@ -1,12 +1,18 @@
 from typing import Any, get_args
 
 import pytest
+from app.features.knowledge.knowledge_bases.schemas import KnowledgeBaseCreate
 from app_layer_base.base.models.mixin import Base
 from app_layer_base.base.repos.base import BaseRepository
 from httpx import AsyncClient
 from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel
-from rag_core.embeddings import KnowledgeEmbeddingConfig
+from rag_core.embeddings import (
+    EmbeddingDistanceMetric,
+    KnowledgeEmbeddingConfig,
+    RetrievalMode,
+    SparseEmbeddingModel,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.fixtures import factory as ft
@@ -16,7 +22,18 @@ from tests.utils.fastapi import resolve_dependency
 class KnowledgeEmbeddingConfigFactory(ModelFactory):
     __model__ = KnowledgeEmbeddingConfig
 
+    model = "test-embedding"
+    distance = EmbeddingDistanceMetric.COSINE
     use_colpali = False
+    colpali_model = None
+    retrieval_mode = RetrievalMode.DENSE
+    sparse_model = SparseEmbeddingModel.EN_BM25.value
+
+
+class KnowledgeBaseCreateFactory(ModelFactory):
+    __model__ = KnowledgeBaseCreate
+
+    embedding_config = KnowledgeEmbeddingConfigFactory.build()
 
 
 def get_model_factory[T: BaseModel](model_class: type[T], _use_default: bool = False) -> type[ModelFactory]:
@@ -26,6 +43,7 @@ def get_model_factory[T: BaseModel](model_class: type[T], _use_default: bool = F
     model_factory: dict[type[BaseModel], type[ModelFactory]] = {
         JobProcessHistoryCreate: ft.JobProcessHistoryCreateFactory,
         KnowledgeEmbeddingConfig: KnowledgeEmbeddingConfigFactory,
+        KnowledgeBaseCreate: KnowledgeBaseCreateFactory,
     }
 
     factory_class = model_factory.get(model_class)

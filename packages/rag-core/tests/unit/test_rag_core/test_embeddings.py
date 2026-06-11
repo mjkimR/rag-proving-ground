@@ -3,6 +3,7 @@ from rag_core.embeddings import (
     EmbeddingDistanceMetric,
     KnowledgeEmbeddingConfig,
     RetrievalMode,
+    SparseEmbeddingModel,
     delete_document_vectors,
     indexing,
     is_colpali_model,
@@ -88,7 +89,7 @@ def test_resolve_knowledge_embedding_config_with_hybrid_sparse() -> None:
         {"retrieval_mode": "sparse", "model": "embedding-a"},
     )
     assert config_sparse_default.retrieval_mode == "sparse"
-    assert config_sparse_default.sparse_model == "Qdrant/bm25"
+    assert config_sparse_default.sparse_model == SparseEmbeddingModel.EN_BM25.value
 
     with pytest.raises(NotImplementedError, match="Hybrid or sparse search with ColPali is not implemented yet"):
         KnowledgeEmbeddingConfig(use_colpali=True, retrieval_mode=RetrievalMode.HYBRID)
