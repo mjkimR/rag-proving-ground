@@ -86,7 +86,7 @@ export const RetrievalTestTab: React.FC<RetrievalTestTabProps> = ({ kb }) => {
 
       {searchMutation.isPending && (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Spin size="large" tip="Retrieving similar vectors..." />
+          <Spin size="large" description="Retrieving similar vectors..." />
         </div>
       )}
 

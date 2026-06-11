@@ -8,6 +8,8 @@ import {
   getModelCatalogOptionsApiV1ModelCatalogOptionsGet,
   documentParseApiV1DocParseParsePost 
 } from "@/generated/api";
+import type { ParsedElement } from "../../components/ElementsExplorer";
+import type { ParsedPage } from "@/generated/api/types.gen";
 
 type DocumentWorkbenchProps = {
   copilotEnabled: boolean;
@@ -26,6 +28,20 @@ const initialHtml = `<article>
   <p>Select a document, choose your parser provider, and compare the outputs side-by-side.</p>
 </article>`;
 
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  if (
+    typeof err === "object" &&
+    err !== null &&
+    "message" in err &&
+    typeof err.message === "string"
+  ) {
+    return err.message;
+  }
+  return fallback;
+}
+
 export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
   const [mode, setMode] = useState<PreviewMode>("compare-elements");
   const [file, setFile] = useState<File | null>(null);
@@ -39,8 +55,8 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
   const [provider, setProvider] = useState<string>("docling");
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [parsedDoc, setParsedDoc] = useState<any>(null);
-  const [activeElement, setActiveElement] = useState<any>(null);
+  const [parsedDoc, setParsedDoc] = useState<{ elements?: ParsedElement[]; pages?: ParsedPage[]; metadata?: Record<string, unknown> } | null>(null);
+  const [activeElement, setActiveElement] = useState<ParsedElement | null>(null);
   const [ignoreCache, setIgnoreCache] = useState<boolean>(false);
   const [parserProviders, setParserProviders] = useState<string[]>(["docling"]);
 
@@ -114,9 +130,9 @@ export function DocumentWorkbench({ copilotEnabled }: DocumentWorkbenchProps) {
       
       // Auto switch to comparison view to show off the results!
       setMode("compare-elements");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setParseError(err.message || "Failed to parse document");
+      setParseError(getErrorMessage(err, "Failed to parse document"));
     } finally {
       setIsParsing(false);
     }

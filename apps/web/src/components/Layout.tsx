@@ -37,7 +37,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const getHealthStatus = () => {
     if (isError) return { status: 'error' as const, text: 'Offline' };
     if (!healthData) return { status: 'warning' as const, text: 'Connecting' };
-    const res = healthData.data as any;
+    const res = healthData?.data as { status?: string; success?: boolean } | null | undefined;
     if (res?.status === 'healthy' || res?.success || res?.status === 'ok') {
       return { status: 'success' as const, text: 'Online' };
     }

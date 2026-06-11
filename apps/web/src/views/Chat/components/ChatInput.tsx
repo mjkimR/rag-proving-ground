@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Input, Button } from 'antd';
 import { Send } from 'lucide-react';
+import type { TextAreaRef } from 'antd/es/input/TextArea';
 
 const { TextArea } = Input;
 
@@ -19,7 +20,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isStreaming,
   isDarkMode,
 }) => {
-  const inputRef = useRef<any>(null);
+  const inputRef = useRef<TextAreaRef>(null);
 
   // Auto-focus the input field when streaming finishes or on mount
   useEffect(() => {

@@ -4,6 +4,8 @@ import { HtmlPreview } from "../../../components/HtmlPreview";
 import { MarkdownPreview } from "../../../components/MarkdownPreview";
 import { PdfPreview } from "../../../components/PdfPreview";
 import { ElementsExplorer } from "../../../components/ElementsExplorer";
+import type { ParsedElement } from "../../../components/ElementsExplorer";
+import type { ParsedPage } from "@/generated/api/types.gen";
 
 type FullscreenComparisonProps = {
   setIsFullscreen: (val: boolean) => void;
@@ -14,9 +16,9 @@ type FullscreenComparisonProps = {
   pdfUrl?: string;
   markdown: string;
   html: string;
-  parsedDoc: any;
-  activeElement: any;
-  setActiveElement: (el: any) => void;
+  parsedDoc: { elements?: ParsedElement[]; pages?: ParsedPage[] } | null | undefined;
+  activeElement: ParsedElement | null | undefined;
+  setActiveElement: (el: ParsedElement) => void;
 };
 
 export function FullscreenComparison({

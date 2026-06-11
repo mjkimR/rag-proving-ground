@@ -1,0 +1,106 @@
+/* Chat View Styles */
+.gradient-card-hover:hover {
+  transform: translateY(-4px);
+  border-color: #4f46e5 !important;
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.1) !important;
+}
+
+.chat-markdown-preview {
+  color: inherit;
+  line-height: 1.6;
+  height: auto;
+  overflow: visible;
+  padding: 0;
+}
+
+.chat-markdown-preview p {
+  margin: 0 0 8px 0;
+}
+
+.chat-markdown-preview p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-markdown-preview ul,
+.chat-markdown-preview ol {
+  margin: 0 0 8px 0;
+  padding-left: 20px;
+}
+
+.chat-markdown-preview li {
+  margin-bottom: 4px;
+}
+
+.chat-markdown-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.chat-markdown-preview th,
+.chat-markdown-preview td {
+  border: 1px solid var(--border-color, #dde3ea);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.chat-markdown-preview th {
+  background-color: rgba(0, 0, 0, 0.02);
+  font-weight: 600;
+}
+
+.dark-theme .chat-markdown-preview th {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Citation Badge Micro-interactions */
+.citation-badge {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.citation-badge:hover {
+  transform: scale(1.15) translateY(-1px);
+  background-color: var(--accent-color, #3b82f6) !important;
+  color: #ffffff !important;
+  border-color: var(--accent-color, #3b82f6) !important;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+}
+
+.citation-badge:active {
+  transform: scale(0.95);
+}
+
+.popover-action-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Layout and container classes for Chat views */
+.chat-layout-wrapper {
+  height: 100%;
+  min-height: 0;
+  padding: 12px 0 24px 0;
+}
+
+.chat-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0 24px;
+}
+
+.chat-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+}
+
+.chat-loading-text {
+  margin-top: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}

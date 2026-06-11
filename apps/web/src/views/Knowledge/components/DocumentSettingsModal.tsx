@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import {
   Modal, Form, Select, Input, InputNumber, Switch, Button, Checkbox, Space, Typography, Tag, Divider, Alert
 } from 'antd';
@@ -9,10 +9,34 @@ import {
   reprocessKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdReprocessPost
 } from '@/generated/api/sdk.gen';
 import type {
-  KnowledgeBaseDocumentRead, ChunkingConfig, KnowledgeParsingConfig, KnowledgeBaseDocumentReprocessMode
+  KnowledgeBaseDocumentRead, ChunkingConfig, KnowledgeParsingConfig, KnowledgeBaseDocumentReprocessMode, KnowledgeBaseDocumentPatch
 } from '@/generated/api/types.gen';
 
 const { Text } = Typography;
+
+interface OverrideState {
+  overrideParsing: boolean;
+  overrideChunking: boolean;
+}
+
+type OverrideAction =
+  | { type: 'reset'; overrideParsing: boolean; overrideChunking: boolean }
+  | { type: 'setParsing'; value: boolean }
+  | { type: 'setChunking'; value: boolean };
+
+const overrideReducer = (state: OverrideState, action: OverrideAction): OverrideState => {
+  switch (action.type) {
+    case 'reset':
+      return {
+        overrideParsing: action.overrideParsing,
+        overrideChunking: action.overrideChunking,
+      };
+    case 'setParsing':
+      return { ...state, overrideParsing: action.value };
+    case 'setChunking':
+      return { ...state, overrideChunking: action.value };
+  }
+};
 
 interface DocumentSettingsModalProps {
   visible: boolean;
@@ -32,18 +56,24 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
   onSuccess
 }) => {
   const [form] = Form.useForm();
-  const [overrideParsing, setOverrideParsing] = useState(false);
-  const [overrideChunking, setOverrideChunking] = useState(false);
+  const [{ overrideParsing, overrideChunking }, dispatchOverride] = useReducer(overrideReducer, {
+    overrideParsing: false,
+    overrideChunking: false,
+  });
   const [reprocessMode, setReprocessMode] = useState<KnowledgeBaseDocumentReprocessMode>('AUTO');
+  const documentHasParsingConfig = !!document?.parsing_config;
+  const documentHasChunkingConfig = !!document?.chunking_config;
+
+  useEffect(() => {
+    dispatchOverride({
+      type: 'reset',
+      overrideParsing: documentHasParsingConfig,
+      overrideChunking: documentHasChunkingConfig,
+    });
+  }, [visible, document?.id, documentHasParsingConfig, documentHasChunkingConfig]);
 
   useEffect(() => {
     if (visible && document) {
-      const hasParsingOverride = !!document.parsing_config;
-      const hasChunkingOverride = !!document.chunking_config;
-
-      setOverrideParsing(hasParsingOverride);
-      setOverrideChunking(hasChunkingOverride);
-
       form.setFieldsValue({
         parsing_config: {
           provider: document.parsing_config?.provider || kbDefaultParsingConfig?.provider || 'docling',
@@ -62,7 +92,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
 
   // Patch mutation
   const patchMutation = useMutation({
-    mutationFn: (payload: { id: string; body: any }) => {
+    mutationFn: (payload: { id: string; body: KnowledgeBaseDocumentPatch }) => {
       return patchKnowledgeBaseDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdPatch({
         path: { knowledge_base_document_id: payload.id },
         body: payload.body,
@@ -108,7 +138,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
     }
   });
 
-  const handleSave = (values: any) => {
+  const handleSave = (values: { parsing_config?: KnowledgeParsingConfig; chunking_config?: ChunkingConfig }) => {
     if (!document) return;
 
     // Resolve what needs to be saved
@@ -202,7 +232,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
                 <Text strong style={{ fontSize: '14px' }}>Parsing Strategy</Text>
                 <Checkbox
                   checked={overrideParsing}
-                  onChange={(e) => setOverrideParsing(e.target.checked)}
+                  onChange={(e) => dispatchOverride({ type: 'setParsing', value: e.target.checked })}
                 >
                   Override default provider
                 </Checkbox>
@@ -216,11 +246,13 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
                     rules={[{ required: true }]}
                     style={{ marginBottom: 0 }}
                   >
-                    <Select>
-                      <Select.Option value="docling">Docling</Select.Option>
-                      <Select.Option value="native_text">Native Text</Select.Option>
-                      <Select.Option value="marker">Marker</Select.Option>
-                    </Select>
+                    <Select
+                      options={[
+                        { value: 'docling', label: 'Docling' },
+                        { value: 'native_text', label: 'Native Text' },
+                        { value: 'marker', label: 'Marker' }
+                      ]}
+                    />
 
                   </Form.Item>
                 </div>
@@ -237,7 +269,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
                 <Text strong style={{ fontSize: '14px' }}>Chunking Strategy</Text>
                 <Checkbox
                   checked={overrideChunking}
-                  onChange={(e) => setOverrideChunking(e.target.checked)}
+                  onChange={(e) => dispatchOverride({ type: 'setChunking', value: e.target.checked })}
                 >
                   Override default chunking
                 </Checkbox>
@@ -298,7 +330,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
                 </div>
               ) : (
                 <div style={{ padding: '12px', background: 'rgba(0,0,0,0.02)', borderRadius: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
+                  <Space orientation="vertical" style={{ width: '100%' }}>
                     <div>Inheriting default Chunking settings from KB:</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontWeight: 600, color: 'var(--text-primary)' }}>
                       <span>Size: {kbDefaultChunkingConfig?.chunk_size ?? 1024} chars</span>
@@ -313,7 +345,7 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
           </Form>
 
           {/* 3. Reprocessing Trigger Section */}
-          <Divider orientation={"left" as any} style={{ margin: '12px 0' }}>
+          <Divider titlePlacement="left" style={{ margin: '12px 0' }}>
             <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Reprocessing Actions</span>
           </Divider>
 
@@ -326,19 +358,20 @@ export const DocumentSettingsModal: React.FC<DocumentSettingsModalProps> = ({
           />
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.01)', border: '1px dashed var(--border-color)', padding: '12px 16px', borderRadius: '8px' }}>
-            <Space direction="vertical" size={2}>
+            <Space orientation="vertical" size={2}>
               <Text strong style={{ fontSize: '13px' }}>Manual Reprocess Mode</Text>
               <Select
                 value={reprocessMode}
                 onChange={setReprocessMode}
                 style={{ width: 140 }}
                 className="font-outfit"
-              >
-                <Select.Option value="AUTO">Auto Detect</Select.Option>
-                <Select.Option value="REPARSE">Re-parse & Re-index</Select.Option>
-                <Select.Option value="RECHUNK">Re-chunk Only</Select.Option>
-                <Select.Option value="REEMBED">Re-embed Only</Select.Option>
-              </Select>
+                options={[
+                  { value: 'AUTO', label: 'Auto Detect' },
+                  { value: 'REPARSE', label: 'Re-parse & Re-index' },
+                  { value: 'RECHUNK', label: 'Re-chunk Only' },
+                  { value: 'REEMBED', label: 'Re-embed Only' }
+                ]}
+              />
             </Space>
 
             <Button

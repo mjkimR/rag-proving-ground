@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer } from 'react';
 import {
   Modal, Form, Input, Select, InputNumber, Switch, Radio, Alert, Space, Typography, Steps, Button
 } from 'antd';
@@ -8,12 +8,14 @@ import {
   patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch,
   getModelCatalogOptionsApiV1ModelCatalogOptionsGet
 } from '@/generated/api/sdk.gen';
-import type { KnowledgeBaseRead, KnowledgeBaseConfigApplyMode } from '@/generated/api/types.gen';
+import type { KnowledgeBaseRead, KnowledgeBaseConfigApplyMode, KnowledgeBasePatch } from '@/generated/api/types.gen';
 import { PARSER_LABELS } from '@/views/DocumentWorkbench/types';
 
 const { Text, Paragraph } = Typography;
 
-const normalizeExtensions = (obj: any): Record<string, string> => {
+const normalizeExtensions = (
+  obj: Record<string, string | null | undefined> | null | undefined
+): Record<string, string> => {
   if (!obj) return {};
   return Object.fromEntries(
     Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null && String(v).trim() !== '')
@@ -34,6 +36,61 @@ const CONFIG_STEP_FIELDS = [
     ['default_chunking_config', 'breadcrumb_separator']
   ]
 ];
+
+interface SettingsModalState {
+  currentStep: number;
+  showParserOverrides: boolean;
+  confirmVisible: boolean;
+  pendingValues: KnowledgeBasePatch | null;
+  loadType: 'low' | 'high' | 'reembed';
+  applyMode: KnowledgeBaseConfigApplyMode;
+}
+
+type SettingsModalAction =
+  | { type: 'reset' }
+  | { type: 'setStep'; value: React.SetStateAction<number> }
+  | { type: 'setShowParserOverrides'; value: boolean }
+  | { type: 'setConfirmVisible'; value: boolean }
+  | { type: 'prepareSave'; pendingValues: KnowledgeBasePatch; loadType: 'low' | 'high' | 'reembed'; applyMode: KnowledgeBaseConfigApplyMode }
+  | { type: 'setApplyMode'; value: KnowledgeBaseConfigApplyMode };
+
+const initialSettingsModalState: SettingsModalState = {
+  currentStep: 0,
+  showParserOverrides: false,
+  confirmVisible: false,
+  pendingValues: null,
+  loadType: 'low',
+  applyMode: 'INHERITED_ONLY',
+};
+
+const settingsModalReducer = (
+  state: SettingsModalState,
+  action: SettingsModalAction
+): SettingsModalState => {
+  switch (action.type) {
+    case 'reset':
+      return { ...initialSettingsModalState };
+    case 'setStep':
+      return {
+        ...state,
+        currentStep: typeof action.value === 'function' ? action.value(state.currentStep) : action.value,
+      };
+    case 'setShowParserOverrides':
+      return { ...state, showParserOverrides: action.value };
+    case 'setConfirmVisible':
+      return { ...state, confirmVisible: action.value };
+    case 'prepareSave':
+      return {
+        ...state,
+        pendingValues: action.pendingValues,
+        loadType: action.loadType,
+        applyMode: action.applyMode,
+        confirmVisible: true,
+      };
+    case 'setApplyMode':
+      return { ...state, applyMode: action.value };
+  }
+};
 
 interface KnowledgeBaseSettingsModalProps {
   visible: boolean;
@@ -60,12 +117,18 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
   const embeddingModels = configOptions?.data?.embedding_models || [];
   const parserProviders = configOptions?.data?.parser_providers || [];
   const [form] = Form.useForm();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [showParserOverrides, setShowParserOverrides] = useState(false);
-  const [confirmVisible, setConfirmVisible] = useState(false);
-  const [pendingValues, setPendingValues] = useState<any>(null);
-  const [loadType, setLoadType] = useState<'low' | 'high' | 'reembed'>('low');
-  const [applyMode, setApplyMode] = useState<KnowledgeBaseConfigApplyMode>('INHERITED_ONLY');
+  const [{
+    currentStep,
+    showParserOverrides,
+    confirmVisible,
+    pendingValues,
+    loadType,
+    applyMode,
+  }, dispatchSettings] = useReducer(settingsModalReducer, initialSettingsModalState);
+
+  useEffect(() => {
+    dispatchSettings({ type: 'reset' });
+  }, [visible, kb?.id]);
 
   useEffect(() => {
     if (visible && kb) {
@@ -77,7 +140,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
           use_colpali: kb.embedding_config?.use_colpali || false,
           colpali_model: kb.embedding_config?.colpali_model || 'vidore/colpali-v1.2-merged',
           retrieval_mode: kb.embedding_config?.retrieval_mode || 'dense',
-          sparse_model: kb.embedding_config?.sparse_model || 'Qdrant/bm25',
+          sparse_model: kb.embedding_config?.sparse_model || 'en-bm25',
         },
         default_chunking_config: {
           chunk_size: kb.default_chunking_config?.chunk_size ?? 1024,
@@ -92,28 +155,24 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
           extension_providers: kb.default_parsing_config?.extension_providers || {},
         }
       });
-      setCurrentStep(0);
-      setShowParserOverrides(false);
-      setConfirmVisible(false);
-      setPendingValues(null);
     }
   }, [visible, kb, form]);
 
   const patchMutation = useMutation({
-    mutationFn: (payload: { id: string; body: any }) => {
+    mutationFn: (payload: { id: string; body: KnowledgeBasePatch }) => {
       return patchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdPatch({
         path: { knowledge_base_id: payload.id },
         body: payload.body,
         throwOnError: true,
       });
     },
-    onSuccess: (response: any) => {
+    onSuccess: (response: { data: KnowledgeBaseRead }) => {
       if (response.data) {
         onSuccess(response.data);
       }
       queryClient.invalidateQueries({ queryKey: ['kbList'] });
       queryClient.invalidateQueries({ queryKey: ['fileList', kb?.id] });
-      setConfirmVisible(false);
+      dispatchSettings({ type: 'setConfirmVisible', value: false });
       onClose();
     },
     onError: (e) => {
@@ -125,7 +184,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
     }
   });
 
-  const handlePreSave = (values: any) => {
+  const handlePreSave = (values: KnowledgeBasePatch) => {
     if (!kb) return;
 
     // Detect what has changed
@@ -164,10 +223,12 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
       defaultApplyMode = 'INHERITED_ONLY';
     }
 
-    setLoadType(computedLoad);
-    setApplyMode(defaultApplyMode);
-    setPendingValues(values);
-    setConfirmVisible(true);
+    dispatchSettings({
+      type: 'prepareSave',
+      pendingValues: values,
+      loadType: computedLoad,
+      applyMode: defaultApplyMode,
+    });
   };
 
   const handleFinalSave = () => {
@@ -191,7 +252,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
   };
 
   const handlePrev = () => {
-    setCurrentStep((prev) => prev - 1);
+    dispatchSettings({ type: 'setStep', value: (prev) => prev - 1 });
   };
 
   const handleNext = async () => {
@@ -200,7 +261,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
       if (fieldsToValidate) {
         await form.validateFields(fieldsToValidate);
       }
-      setCurrentStep((prev) => prev + 1);
+      dispatchSettings({ type: 'setStep', value: (prev) => prev + 1 });
     } catch (errorInfo) {
       console.warn('Form validation failed:', errorInfo);
     }
@@ -273,19 +334,20 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
               label="Default Parsing Provider"
               rules={[{ required: true }]}
             >
-              <Select style={{ width: '200px' }} loading={configLoading}>
-                {parserProviders.map((provider) => (
-                  <Select.Option key={provider} value={provider}>
-                    {PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))}
-                  </Select.Option>
-                ))}
-              </Select>
+              <Select
+                style={{ width: '200px' }}
+                loading={configLoading}
+                options={parserProviders.map((provider) => ({
+                  value: provider,
+                  label: PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))
+                }))}
+              />
             </Form.Item>
 
             <div style={{ marginTop: '20px' }}>
               <Button
                 type="link"
-                onClick={() => setShowParserOverrides(!showParserOverrides)}
+                onClick={() => dispatchSettings({ type: 'setShowParserOverrides', value: !showParserOverrides })}
                 style={{ padding: 0, display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '13px', marginBottom: '12px' }}
               >
                 {showParserOverrides ? 'Hide Extension-Specific Parser Overrides' : 'Show Extension-Specific Parser Overrides'}
@@ -306,13 +368,15 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
                         label={`Files ending in ${ext}`}
                         style={{ marginBottom: '12px' }}
                       >
-                        <Select placeholder="Use Default Provider" allowClear loading={configLoading}>
-                          {parserProviders.map((provider) => (
-                            <Select.Option key={provider} value={provider}>
-                              {PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))}
-                            </Select.Option>
-                          ))}
-                        </Select>
+                        <Select
+                          placeholder="Use Default Provider"
+                          allowClear
+                          loading={configLoading}
+                          options={parserProviders.map((provider) => ({
+                            value: provider,
+                            label: PARSER_LABELS[provider] || (provider.charAt(0).toUpperCase() + provider.slice(1))
+                          }))}
+                        />
                       </Form.Item>
                     ))}
                   </div>
@@ -393,13 +457,13 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
               rules={[{ required: true, message: 'Please select or enter an embedding model' }]}
               tooltip="Must match a LiteLLM embedding model configured on your proxy backend."
             >
-              <Select loading={configLoading}>
-                {embeddingModels.map((model) => (
-                  <Select.Option key={model} value={model}>
-                    {model} {model === 'text-embedding-3-small' ? '(Default)' : ''}
-                  </Select.Option>
-                ))}
-              </Select>
+              <Select
+                loading={configLoading}
+                options={embeddingModels.map((model) => ({
+                  value: model,
+                  label: `${model} ${model === 'text-embedding-3-small' ? '(Default)' : ''}`
+                }))}
+              />
             </Form.Item>
 
             <Form.Item
@@ -421,11 +485,14 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
                       label="ColPali Model"
                       rules={[{ required: true, message: 'Please select a ColPali model' }]}
                     >
-                      <Select placeholder="Select ColPali model">
-                        <Select.Option value="vidore/colpali-v1.2-merged">vidore/colpali-v1.2-merged (Default)</Select.Option>
-                        <Select.Option value="vidore/colpali-v1.3-merged">vidore/colpali-v1.3-merged</Select.Option>
-                        <Select.Option value="vidore/colSmol-500M-merged">vidore/colSmol-500M-merged</Select.Option>
-                      </Select>
+                      <Select
+                        placeholder="Select ColPali model"
+                        options={[
+                          { value: 'vidore/colpali-v1.2-merged', label: 'vidore/colpali-v1.2-merged (Default)' },
+                          { value: 'vidore/colpali-v1.3-merged', label: 'vidore/colpali-v1.3-merged' },
+                          { value: 'vidore/colSmol-500M-merged', label: 'vidore/colSmol-500M-merged' }
+                        ]}
+                      />
                     </Form.Item>
                   );
                 }
@@ -457,10 +524,13 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
                       rules={[{ required: true, message: 'Please select a sparse model' }]}
                       tooltip="Model used for sparse retrieval (keyword search)."
                     >
-                      <Select placeholder="Select sparse model">
-                        <Select.Option value="Qdrant/bm25">Qdrant/bm25 (Default BM25)</Select.Option>
-                        <Select.Option value="prithivida/Splade_PP_en_v1">Splade_PP_en_v1 (Neural Sparse)</Select.Option>
-                      </Select>
+                      <Select
+                        placeholder="Select sparse model"
+                        options={[
+                          { value: 'en-bm25', label: 'English BM25 (en-bm25)' },
+                          { value: 'ko-kiwi-bm25', label: 'Korean Kiwi BM25 (ko-kiwi-bm25)' }
+                        ]}
+                      />
                     </Form.Item>
                   );
                 }
@@ -492,14 +562,14 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
           </span>
         }
         open={confirmVisible}
-        onCancel={() => setConfirmVisible(false)}
+        onCancel={() => dispatchSettings({ type: 'setConfirmVisible', value: false })}
         width={500}
         onOk={handleFinalSave}
         confirmLoading={patchMutation.isPending}
         okText="Confirm & Process"
         cancelText="Back to Edit"
       >
-        <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: '12px' }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: '12px' }}>
           {loadType === 'reembed' && (
             <Alert
               title="Re-Embedding Required"
@@ -533,10 +603,10 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
             </Text>
             <Radio.Group
               value={applyMode}
-              onChange={(e) => setApplyMode(e.target.value)}
+              onChange={(e) => dispatchSettings({ type: 'setApplyMode', value: e.target.value })}
               style={{ width: '100%' }}
             >
-              <Space direction="vertical" style={{ width: '100%' }}>
+              <Space orientation="vertical" style={{ width: '100%' }}>
                 <Radio
                   value="NEW_ONLY"
                   disabled={loadType === 'reembed'}

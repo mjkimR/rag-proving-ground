@@ -16,7 +16,6 @@ import { API_BASE_URL } from '@/lib/config';
 import { DocumentSettingsModal } from './DocumentSettingsModal';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 
 interface DocumentListProps {
   selectedKnowledgeId: string;
@@ -53,7 +52,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
     refetchInterval: (query) => {
       const items = query.state.data?.data?.items || [];
       const hasActive = items.some(
-        (doc: any) => !['COMPLETED', 'FAILED', 'READY'].includes(doc.status)
+        (doc: KnowledgeBaseDocumentRead) => !['COMPLETED', 'FAILED', 'READY'].includes(doc.status || '')
       );
       return hasActive ? 2000 : false;
     },
@@ -127,7 +126,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   };
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       {/* Header & Upload panel */}
       <Card variant="borderless" className="glass-card">
         <Row align="middle" justify="space-between" gutter={[16, 16]}>
@@ -154,10 +153,11 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                 style={{ width: 140 }}
                 onChange={(val) => setParserProvider(val)}
                 className="font-outfit"
-              >
-                <Option value="docling">Docling</Option>
-                <Option value="marker">Marker</Option>
-              </Select>
+                options={[
+                  { value: 'docling', label: 'Docling' },
+                  { value: 'marker', label: 'Marker' }
+                ]}
+              />
             </Space>
           </Col>
         </Row>
@@ -274,16 +274,16 @@ export const DocumentList: React.FC<DocumentListProps> = ({
               title: 'Elements',
               key: 'elements',
               align: 'center',
-              render: (_, record: any) => {
-                const count = record.document_info?.element_count ?? 0;
+              render: (_, record: KnowledgeBaseDocumentRead) => {
+                const count = (record.document_info as { element_count?: number } | null)?.element_count ?? 0;
                 return <Badge count={count} showZero color="#4f46e5" style={{ fontWeight: 700 }} />;
               },
             },
             {
               title: 'Size',
               key: 'size',
-              render: (_, record: any) => {
-                const bytes = record.document_info?.size_bytes ?? 0;
+              render: (_, record: KnowledgeBaseDocumentRead) => {
+                const bytes = (record.document_info as { size_bytes?: number } | null)?.size_bytes ?? 0;
                 return formatBytes(bytes);
               },
             },

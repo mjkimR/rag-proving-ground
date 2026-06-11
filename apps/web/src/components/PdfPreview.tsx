@@ -1,4 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import type { ParsedElement } from "./ElementsExplorer";
+import type { ParsedPage } from "@/generated/api/types.gen";
 import { Document, Page, pdfjs } from "react-pdf";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -10,8 +12,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 type PdfPreviewProps = {
   fileName: string;
   fileUrl?: string;
-  activeElement?: any;
-  parsedDoc?: any;
+  activeElement?: ParsedElement | null;
+  parsedDoc?: { elements?: ParsedElement[]; pages?: ParsedPage[] } | null;
 };
 
 export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfPreviewProps) {
@@ -21,13 +23,13 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const getPageInfo = (element: any) => {
+  const getPageInfo = useCallback((element: ParsedElement) => {
     let targetIndex = 0;
     let width = 612;
     let height = 792;
 
     if (parsedDoc && parsedDoc.pages && Array.isArray(parsedDoc.pages)) {
-      const page = parsedDoc.pages.find((p: any) => p.page_id === element.page_id);
+      const page = parsedDoc.pages.find((p) => p.page_id === element.page_id);
       if (page) {
         // page_no is 1-indexed in Docling
         targetIndex = page.page_no - 1;
@@ -44,7 +46,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
     }
 
     return { targetIndex, width, height };
-  };
+  }, [parsedDoc]);
 
   const renderHighlightsForPage = (pageIndex: number) => {
     if (!activeElement || !activeElement.bbox || !activeElement.page_id) return null;
@@ -91,6 +93,9 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
         return;
       }
 
+      const bbox = activeElement.bbox;
+      if (!bbox) return;
+
       // 100ms timeout ensures standard react-pdf render lifecycle finishes layout first
       const timer = setTimeout(() => {
         try {
@@ -98,7 +103,6 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
           const container = scrollContainerRef.current;
           
           if (pageWrapper && container) {
-            const { bbox } = activeElement;
             const bboxTopPercent = bbox.top / pdfPageHeightPoints;
             const pageHeight = pageWrapper.clientHeight;
             const scrollOffsetInPage = pageHeight * bboxTopPercent;
@@ -122,7 +126,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
     }
 
     return undefined;
-  }, [activeElement, docLoaded, numPages, parsedDoc]);
+  }, [activeElement, docLoaded, numPages, getPageInfo]);
 
   if (!fileUrl) {
     return (

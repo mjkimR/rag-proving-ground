@@ -1,0 +1,38 @@
+.container {
+  min-height: calc(100vh - 120px);
+  padding: 12px 0 24px 0;
+}
+
+.headerIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f766e 0%, #2563eb 100%);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.22);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.fieldWrapper {
+  margin-top: 6px;
+  width: 100%;
+}
+
+.spinnerContainer {
+  text-align: center;
+  padding: 48px 0;
+}
+
+.resultCount {
+  display: block;
+  margin-bottom: 16px;
+}

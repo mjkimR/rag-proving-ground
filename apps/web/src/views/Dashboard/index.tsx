@@ -36,7 +36,7 @@ export const Dashboard: React.FC = () => {
   const getSystemStatus = () => {
     if (isHealthError) return { text: 'Offline', color: 'red', desc: 'Cannot connect to backend API.' };
     if (!healthData) return { text: 'Connecting...', color: 'orange', desc: 'Resolving connection...' };
-    const res = healthData.data as any;
+    const res = healthData?.data as { status?: string; success?: boolean } | null | undefined;
     if (res?.status === 'healthy' || res?.success || res?.status === 'ok') {
       return { text: 'Online', color: 'green', desc: 'System API is fully responsive.' };
     }

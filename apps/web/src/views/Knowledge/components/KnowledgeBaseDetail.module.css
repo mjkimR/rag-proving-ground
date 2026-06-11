@@ -1,0 +1,23 @@
+.kbTabs :global(.ant-tabs-nav) {
+  margin-bottom: 16px !important;
+}
+
+.kbTabs :global(.ant-tabs-tab) {
+  background: rgba(0, 0, 0, 0.01) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px 8px 0 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.kbTabs :global(.ant-tabs-tab-active) {
+  background: var(--bg-card) !important;
+  border-bottom-color: var(--bg-card) !important;
+}
+
+.subHistoryTabs :global(.ant-tabs-nav) {
+  margin-bottom: 12px !important;
+}
+
+.subHistoryTabs :global(.ant-tabs-tab) {
+  padding: 8px 16px !important;
+}

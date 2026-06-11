@@ -8,6 +8,7 @@ import {
   deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete
 } from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
+import styles from './KnowledgeBaseList.module.css';
 
 interface KnowledgeBaseListProps {
   selectedId: string | null;
@@ -36,7 +37,7 @@ export const KnowledgeBaseList: React.FC<KnowledgeBaseListProps> = ({
         throwOnError: true,
       });
     },
-    onSuccess: (response: any) => {
+    onSuccess: (response: { data?: KnowledgeBaseRead }) => {
       const created = response.data;
       if (created) {
         onSelect(created);
@@ -124,19 +125,11 @@ export const KnowledgeBaseList: React.FC<KnowledgeBaseListProps> = ({
         dataSource={kbList?.data?.items || []}
         renderItem={(item: KnowledgeBaseRead) => (
           <List.Item
-            style={{
-              padding: '12px 16px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              marginBottom: '6px',
-              background: selectedId === item.id ? 'rgba(79, 70, 229, 0.08)' : 'transparent',
-              border: selectedId === item.id ? '1px solid rgba(79, 70, 229, 0.2)' : '1px solid transparent',
-              transition: 'all 0.2s ease',
-            }}
+            className={`${styles.listItem} ${selectedId === item.id ? styles.selected : ''}`}
             onClick={() => onSelect(item)}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className={styles.itemWrapper}>
+              <div className={styles.itemMeta}>
                 <Database size={16} color={selectedId === item.id ? 'var(--accent-gradient)' : 'var(--text-secondary)'} />
                 <span className="font-outfit" style={{ fontWeight: selectedId === item.id ? 700 : 500 }}>{item.name}</span>
               </div>

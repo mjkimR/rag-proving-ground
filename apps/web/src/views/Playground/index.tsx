@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, Button, Card, Col, Empty, Input, InputNumber, Row, Select, Space, Spin, Switch, Tag, Typography, message } from 'antd';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { GitMerge, Search, SlidersHorizontal } from 'lucide-react';
@@ -9,6 +9,7 @@ import {
 } from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseSearchResponse, RerankerConfig } from '@/generated/api/types.gen';
 import { SearchResultCards } from '@/views/Knowledge/components/SearchResultCards';
+import styles from './Playground.module.css';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -18,7 +19,7 @@ export const Playground: React.FC = () => {
   const [limit, setLimit] = useState<number>(5);
   const [candidateLimit, setCandidateLimit] = useState<number | null>(null);
   const [rerankerEnabled, setRerankerEnabled] = useState(false);
-  const [rerankerModel, setRerankerModel] = useState<string | undefined>(undefined);
+  const [selectedRerankerModel, setRerankerModel] = useState<string | undefined>(undefined);
   const [rerankerTopN, setRerankerTopN] = useState<number | null>(null);
 
   const kbQuery = useQuery({
@@ -31,17 +32,15 @@ export const Playground: React.FC = () => {
     queryFn: () => getModelCatalogOptionsApiV1ModelCatalogOptionsGet({ throwOnError: true }),
   });
 
-  const knowledgeBases = kbQuery.data?.data?.items || [];
-  const rerankerModels = modelQuery.data?.data?.reranker_models || [];
+  const knowledgeBases = useMemo(() => kbQuery.data?.data?.items || [], [kbQuery.data]);
+  const rerankerModels = useMemo(() => modelQuery.data?.data?.reranker_models || [], [modelQuery.data]);
   const hasCatalogRerankerModels = rerankerModels.length > 0 && !rerankerModels.includes('no-model');
   const forcedReranker = selectedKbIds.length >= 2;
   const effectiveRerankerEnabled = forcedReranker || rerankerEnabled;
 
-  useEffect(() => {
-    if (!rerankerModel && hasCatalogRerankerModels) {
-      setRerankerModel(rerankerModels[0]);
-    }
-  }, [hasCatalogRerankerModels, rerankerModel, rerankerModels]);
+  const rerankerModel = selectedRerankerModel !== undefined
+    ? selectedRerankerModel
+    : (hasCatalogRerankerModels ? rerankerModels[0] : undefined);
 
   const kbOptions = useMemo(
     () =>
@@ -94,21 +93,10 @@ export const Playground: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 120px)', padding: '12px 0 24px 0' }}>
+    <div className={styles.container}>
       <div style={{ marginBottom: '24px' }}>
         <Space align="center" size={12}>
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'linear-gradient(135deg, #0f766e 0%, #2563eb 100%)',
-              boxShadow: '0 10px 24px rgba(15, 118, 110, 0.22)',
-            }}
-          >
+          <div className={styles.headerIcon}>
             <GitMerge size={20} color="#fff" />
           </div>
           <div>
@@ -124,7 +112,7 @@ export const Playground: React.FC = () => {
 
       <Row gutter={[18, 18]}>
         <Col xs={24} xl={9}>
-          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={16} style={{ width: '100%' }}>
             <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
               <Title level={4} style={{ marginTop: 0 }}>
                 Knowledge Bases
@@ -138,7 +126,9 @@ export const Playground: React.FC = () => {
                 value={selectedKbIds}
                 onChange={setSelectedKbIds}
                 style={{ width: '100%' }}
-                optionFilterProp="label"
+                showSearch={{
+                  filterOption: (input, option) => (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                }}
               />
               <div style={{ marginTop: '12px' }}>
                 <Text type="secondary">
@@ -148,7 +138,7 @@ export const Playground: React.FC = () => {
             </Card>
 
             <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
-              <Space align="center" style={{ width: '100%', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <Space align="center" className={styles.cardHeader}>
                 <Space>
                   <SlidersHorizontal size={18} />
                   <Title level={4} style={{ margin: 0 }}>
@@ -166,12 +156,12 @@ export const Playground: React.FC = () => {
                 <Alert
                   showIcon
                   type="info"
-                  message="Reranker is required for multi-KB search."
+                  title="Reranker is required for multi-KB search."
                   style={{ marginBottom: '14px' }}
                 />
               )}
 
-              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
                 <div>
                   <Text strong>Model</Text>
                   {hasCatalogRerankerModels ? (
@@ -184,7 +174,7 @@ export const Playground: React.FC = () => {
                       options={rerankerModels.map((model) => ({ label: model, value: model }))}
                       value={rerankerModel}
                       onChange={setRerankerModel}
-                      style={{ width: '100%', marginTop: '6px' }}
+                      className={styles.fieldWrapper}
                     />
                   ) : (
                     <Input
@@ -192,7 +182,7 @@ export const Playground: React.FC = () => {
                       placeholder="Use default reranker or enter model name"
                       value={rerankerModel}
                       onChange={(event) => setRerankerModel(event.target.value || undefined)}
-                      style={{ marginTop: '6px' }}
+                      className={styles.fieldWrapper}
                     />
                   )}
                 </div>
@@ -204,7 +194,7 @@ export const Playground: React.FC = () => {
                     value={rerankerTopN}
                     onChange={(value) => setRerankerTopN(value)}
                     placeholder="Backend default"
-                    style={{ width: '100%', marginTop: '6px' }}
+                    className={styles.fieldWrapper}
                     size="large"
                   />
                 </div>
@@ -269,7 +259,7 @@ export const Playground: React.FC = () => {
           </Card>
 
           <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
-            <Space align="center" style={{ justifyContent: 'space-between', width: '100%', marginBottom: '16px' }}>
+            <Space align="center" className={styles.cardHeader}>
               <div>
                 <Title level={4} style={{ margin: 0 }}>
                   Results
@@ -282,12 +272,12 @@ export const Playground: React.FC = () => {
             </Space>
 
             {searchMutation.isPending ? (
-              <div style={{ textAlign: 'center', padding: '48px 0' }}>
-                <Spin size="large" tip="Searching selected Knowledge Bases..." />
+              <div className={styles.spinnerContainer}>
+                <Spin size="large" description="Searching selected Knowledge Bases..." />
               </div>
             ) : searchMutation.data?.data ? (
               <>
-                <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
+                <Text type="secondary" className={styles.resultCount}>
                   Retrieved <strong style={{ color: 'var(--text-primary)' }}>{searchMutation.data.data.total}</strong> chunks.
                 </Text>
                 <SearchResultCards results={searchMutation.data.data.results} />

@@ -1,0 +1,42 @@
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.5; box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4); }
+  70% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 6px rgba(24, 144, 255, 0); }
+  100% { transform: scale(0.95); opacity: 0.5; box-shadow: 0 0 0 0 rgba(24, 144, 255, 0); }
+}
+
+.pulseDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #1890ff;
+  display: inline-block;
+  box-shadow: 0 0 8px #1890ff;
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+.cardHoverEffect {
+  transition: all 0.25s ease;
+}
+
+.cardHoverEffect:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -10px rgba(79, 70, 229, 0.12) !important;
+}
+
+.customTable :global(.ant-table) {
+  background: transparent !important;
+}
+
+.customTable :global(.ant-table-thead > tr > th) {
+  background: rgba(0, 0, 0, 0.02) !important;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+}
+
+:global(.dark-theme) .customTable :global(.ant-table-thead > tr > th) {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.shadowButton {
+  box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.35) !important;
+}

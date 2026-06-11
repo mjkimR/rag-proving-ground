@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { Message } from '../types';
+import { useState, useEffect, useCallback, useReducer } from 'react';
+import type { Message, Reference } from '../types';
 import {
   extractMessageContentDelta,
   isRecord,
@@ -19,23 +19,91 @@ export interface UseChatStreamReturn {
   sendMessage: (userText: string, configurable: Record<string, unknown>) => Promise<void>;
 }
 
+const getErrorMessage = (err: unknown, fallback: string) => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  if (isRecord(err) && typeof err.message === 'string') return err.message;
+  return fallback;
+};
+
+type MessageAction =
+  | { type: 'reset' }
+  | { type: 'append'; message: Message }
+  | {
+      type: 'appendChunk';
+      chunkId: string;
+      content: string;
+      thinking?: string;
+      references?: Reference[];
+    }
+  | { type: 'setLastAiReferences'; references: Reference[] };
+
+const messageReducer = (messages: Message[], action: MessageAction): Message[] => {
+  switch (action.type) {
+    case 'reset':
+      return [];
+    case 'append':
+      return [...messages, action.message];
+    case 'appendChunk': {
+      const existingIndex = messages.findIndex((message) => message.id === action.chunkId);
+      if (existingIndex > -1) {
+        const updated = [...messages];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          content: updated[existingIndex].content + action.content,
+          thinking: `${updated[existingIndex].thinking || ''}${action.thinking}`,
+          ...(action.references ? { references: action.references } : {}),
+        };
+        return updated;
+      }
+
+      return [
+        ...messages,
+        {
+          id: action.chunkId,
+          type: 'ai',
+          content: action.content,
+          thinking: action.thinking || undefined,
+          references: action.references,
+        },
+      ];
+    }
+    case 'setLastAiReferences': {
+      let targetIndex = -1;
+      for (let index = messages.length - 1; index >= 0; index--) {
+        if (messages[index].type === 'ai') {
+          targetIndex = index;
+          break;
+        }
+      }
+      if (targetIndex < 0) return messages;
+
+      const updated = [...messages];
+      updated[targetIndex] = {
+        ...updated[targetIndex],
+        references: action.references,
+      };
+      return updated;
+    }
+  }
+};
+
 export function useChatStream({ threadId, assistantId }: UseChatStreamOptions): UseChatStreamReturn {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, dispatchMessages] = useReducer(messageReducer, []);
   const [isStreaming, setIsStreaming] = useState(false);
 
-  // Clear messages when threadId changes or becomes null
   useEffect(() => {
-    setMessages([]);
+    dispatchMessages({ type: 'reset' });
   }, [threadId]);
 
   const sendMessage = useCallback(async (userText: string, configurable: Record<string, unknown>) => {
     if (!userText.trim() || !threadId || isStreaming) return;
 
     const userMsgId = `user-${Date.now()}`;
-    setMessages((prev) => [
-      ...prev,
-      { id: userMsgId, type: 'human', content: userText },
-    ]);
+    dispatchMessages({
+      type: 'append',
+      message: { id: userMsgId, type: 'human', content: userText },
+    });
     setIsStreaming(true);
 
     let runId: string | null = null;
@@ -108,35 +176,18 @@ export function useChatStream({ threadId, assistantId }: UseChatStreamOptions): 
                     }
 
                     const hasReferences = isRecord(msgChunk.additional_kwargs) && Array.isArray(msgChunk.additional_kwargs.references);
-                    const references = hasReferences ? (msgChunk.additional_kwargs.references as any[]) : undefined;
+                    const references = hasReferences ? (msgChunk.additional_kwargs.references as Reference[]) : undefined;
 
                     if (!chunkDelta.content && !chunkDelta.thinking && !references) continue;
 
                     const chunkId = msgChunk.id || `ai-${Date.now()}`;
 
-                    setMessages((prev) => {
-                      const existingIndex = prev.findIndex((m) => m.id === chunkId);
-                      if (existingIndex > -1) {
-                        const updated = [...prev];
-                        updated[existingIndex] = {
-                          ...updated[existingIndex],
-                          content: updated[existingIndex].content + chunkDelta.content,
-                          thinking: `${updated[existingIndex].thinking || ''}${chunkDelta.thinking}`,
-                          ...(references ? { references } : {}),
-                        };
-                        return updated;
-                      } else {
-                        return [
-                          ...prev,
-                          {
-                            id: chunkId,
-                            type: 'ai',
-                            content: chunkDelta.content,
-                            thinking: chunkDelta.thinking || undefined,
-                            references,
-                          },
-                        ];
-                      }
+                    dispatchMessages({
+                      type: 'appendChunk',
+                      chunkId,
+                      content: chunkDelta.content,
+                      thinking: chunkDelta.thinking,
+                      references,
                     });
                   }
                 }
@@ -162,15 +213,15 @@ export function useChatStream({ threadId, assistantId }: UseChatStreamOptions): 
                   }
                 }
 
-                setMessages((prev) => [
-                  ...prev,
-                  { id: `error-${Date.now()}`, type: 'error', content: errMsg },
-                ]);
-              } catch (e) {
-                setMessages((prev) => [
-                  ...prev,
-                  { id: `error-${Date.now()}`, type: 'error', content: 'An error occurred during execution.' },
-                ]);
+                dispatchMessages({
+                  type: 'append',
+                  message: { id: `error-${Date.now()}`, type: 'error', content: errMsg },
+                });
+              } catch {
+                dispatchMessages({
+                  type: 'append',
+                  message: { id: `error-${Date.now()}`, type: 'error', content: 'An error occurred during execution.' },
+                });
               }
             }
           }
@@ -188,20 +239,7 @@ export function useChatStream({ threadId, assistantId }: UseChatStreamOptions): 
             if (lastServerMsg && (lastServerMsg.type === 'ai' || lastServerMsg.role === 'assistant')) {
               const refs = lastServerMsg.additional_kwargs?.references;
               if (Array.isArray(refs)) {
-                setMessages((prev) => {
-                  if (prev.length === 0) return prev;
-                  const updated = [...prev];
-                  for (let i = updated.length - 1; i >= 0; i--) {
-                    if (updated[i].type === 'ai') {
-                      updated[i] = {
-                        ...updated[i],
-                        references: refs,
-                      };
-                      break;
-                    }
-                  }
-                  return updated;
-                });
+                dispatchMessages({ type: 'setLastAiReferences', references: refs });
               }
             }
           }
@@ -209,9 +247,9 @@ export function useChatStream({ threadId, assistantId }: UseChatStreamOptions): 
       } catch (syncErr) {
         console.error('Failed to sync final thread state for references:', syncErr);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      let errMsg = err.message || 'An error occurred during streaming execution.';
+      let errMsg = getErrorMessage(err, 'An error occurred during streaming execution.');
 
       if (runId && threadId) {
         try {
@@ -227,10 +265,10 @@ export function useChatStream({ threadId, assistantId }: UseChatStreamOptions): 
         }
       }
 
-      setMessages((prev) => [
-        ...prev,
-        { id: `error-${Date.now()}`, type: 'error', content: errMsg },
-      ]);
+      dispatchMessages({
+        type: 'append',
+        message: { id: `error-${Date.now()}`, type: 'error', content: errMsg },
+      });
     } finally {
       setIsStreaming(false);
     }

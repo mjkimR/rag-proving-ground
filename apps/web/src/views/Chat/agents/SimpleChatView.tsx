@@ -67,7 +67,7 @@ export const SimpleChatView: React.FC<AgentViewProps> = ({
 
       {errorMsg && (
         <Alert
-          message="Server Connection Alert"
+          title="Server Connection Alert"
           description={errorMsg}
           type="error"
           showIcon

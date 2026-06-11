@@ -15,10 +15,27 @@ import {
   getModelCatalogOptionsApiV1ModelCatalogOptionsGet
 } from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
+import styles from './KnowledgeBaseHub.module.css';
 
 const { Title, Text, Paragraph } = Typography;
 
-const normalizeExtensions = (obj: any): Record<string, string> => {
+interface CreateFormValues {
+  name: string;
+  embedding_model?: string;
+  distance_metric?: 'cosine' | 'dot' | 'euclid';
+  use_colpali?: boolean;
+  colpali_model?: string | null;
+  parsing_provider?: string;
+  extension_providers?: Record<string, string>;
+  chunk_size?: number;
+  chunk_overlap?: number;
+  merge_max_chars?: number;
+  breadcrumb_depth?: number;
+  include_root_breadcrumb?: boolean;
+  breadcrumb_separator?: string;
+}
+
+const normalizeExtensions = (obj: Record<string, string | null | undefined> | null | undefined): Record<string, string> => {
   if (!obj) return {};
   return Object.fromEntries(
     Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null && String(v).trim() !== '')
@@ -80,7 +97,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
 
   // 2. Create KB Mutation
   const createKbMutation = useMutation({
-    mutationFn: (values: any) => {
+    mutationFn: (values: CreateFormValues) => {
       const payload = {
         name: values.name.trim().toLowerCase().replace(/\s+/g, '_'),
         embedding_config: {
@@ -108,7 +125,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
         throwOnError: true,
       });
     },
-    onSuccess: (response: any) => {
+    onSuccess: (response: { data?: KnowledgeBaseRead }) => {
       message.success('Knowledge Base created successfully!');
       setCreateModalVisible(false);
       form.resetFields();
@@ -165,7 +182,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
     }
   };
 
-  const handleCreate = (values: any) => {
+  const handleCreate = (values: CreateFormValues) => {
     createKbMutation.mutate(values);
   };
 
@@ -212,7 +229,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           type="primary"
           icon={<Plus size={18} />}
           size="large"
-          className="font-outfit shadow-button"
+          className={`font-outfit ${styles.shadowButton}`}
           onClick={() => {
             setCreateModalVisible(true);
             setCurrentStep(0);
@@ -237,10 +254,9 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
         </Button>
       </div>
 
-      {/* 2. Stats Grid */}
       <Row gutter={[20, 20]}>
         <Col xs={24} sm={8}>
-          <Card variant="borderless" className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
+          <Card variant="borderless" className={`glass-card ${styles.cardHoverEffect}`} style={{ borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ padding: '12px', background: 'rgba(79, 70, 229, 0.1)', borderRadius: '12px', color: '#4f46e5' }}>
                 <HardDrive size={24} />
@@ -253,7 +269,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card variant="borderless" className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
+          <Card variant="borderless" className={`glass-card ${styles.cardHoverEffect}`} style={{ borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', color: '#10b981' }}>
                 <Layers size={24} />
@@ -266,7 +282,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card variant="borderless" className="glass-card card-hover-effect" style={{ borderRadius: '16px' }}>
+          <Card variant="borderless" className={`glass-card ${styles.cardHoverEffect}`} style={{ borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ padding: '12px', background: 'rgba(236, 72, 153, 0.1)', borderRadius: '12px', color: '#ec4899' }}>
                 <Cpu size={24} />
@@ -304,7 +320,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           dataSource={filteredItems}
           loading={kbLoading}
           rowKey="id"
-          className="custom-table"
+          className={styles.customTable}
           pagination={{
             pageSize: 6,
             hideOnSinglePage: true,
@@ -351,15 +367,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
 
                 return (
                   <Space size={6}>
-                    {pulse && <span className="status-pulse-dot" style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: '#1890ff',
-                      display: 'inline-block',
-                      boxShadow: '0 0 8px #1890ff',
-                      animation: 'pulse 1.2s infinite ease-in-out'
-                    }} />}
+                    {pulse && <span className={styles.pulseDot} />}
                     <Tag color={color} style={{ fontWeight: 600, borderRadius: '6px', padding: '2px 8px' }}>
                       {status}
                     </Tag>
@@ -371,7 +379,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
               title: 'Vector Model & Similarity',
               key: 'model',
               render: (_, record: KnowledgeBaseRead) => (
-                <Space direction="vertical" size={2}>
+                <Space orientation="vertical" size={2}>
                   <Tag color="blue" style={{ fontFamily: 'Outfit', fontWeight: 500, borderRadius: '4px', margin: 0 }}>
                     <Cpu size={11} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
                     {record.embedding_config?.model || 'text-embedding-3-small'}
@@ -520,13 +528,14 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
                 rules={[{ required: true }]}
                 tooltip="The default parser provider used for file ingestion. Docling is highly accurate with PDFs, tables, and complex documents."
               >
-                <Select size="large" loading={configLoading}>
-                  {parserProviders.map((provider) => (
-                    <Select.Option key={provider} value={provider}>
-                      {provider.charAt(0).toUpperCase() + provider.slice(1)} {provider === 'docling' ? '(Deep Layout)' : ''}
-                    </Select.Option>
-                  ))}
-                </Select>
+                <Select
+                  size="large"
+                  loading={configLoading}
+                  options={parserProviders.map((provider) => ({
+                    value: provider,
+                    label: `${provider.charAt(0).toUpperCase() + provider.slice(1)} ${provider === 'docling' ? '(Deep Layout)' : ''}`
+                  }))}
+                />
               </Form.Item>
 
               <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
@@ -553,13 +562,16 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
                           label={`Files ending in ${ext}`}
                           style={{ marginBottom: '8px' }}
                         >
-                          <Select placeholder="Use Default Parser" allowClear loading={configLoading} size="small">
-                            {parserProviders.map((provider) => (
-                              <Select.Option key={provider} value={provider}>
-                                {provider.charAt(0).toUpperCase() + provider.slice(1)}
-                              </Select.Option>
-                            ))}
-                          </Select>
+                          <Select
+                            placeholder="Use Default Parser"
+                            allowClear
+                            loading={configLoading}
+                            size="small"
+                            options={parserProviders.map((provider) => ({
+                              value: provider,
+                              label: provider.charAt(0).toUpperCase() + provider.slice(1)
+                            }))}
+                          />
                         </Form.Item>
                       ))}
                     </div>
@@ -645,13 +657,14 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
                     rules={[{ required: true }]}
                     tooltip="The vectorizer model used to compute chunk embeddings. Must match LiteLLM configurations."
                   >
-                    <Select size="large" loading={configLoading}>
-                      {embeddingModels.map((model) => (
-                        <Select.Option key={model} value={model}>
-                          {model}
-                        </Select.Option>
-                      ))}
-                    </Select>
+                    <Select
+                      size="large"
+                      loading={configLoading}
+                      options={embeddingModels.map((model) => ({
+                        value: model,
+                        label: model
+                      }))}
+                    />
                   </Form.Item>
                 </Col>
               </Row>
@@ -679,11 +692,15 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
                             rules={[{ required: true, message: 'Please select a ColPali model' }]}
                             tooltip="Multi-vector vision model for page image embeddings."
                           >
-                            <Select size="large" placeholder="Select ColPali model">
-                              <Select.Option value="vidore/colpali-v1.2-merged">vidore/colpali-v1.2-merged (Default)</Select.Option>
-                              <Select.Option value="vidore/colpali-v1.3-merged">vidore/colpali-v1.3-merged</Select.Option>
-                              <Select.Option value="vidore/colSmol-500M-merged">vidore/colSmol-500M-merged</Select.Option>
-                            </Select>
+                            <Select
+                              size="large"
+                              placeholder="Select ColPali model"
+                              options={[
+                                { value: 'vidore/colpali-v1.2-merged', label: 'vidore/colpali-v1.2-merged (Default)' },
+                                { value: 'vidore/colpali-v1.3-merged', label: 'vidore/colpali-v1.3-merged' },
+                                { value: 'vidore/colSmol-500M-merged', label: 'vidore/colSmol-500M-merged' }
+                              ]}
+                            />
                           </Form.Item>
                         );
                       }
@@ -719,33 +736,6 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
           </div>
         </Form>
       </Modal>
-
-      {/* Styled animation keyframes for pulse */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes pulse {
-          0% { transform: scale(0.95); opacity: 0.5; box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.4); }
-          70% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 6px rgba(24, 144, 255, 0); }
-          100% { transform: scale(0.95); opacity: 0.5; box-shadow: 0 0 0 0 rgba(24, 144, 255, 0); }
-        }
-        .card-hover-effect {
-          transition: all 0.25s ease;
-        }
-        .card-hover-effect:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 24px -10px rgba(79, 70, 229, 0.12) !important;
-        }
-        .custom-table .ant-table {
-          background: transparent !important;
-        }
-        .custom-table .ant-table-thead > tr > th {
-          background: rgba(0, 0, 0, 0.02) !important;
-          font-weight: 700;
-          font-family: 'Outfit', sans-serif;
-        }
-        .shadow-button {
-          box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.35) !important;
-        }
-      `}} />
 
     </div>
   );

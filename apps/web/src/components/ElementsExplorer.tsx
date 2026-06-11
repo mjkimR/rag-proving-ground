@@ -1,37 +1,7 @@
 import { useState, useMemo } from "react";
+import type { ParsedElement, BoundingBox, AssetRef } from "@/generated/api/types.gen";
 
-export interface BoundingBox {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-  coord_origin?: string;
-}
-
-export interface AssetRef {
-  uri?: string;
-  path?: string;
-  mimetype?: string;
-  width?: number;
-  height?: number;
-  dpi?: number;
-}
-
-export interface ParsedElement {
-  element_id: string;
-  type: string;
-  format: string;
-  content: string;
-  page_id?: string;
-  order: number;
-  level?: number;
-  bbox?: BoundingBox;
-  parent_id?: string;
-  children_ids: string[];
-  ignored?: boolean;
-  asset?: AssetRef;
-  metadata: Record<string, any>;
-}
+export type { ParsedElement, BoundingBox, AssetRef };
 
 interface ElementsExplorerProps {
   elements: ParsedElement[];
@@ -134,7 +104,7 @@ export function ElementDetails({ element }: ElementDetailsProps) {
             <strong>Parent ID:</strong> <code>{element.parent_id}</code>
           </div>
         )}
-        {element.children_ids.length > 0 && (
+        {element.children_ids && element.children_ids.length > 0 && (
           <div>
             <strong>Children IDs:</strong>{" "}
             <code>{element.children_ids.join(", ")}</code>
@@ -181,7 +151,7 @@ export function ElementDetails({ element }: ElementDetailsProps) {
           </div>
         </div>
       )}
-      {Object.keys(element.metadata).length > 0 && (
+      {element.metadata && Object.keys(element.metadata).length > 0 && (
         <div className="element-metadata-block">
           <strong>Metadata:</strong>
           <pre>{JSON.stringify(element.metadata, null, 2)}</pre>

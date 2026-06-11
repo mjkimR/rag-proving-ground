@@ -1,0 +1,24 @@
+:root {
+  --bg-app: #f6f7f9;
+  --bg-card: rgba(255, 255, 255, 0.7);
+  --border-color: #dde3ea;
+  --text-primary: #1c2430;
+  --text-secondary: #647084;
+  --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+  --accent-color: #4f46e5;
+  
+  color: var(--text-primary);
+  background: var(--bg-app);
+  font-family: 'Inter', 'Outfit', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-theme {
+  --bg-app: #0b0f17;
+  --bg-card: rgba(17, 24, 39, 0.75);
+  --border-color: #1f2937;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #4f46e5 100%);
+  --accent-color: #00f2fe;
+}

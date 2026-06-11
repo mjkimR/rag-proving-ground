@@ -5,6 +5,8 @@ import { OfficePreview } from "../../../components/OfficePreview";
 import { PdfPreview } from "../../../components/PdfPreview";
 import { ElementsExplorer } from "../../../components/ElementsExplorer";
 import type { PreviewMode } from "../types";
+import type { ParsedElement } from "../../../components/ElementsExplorer";
+import type { ParsedPage } from "@/generated/api/types.gen";
 
 function PreviewCopilotAction({ activeSummary }: { activeSummary: string }) {
   useCopilotAction({
@@ -30,10 +32,10 @@ type PreviewPanelProps = {
   setPdfName: (name: string) => void;
   markdown: string;
   html: string;
-  parsedDoc: any;
+  parsedDoc: { elements?: ParsedElement[]; pages?: ParsedPage[] } | null | undefined;
   file: File | null;
-  activeElement: any;
-  setActiveElement: (el: any) => void;
+  activeElement: ParsedElement | null | undefined;
+  setActiveElement: (el: ParsedElement) => void;
 };
 
 export function PreviewPanel({

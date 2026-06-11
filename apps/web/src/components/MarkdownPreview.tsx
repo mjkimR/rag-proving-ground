@@ -115,12 +115,14 @@ export function MarkdownPreview({
               title={null}
               trigger="hover"
               placement="top"
-              overlayInnerStyle={{
-                padding: "12px",
-                borderRadius: "10px",
-                border: isDarkMode ? "1px solid #1f2937" : "1px solid #e5e7eb",
-                background: isDarkMode ? "#0b0f17" : "#ffffff",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              styles={{
+                content: {
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: isDarkMode ? "1px solid #1f2937" : "1px solid #e5e7eb",
+                  background: isDarkMode ? "#0b0f17" : "#ffffff",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                }
               }}
             >
               <span

@@ -7,6 +7,7 @@ import {
 } from '@/generated/api/sdk.gen';
 import { useThemeStore } from '@/stores/themeStore';
 import { ElementsExplorer } from '@/components/ElementsExplorer';
+import type { ParsedElement } from '@/components/ElementsExplorer';
 import { PdfPreview } from '@/components/PdfPreview';
 import { KnowledgeBaseHub } from './components/KnowledgeBaseHub';
 import { KnowledgeBaseDetail } from './components/KnowledgeBaseDetail';
@@ -21,7 +22,7 @@ export const Knowledge: React.FC = () => {
   } = useThemeStore();
 
   const [inspectingFile, setInspectingFile] = useState<{ id: string; hash: string; name: string } | null>(null);
-  const [activeElement, setActiveElement] = useState<any>(null);
+  const [activeElement, setActiveElement] = useState<ParsedElement | null>(null);
 
   // Fetch Knowledge Bases to resolve the active KB configuration
   const { data: kbList, isLoading: kbListLoading } = useQuery({
@@ -124,13 +125,13 @@ export const Knowledge: React.FC = () => {
             Layout Element Inspector: <span style={{ color: 'var(--accent-gradient)', background: 'linear-gradient(90deg, #4f46e5 0%, #00f2fe 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{inspectingFile?.name}</span>
           </span>
         }
-        width="90vw"
+        size="90vw"
         onClose={() => {
           setInspectingFile(null);
           setActiveElement(null);
         }}
         open={!!inspectingFile}
-        destroyOnClose
+        destroyOnHidden
         styles={{ body: { padding: 0, overflow: 'hidden' } }}
       >
         {parsedLoading ? (
@@ -149,7 +150,7 @@ export const Knowledge: React.FC = () => {
                     fileUrl={`${API_BASE_URL}/api/v1/knowledge_base_documents/${inspectingFile.id}/download`}
                     fileName={inspectingFile.name}
                     activeElement={activeElement}
-                    parsedDoc={parsedDoc.data as any}
+                    parsedDoc={parsedDoc.data as { elements?: ParsedElement[]; pages?: { page_id: string; page_no: number; width?: number; height?: number }[] } | null | undefined}
                   />
                 ) : (
                   <div className="non-pdf-info" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", padding: "24px", textAlign: "center" }}>
@@ -166,7 +167,7 @@ export const Knowledge: React.FC = () => {
               <div className="panel-content" style={{ flex: 1, overflow: "hidden" }}>
                 <ElementsExplorer
                   elements={
-                    ((parsedDoc.data as any).elements || []).map((el: any) => ({
+                    ((parsedDoc.data as { elements?: ParsedElement[] }).elements || []).map((el: ParsedElement) => ({
                       ...el,
                       content: el.content || '',
                     }))

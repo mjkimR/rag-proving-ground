@@ -51,17 +51,21 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
     queryFn: () => getKnowledgeBasesApiV1KnowledgeBasesGet({ throwOnError: true }),
   });
 
-  const knowledgeBases = kbQuery.data?.data?.items || [];
   const kbOptions = useMemo(
-    () =>
-      knowledgeBases.map((kb) => ({
+    () => {
+      const knowledgeBases = kbQuery.data?.data?.items || [];
+      return knowledgeBases.map((kb) => ({
         label: `${kb.name} (${kb.status})`,
         value: kb.id,
-      })),
-    [knowledgeBases],
+      }));
+    },
+    [kbQuery.data?.data?.items],
   );
 
-  const rerankerModels = modelOptions?.data?.reranker_models || [];
+  const rerankerModels = useMemo(
+    () => modelOptions?.data?.reranker_models || [],
+    [modelOptions?.data?.reranker_models]
+  );
   const hasCatalogRerankerModels = rerankerModels.length > 0 && !rerankerModels.includes('no-model');
   const forcedReranker = selectedKbIds.length >= 2;
   const effectiveRerankerEnabled = forcedReranker || rerankerEnabled;
@@ -82,8 +86,8 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
         border: '1px solid var(--border-color, #e5e7eb)',
       }}
     >
-      <Space direction="vertical" size={12} style={{ width: '100%' }}>
-        <Space direction="vertical" size={6} style={{ width: '100%' }}>
+      <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={6} style={{ width: '100%' }}>
           <Text strong>Knowledge Bases</Text>
           <Select
             mode="multiple"
@@ -93,13 +97,15 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
             value={selectedKbIds}
             onChange={setSelectedKbIds}
             style={{ width: '100%' }}
-            optionFilterProp="label"
+            showSearch={{
+              filterOption: (input, option) => (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
+            }}
             disabled={isStreaming}
           />
         </Space>
 
         <Space wrap size={12} style={{ width: '100%' }}>
-          <Space direction="vertical" size={6}>
+          <Space orientation="vertical" size={6}>
             <Text strong>Limit</Text>
             <InputNumber
               min={1}
@@ -109,7 +115,7 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
               disabled={isStreaming}
             />
           </Space>
-          <Space direction="vertical" size={6}>
+          <Space orientation="vertical" size={6}>
             <Text strong>Candidate Limit</Text>
             <InputNumber
               min={1}
@@ -120,7 +126,7 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
               disabled={isStreaming}
             />
           </Space>
-          <Space direction="vertical" size={6}>
+          <Space orientation="vertical" size={6}>
             <Text strong>Reranker</Text>
             <Switch
               checked={effectiveRerankerEnabled}
@@ -130,7 +136,7 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
               unCheckedChildren="Off"
             />
           </Space>
-          <Space direction="vertical" size={6} style={{ minWidth: 220 }}>
+          <Space orientation="vertical" size={6} style={{ minWidth: 220 }}>
             <Text strong>Reranker Model</Text>
             {hasCatalogRerankerModels ? (
               <Select
@@ -153,7 +159,7 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
               />
             )}
           </Space>
-          <Space direction="vertical" size={6}>
+          <Space orientation="vertical" size={6}>
             <Text strong>Top N</Text>
             <InputNumber
               min={1}
