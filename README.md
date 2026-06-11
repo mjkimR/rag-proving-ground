@@ -103,12 +103,13 @@ just check backend  # Run type check for Python backend only
 just check web      # Run type check for React web frontend only
 
 # Running Tests
-just test                                                   # Run all pytest tests
-just test packages/rag-core/tests/unit/test_adapters/  # Run specific test files or directories
+just test                                              # Run module-level default tests
+just test backend                                      # Run backend/Python tests
+just test-file packages/rag-core/tests/unit/test_adapters/  # Run specific test files or directories
 
 # Running Dev Servers
-just dev-backend  # Start FastAPI backend in reloading mode (port 8389)
-just dev-web      # Start React Vite frontend (port 5173)
+just dev backend  # Start backend dev services
+just dev web      # Start React Vite frontend
 
 # Other Utilities
 just kill        # Release ports and kill dangling dev server processes
@@ -122,7 +123,7 @@ just down        # Stop and clean up all Docker backend services
 cd apps/web
 npm install
 just gen-ui-api  # Generate type-safe API client from Python backend
-just dev-web     # Start React Vite frontend (port 5173)
+just dev web     # Start React Vite frontend
 ```
 
 ---
