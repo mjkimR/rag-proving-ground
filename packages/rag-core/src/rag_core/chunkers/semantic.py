@@ -89,6 +89,12 @@ class RAGSemanticChunker:
         config: ChunkingConfig | None = None,
         fallback_splitter: RAGFallbackTextSplitter | None = None,
     ) -> None:
+        """Initializes the RAGSemanticChunker.
+
+        Args:
+            config: Optional ChunkingConfig configuration values.
+            fallback_splitter: Optional fallback text splitter for oversized elements.
+        """
         self.config = config or ChunkingConfig()
         self.fallback_splitter = fallback_splitter or RAGFallbackTextSplitter(
             chunk_size=self.config.chunk_size,
@@ -96,7 +102,17 @@ class RAGSemanticChunker:
         )
 
     def chunk_document(self, document: ParsedDocument) -> list[ChunkedDocument]:
-        """Create embedding chunks from a parsed document."""
+        """Creates embedding chunks from a normalized parsed document.
+
+        The method enriches parsed elements with heading breadcrumbs, merges small
+        sibling fragments, and falls back to recursive splitting for oversized text.
+
+        Args:
+            document: The input ParsedDocument object to split.
+
+        Returns:
+            list[ChunkedDocument]: A list of chunked document instances with metadata.
+        """
 
         blocks = self._build_enriched_blocks(document)
         merged_blocks = self._merge_micro_chunks(blocks)
@@ -136,6 +152,14 @@ class RAGSemanticChunker:
         return chunks
 
     def _build_enriched_blocks(self, document: ParsedDocument) -> list[_SemanticBlock]:
+        """Builds blocks enriched with heading breadcrumbs and bounding box metadata.
+
+        Args:
+            document: The ParsedDocument from which to extract elements.
+
+        Returns:
+            list[_SemanticBlock]: The generated semantic blocks.
+        """
         headings: list[tuple[int, str]] = []
         blocks: list[_SemanticBlock] = []
         page_no_by_id = {page.page_id: page.page_no for page in document.pages}
@@ -205,6 +229,14 @@ class RAGSemanticChunker:
         ]
 
     def _merge_micro_chunks(self, blocks: list[_SemanticBlock]) -> list[_SemanticBlock]:
+        """Merges small sibling blocks to build chunks of optimal size.
+
+        Args:
+            blocks: The list of raw semantic blocks.
+
+        Returns:
+            list[_SemanticBlock]: The merged list of semantic blocks.
+        """
         merged: list[_SemanticBlock] = []
         buffer: _SemanticBlock | None = None
 
@@ -270,7 +302,15 @@ class RAGSemanticChunker:
 
 
 def chunk_document(document: ParsedDocument, config: ChunkingConfig | None = None) -> list[ChunkedDocument]:
-    """Convenience function for default semantic chunking."""
+    """Convenience function for default semantic chunking.
+
+    Args:
+        document: The input ParsedDocument object to chunk.
+        config: Optional ChunkingConfig for tuning chunking thresholds.
+
+    Returns:
+        list[ChunkedDocument]: A list of chunked document instances.
+    """
 
     return RAGSemanticChunker(config=config).chunk_document(document)
 

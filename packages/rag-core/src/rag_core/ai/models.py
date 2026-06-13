@@ -2,20 +2,36 @@
 
 import json
 import logging
-from functools import lru_cache
 from typing import Any
 
-from app_http_client import get_http_sync_client
 from langchain_core.documents import BaseDocumentCompressor
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables import Runnable
 from langchain_litellm import ChatLiteLLM, LiteLLMEmbeddings
 
+from rag_core.ai.gateway import (
+    _fetch_model_options_from_gateway,
+    _fetch_raw_model_info_from_gateway,
+    _gateway_base_url,
+    _get_model_metadata_map,
+    get_model_metadata,
+    get_model_options,
+)
 from rag_core.ai.reranker import LiteLLMRerankCompressor
 from rag_core.ai.sparse import SparseEmbeddings as SparseEmbeddings
 from rag_core.ai.sparse import get_sparse_embedding_model as get_sparse_embedding_model
 from rag_core.config import get_litellm_settings
+
+__all__ = [
+    "clear_gateway_cache",
+    "get_embedding_model",
+    "get_llm_model",
+    "get_model_metadata",
+    "get_model_options",
+    "get_reranker_model",
+    "update_model_registry",
+]
 
 logging.getLogger("LiteLLM").setLevel(logging.CRITICAL)
 
@@ -49,7 +65,11 @@ _DEFAULT_MODELS: dict[str, dict[str, Any]] = {}
 
 
 def update_model_registry(models: list[dict[str, Any]]) -> None:
-    """Update the in-memory active and default model registry."""
+    """Updates the in-memory active and default model configurations.
+
+    Args:
+        models: A list of model configuration dictionaries loaded from the database.
+    """
     global _ACTIVE_MODELS, _DEFAULT_MODELS
     _ACTIVE_MODELS = {m["name"]: m for m in models if m.get("is_active", True)}
     _DEFAULT_MODELS = {}
@@ -59,7 +79,7 @@ def update_model_registry(models: list[dict[str, Any]]) -> None:
 
 
 def clear_gateway_cache() -> None:
-    """Clear the lru_cache for LiteLLM gateway information."""
+    """Clears all lru_cache instances caching LiteLLM gateway dynamic model information."""
     _fetch_raw_model_info_from_gateway.cache_clear()
     _get_model_metadata_map.cache_clear()
     _fetch_model_options_from_gateway.cache_clear()
@@ -104,6 +124,22 @@ def _resolve_model_params(
 
 
 def get_llm_model(model_name: str | None = None, **kwargs: Any) -> BaseChatModel | Runnable:
+    """Retrieves an initialized ChatLiteLLM model or bind-wrapped Runnable from the cache.
+
+    Integrates with the LiteLLM proxy gateway by utilizing settings retrieved from
+    `get_litellm_settings()`. The request is routed to `settings.base_url` using the
+    api key in `settings.api_key`.
+
+    If no model_name is specified, falls back to the default LLM model from the database
+    registry or application settings.
+
+    Args:
+        model_name: The name of the LLM model to retrieve.
+        **kwargs: Standard parameters (e.g., temperature, max_tokens) or bind kwargs to override.
+
+    Returns:
+        BaseChatModel | Runnable: The cached LLM instance, potentially wrapped with bound arguments.
+    """
     settings = get_litellm_settings()
 
     # 1. Resolve model name
@@ -155,6 +191,22 @@ def get_llm_model(model_name: str | None = None, **kwargs: Any) -> BaseChatModel
 
 
 def get_embedding_model(model_name: str | None = None, **kwargs: Any) -> Embeddings:
+    """Retrieves an initialized LiteLLMEmbeddings instance from the cache.
+
+    Integrates with the LiteLLM proxy gateway by utilizing settings retrieved from
+    `get_litellm_settings()`. The embedding request is routed to `settings.base_url` using
+    the api key in `settings.api_key`.
+
+    If no model_name is specified, falls back to the default embedding model from the
+    database registry or application settings.
+
+    Args:
+        model_name: The name of the embedding model to retrieve.
+        **kwargs: Additional parameters (e.g., timeout, max_retries) to override.
+
+    Returns:
+        Embeddings: The cached LangChain Embeddings instance.
+    """
     settings = get_litellm_settings()
 
     # 1. Resolve model name
@@ -201,6 +253,22 @@ def get_embedding_model(model_name: str | None = None, **kwargs: Any) -> Embeddi
 
 
 def get_reranker_model(model_name: str | None = None, **kwargs: Any) -> BaseDocumentCompressor:
+    """Retrieves an initialized LiteLLMRerankCompressor instance from the cache.
+
+    Integrates with the LiteLLM proxy gateway by utilizing settings retrieved from
+    `get_litellm_settings()`. The reranking request is routed to `settings.base_url` using
+    the api key in `settings.api_key`.
+
+    If no model_name is specified, falls back to the default reranker model from the
+    database registry or application settings.
+
+    Args:
+        model_name: The name of the reranker model to retrieve.
+        **kwargs: Additional parameters (e.g., top_n, timeout, max_retries) to override.
+
+    Returns:
+        BaseDocumentCompressor: The cached LiteLLMRerankCompressor instance.
+    """
     settings = get_litellm_settings()
 
     # 1. Resolve model name
@@ -251,10 +319,6 @@ def _gateway_openai_model(model_name: str) -> str:
     return f"openai/{model_name}"
 
 
-def _gateway_base_url(base_url: str) -> str:
-    return base_url.removesuffix("/v1").rstrip("/")
-
-
 def _json_cache_key(value: Any) -> str:
     return json.dumps(_json_safe(value), sort_keys=True, separators=(",", ":"))
 
@@ -281,133 +345,3 @@ def _json_safe_key(value: Any) -> str:
             f"str(). type={type(value).__qualname__} value={value!r}"
         )
     return str(value)
-
-
-@lru_cache(maxsize=1)
-def _fetch_raw_model_info_from_gateway() -> list[dict[str, Any]]:
-    """Fetch raw model list from LiteLLM gateway.
-
-    Raises:
-        Exception: If the fetch or parsing fails, ensuring failures are not cached.
-    """
-    settings = get_litellm_settings()
-    info_url = f"{_gateway_base_url(settings.base_url)}/model/info"
-
-    headers = {}
-    if settings.api_key:
-        headers["Authorization"] = f"Bearer {settings.api_key.get_secret_value()}"
-
-    client = get_http_sync_client()
-    response = client.get(info_url, headers=headers, timeout=5.0)
-    if response.status_code != 200:
-        raise RuntimeError(f"Failed to fetch model info from LiteLLM gateway. Status code: {response.status_code}")
-
-    data = response.json()
-    model_list = data
-    if isinstance(data, dict) and "data" in data:
-        model_list = data["data"]
-    elif isinstance(data, dict) and "model_list" in data:
-        model_list = data["model_list"]
-
-    if not isinstance(model_list, list):
-        raise ValueError(f"Unexpected model list format from LiteLLM gateway: {type(model_list).__name__}")
-
-    logger.info("Successfully fetched model options dynamically from LiteLLM gateway.")
-    return model_list
-
-
-@lru_cache(maxsize=1)
-def _get_model_metadata_map() -> dict[str, dict[str, Any]]:
-    """Build a mapping of model name to metadata from fetched gateway info.
-
-    Raises:
-        Exception: If the fetch or parsing fails, ensuring failures are not cached.
-    """
-    model_list = _fetch_raw_model_info_from_gateway()
-    return {entry["model_name"]: entry.get("metadata") or {} for entry in model_list if "model_name" in entry}
-
-
-def get_model_metadata(model_name: str) -> dict[str, Any]:
-    """Get metadata for a specific model from cached gateway info."""
-    try:
-        metadata_map = _get_model_metadata_map()
-        return metadata_map.get(model_name) or {}
-    except Exception as e:
-        logger.warning(f"Failed to get metadata for model {model_name}: {e}")
-    return {}
-
-
-@lru_cache(maxsize=1)
-def _fetch_model_options_from_gateway() -> dict[str, list[str]]:
-    """Fetch model options from the LiteLLM gateway API.
-
-    Raises:
-        Exception: If the fetch or parsing fails, ensuring failures are not cached.
-    """
-    model_list = _fetch_raw_model_info_from_gateway()
-
-    embedding_models = []
-    llm_models = []
-    reranker_models = []
-
-    for entry in model_list:
-        name = entry.get("model_name")
-        if not name:
-            continue
-
-        metadata = entry.get("metadata") or {}
-        role = metadata.get("role") or metadata.get("type")
-
-        if not role and "tags" in metadata:
-            tags = metadata.get("tags") or []
-            if "embedding" in tags:
-                role = "embedding"
-            elif "reranker" in tags:
-                role = "reranker"
-            elif "llm" in tags or "chat" in tags:
-                role = "llm"
-
-        if not role:
-            # Name heuristics
-            name_lower = name.lower()
-            if "embedding" in name_lower or ("bge" in name_lower and "rerank" not in name_lower):
-                role = "embedding"
-            elif "reranker" in name_lower or "rerank" in name_lower:
-                role = "reranker"
-            else:
-                role = "llm"
-
-        if role == "embedding":
-            embedding_models.append(name)
-        elif role == "reranker":
-            reranker_models.append(name)
-        else:
-            llm_models.append(name)
-
-    return {
-        "embedding_models": embedding_models,
-        "llm_models": llm_models,
-        "reranker_models": reranker_models,
-    }
-
-
-def get_model_options() -> dict[str, list[str]]:
-    """Retrieve categorized list of available models from the LiteLLM gateway.
-
-    If the fetch fails, it returns a fallback placeholder dictionary to ensure
-    downstream compatibility without caching the failure.
-    """
-    try:
-        return _fetch_model_options_from_gateway()
-    except Exception as e:
-        settings = get_litellm_settings()
-        info_url = f"{_gateway_base_url(settings.base_url)}/model/info"
-        logger.warning(
-            f"Failed to fetch model info from LiteLLM gateway ({info_url}): {e}. "
-            f"Returning fallback 'no-model' placeholders."
-        )
-        return {
-            "embedding_models": ["no-model"],
-            "llm_models": ["no-model"],
-            "reranker_models": ["no-model"],
-        }

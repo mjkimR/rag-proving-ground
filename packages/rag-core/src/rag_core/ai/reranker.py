@@ -26,7 +26,19 @@ def _truncate_text_to_tokens(text: str, max_tokens: int) -> str:
 
 
 class LiteLLMRerankCompressor(BaseDocumentCompressor):
-    """Rerank LangChain documents through a LiteLLM gateway."""
+    """LangChain document compressor utilizing the LiteLLM gateway's rerank API.
+
+    Attributes:
+        model: The name of the reranking model.
+        api_base: The base URL of the LiteLLM gateway.
+        api_key: The API key for authorization.
+        top_n: The number of documents to return after reranking.
+        score_metadata_key: The metadata key to store the relevance score under.
+        request_timeout: The HTTP request timeout in seconds.
+        max_retries: The maximum number of retries for the API request.
+        max_tokens_per_doc: Maximum token length of document text to submit for reranking.
+        rerank_kwargs: Additional parameters to pass to the LiteLLM rerank API.
+    """
 
     model: str
     api_base: str
@@ -46,6 +58,16 @@ class LiteLLMRerankCompressor(BaseDocumentCompressor):
         query: str,
         callbacks: Callbacks | None = None,
     ) -> Sequence[Document]:
+        """Compresses (reranks) the input documents for a given query synchronously.
+
+        Args:
+            documents: A sequence of LangChain Document objects to compress.
+            query: The query text to relevance-score the documents against.
+            callbacks: Optional callbacks to handle events.
+
+        Returns:
+            Sequence[Document]: The reranked documents with their relevance scores.
+        """
         if not documents:
             return []
 
@@ -73,6 +95,16 @@ class LiteLLMRerankCompressor(BaseDocumentCompressor):
         query: str,
         callbacks: Callbacks | None = None,
     ) -> Sequence[Document]:
+        """Compresses (reranks) the input documents for a given query asynchronously.
+
+        Args:
+            documents: A sequence of LangChain Document objects to compress.
+            query: The query text to relevance-score the documents against.
+            callbacks: Optional callbacks to handle events.
+
+        Returns:
+            Sequence[Document]: The reranked documents with their relevance scores.
+        """
         if not documents:
             return []
 

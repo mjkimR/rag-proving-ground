@@ -18,7 +18,21 @@ from rag_core.embeddings.schemas import (
 
 
 async def get_knowledge_vector_store(config: KnowledgeEmbeddingConfig) -> tuple[VectorStore, str, str]:
-    """Return the vector store, collection name, and config hash for a resolved embedding config."""
+    """Returns the VectorStore instance, collection name, and configuration hash for a resolved embedding config.
+
+    Args:
+        config: The knowledge embedding configuration. Must be resolved (i.e., contain a model).
+
+    Returns:
+        tuple[VectorStore, str, str]: A tuple containing:
+            - VectorStore: The active LangChain VectorStore instance.
+            - str: The name of the vector database collection.
+            - str: The configuration hash for the resolved embedding config.
+
+    Raises:
+        ValueError: If the configuration has not been resolved (e.g., config.model is None).
+        RuntimeError: If the vector database is not healthy or is uninitialized.
+    """
 
     if config.model is None:
         raise ValueError("Knowledge embedding config must be resolved before creating a vector store.")
@@ -40,7 +54,15 @@ async def get_knowledge_vector_store(config: KnowledgeEmbeddingConfig) -> tuple[
 
 
 def chunks_to_langchain_documents(chunks: Iterable[ChunkedDocument], *, knowledge_base_id: UUID) -> list[Document]:
-    """Convert chunk records into LangChain documents with knowledge base metadata."""
+    """Converts chunk records into LangChain Document instances with knowledge base metadata.
+
+    Args:
+        chunks: An iterable of chunked document records.
+        knowledge_base_id: The ID of the knowledge base to associate the documents with.
+
+    Returns:
+        list[Document]: A list of converted LangChain documents.
+    """
 
     documents: list[Document] = []
     for chunk in chunks:
@@ -51,7 +73,12 @@ def chunks_to_langchain_documents(chunks: Iterable[ChunkedDocument], *, knowledg
 
 
 async def delete_document_vectors(collection_name: str, document_id: UUID | str) -> None:
-    """Delete all indexed vectors for a document from the configured vector store provider."""
+    """Deletes all indexed vectors for a specific document from the configured collection.
+
+    Args:
+        collection_name: The name of the collection from which vectors should be deleted.
+        document_id: The unique identifier of the document to delete.
+    """
 
     provider = get_vector_store_provider()
     await provider.delete_points(

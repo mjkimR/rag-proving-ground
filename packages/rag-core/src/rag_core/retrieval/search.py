@@ -27,7 +27,17 @@ async def retrieve_knowledge_chunks(
     *,
     limit: int = 5,
 ) -> list[RetrievedChunk]:
-    """Retrieve similar document chunks for a query from a specific knowledge base."""
+    """Retrieves similar document chunks for a query from a specific knowledge base.
+
+    Args:
+        query: The search query text.
+        knowledge_base_id: The ID of the target knowledge base.
+        embedding_config: The embedding configuration associated with the knowledge base.
+        limit: The maximum number of retrieved chunks to return. Defaults to 5.
+
+    Returns:
+        list[RetrievedChunk]: A list of retrieved chunk instances sorted by relevance.
+    """
 
     return await retrieve_multi_knowledge_chunks(
         query=query,
@@ -44,7 +54,25 @@ async def retrieve_multi_knowledge_chunks(
     reranker_config: RerankerConfig | None = None,
     candidate_limit: int | None = None,
 ) -> list[RetrievedChunk]:
-    """Retrieve chunks from one or more knowledge bases and optionally rerank the merged candidates."""
+    """Retrieves chunks from one or more knowledge bases and optionally reranks the merged candidates.
+
+    If more than one knowledge base is queried, `reranker_config` must be provided to normalize
+    and compare the similarity scores of candidates across different knowledge bases.
+
+    Args:
+        query: The search query text.
+        kb_configs: A list of tuples containing the knowledge base ID and its embedding config.
+        limit: The final maximum number of retrieved chunks to return. Defaults to 5.
+        reranker_config: Optional configuration for the reranking step.
+        candidate_limit: Optional limit on the number of candidates to retrieve per knowledge base before reranking.
+
+    Returns:
+        list[RetrievedChunk]: A list of deduplicated retrieved chunk instances.
+
+    Raises:
+        ValueError: If `limit` or `candidate_limit` is less than 1, or if multiple knowledge bases
+            are queried but no `reranker_config` is specified.
+    """
 
     if limit < 1:
         raise ValueError("limit must be greater than or equal to 1.")

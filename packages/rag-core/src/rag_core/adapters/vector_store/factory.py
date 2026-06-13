@@ -8,7 +8,14 @@ vector_store_cache = LRUCache(maxsize=16)
 
 
 class VectorStoreFactory:
+    """Factory for creating and caching LangChain VectorStore instances based on provider settings."""
+
     def __init__(self, provider: VectorStoreProvider):
+        """Initializes the VectorStoreFactory.
+
+        Args:
+            provider: The vector store provider to delegate instance creation to.
+        """
         self.provider = provider
 
     async def get_vector_store(
@@ -20,8 +27,17 @@ class VectorStoreFactory:
         retrieval_mode: str = "dense",
         sparse_model: str | None = None,
     ) -> VectorStore:
-        """
-        Returns a VectorStore implementation suitable for the client type.
+        """Returns a cached or newly created VectorStore instance suitable for the provider type.
+
+        Args:
+            collection_name: The name of the collection in the vector database.
+            model_name: The name of the dense embedding model.
+            distance: The distance metric to use (e.g., "cosine", "euclidean"). Defaults to "cosine".
+            retrieval_mode: The retrieval mode, either "dense", "sparse", or "hybrid". Defaults to "dense".
+            sparse_model: The name of the sparse embedding model, if hybrid/sparse. Defaults to None.
+
+        Returns:
+            VectorStore: An initialized LangChain VectorStore instance.
         """
         settings = get_vector_db_settings()
 

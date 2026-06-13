@@ -40,7 +40,11 @@ _DEFAULT_PARSER: dict[str, Any] | None = None
 
 
 def update_parser_registry(parsers: list[dict[str, Any]]) -> None:
-    """Update the in-memory active and default parser registry."""
+    """Updates the in-memory active and default parser configurations in the registry.
+
+    Args:
+        parsers: A list of parser configurations, typically loaded from the database.
+    """
     global _ACTIVE_PARSERS, _DEFAULT_PARSER
     _ACTIVE_PARSERS = {p["name"]: p for p in parsers if p.get("is_active", True)}
     _DEFAULT_PARSER = None
@@ -51,7 +55,11 @@ def update_parser_registry(parsers: list[dict[str, Any]]) -> None:
 
 
 def register_parser(parser_class: type[Parser]) -> None:
-    """Register a parser provider."""
+    """Registers a parser provider class in the global ParserRegistry.
+
+    Args:
+        parser_class: The parser class implementing the `Parser` interface.
+    """
     ParserRegistry.register(parser_class)
 
 
@@ -69,7 +77,17 @@ def _is_text_format(parser_input: ParserInput) -> bool:
 
 
 def get_parser(provider: str | None = None) -> Parser:
-    """Get the configured parser engine."""
+    """Retrieves the configured document parser engine.
+
+    If no provider is specified, falls back to the default active parser from the
+    registry or application settings.
+
+    Args:
+        provider: Optional provider name (e.g., "docling", "native_text").
+
+    Returns:
+        Parser: An initialized parser engine.
+    """
     resolved_provider = provider
     if not resolved_provider:
         resolved_provider = _DEFAULT_PARSER["name"] if _DEFAULT_PARSER else get_parser_settings().provider
@@ -135,7 +153,20 @@ async def parse_document(
     ignore_cache: bool = False,
     parsing_config_hash: str | None = None,
 ) -> Any:
-    """Parse a document with the configured parser engine."""
+    """Parses a document using the specified parser engine, optionally utilizing caching.
+
+    If the document matches text format (e.g., Markdown, plain text), it defaults
+    to using the "native_text" provider if no provider is explicitly requested.
+
+    Args:
+        parser_input: The input document configuration containing the source, bytes, or file info.
+        provider: Optional name of the parser provider to use.
+        ignore_cache: If True, bypasses cache checks and forces fresh parsing. Defaults to False.
+        parsing_config_hash: Optional hash identifying the parsing settings to scope cache lookups.
+
+    Returns:
+        Any: The parsed result object (typically a ParsedDocument).
+    """
     if provider is None and _is_text_format(parser_input):
         provider = "native_text"
 
@@ -217,7 +248,20 @@ async def parse_file(
     ignore_cache: bool = False,
     parsing_config_hash: str | None = None,
 ) -> Any:
-    """Parse file bytes with the configured parser engine."""
+    """Parses a file from its raw bytes using the configured parser engine.
+
+    Args:
+        content: The raw binary bytes of the file.
+        filename: The name of the file.
+        content_type: Optional MIME type of the file.
+        metadata: Optional dictionary of additional metadata.
+        provider: Optional name of the parser provider to use.
+        ignore_cache: If True, bypasses cache checks and forces fresh parsing. Defaults to False.
+        parsing_config_hash: Optional hash identifying the parsing settings to scope cache.
+
+    Returns:
+        Any: The parsed result object.
+    """
     return await parse_document(
         ParserInput(
             content=content,
@@ -238,7 +282,17 @@ async def parse_upload_file(
     provider: str | None = None,
     parsing_config_hash: str | None = None,
 ) -> Any:
-    """Parse a FastAPI/Starlette UploadFile with the configured parser engine."""
+    """Parses an uploaded file (e.g., FastAPI UploadFile) using the configured parser engine.
+
+    Args:
+        upload_file: The FastAPI/Starlette upload file object.
+        metadata: Optional dictionary of additional metadata.
+        provider: Optional name of the parser provider to use.
+        parsing_config_hash: Optional hash identifying the parsing settings to scope cache.
+
+    Returns:
+        Any: The parsed result object.
+    """
     return await parse_document(
         await ParserInput.from_upload_file(upload_file, metadata=metadata),
         provider=provider,
@@ -253,7 +307,17 @@ async def parse_source(
     provider: str | None = None,
     parsing_config_hash: str | None = None,
 ) -> Any:
-    """Parse a URI or local source reference with the configured parser engine."""
+    """Parses a document from a URI or local path reference using the configured parser engine.
+
+    Args:
+        source: The URI or local path to the document.
+        metadata: Optional dictionary of additional metadata.
+        provider: Optional name of the parser provider to use.
+        parsing_config_hash: Optional hash identifying the parsing settings to scope cache.
+
+    Returns:
+        Any: The parsed result object.
+    """
     return await parse_document(
         ParserInput(source=source, metadata=metadata or {}),
         provider=provider,

@@ -10,7 +10,14 @@ _vector_store_provider: VectorStoreProvider | None = None
 
 
 def set_vector_store_provider(provider: VectorStoreProvider) -> None:
-    """Set the global vector store provider instance."""
+    """Sets the global vector store provider instance.
+
+    Args:
+        provider: The vector store provider to set globally.
+
+    Raises:
+        RuntimeError: If the global vector store provider has already been set.
+    """
     global _vector_store_provider
     if _vector_store_provider is not None:
         raise RuntimeError("Vector Store provider is already initialized.")
@@ -18,7 +25,14 @@ def set_vector_store_provider(provider: VectorStoreProvider) -> None:
 
 
 def get_vector_store_provider() -> VectorStoreProvider:
-    """Get the global vector store provider instance."""
+    """Retrieves the global vector store provider instance.
+
+    Returns:
+        VectorStoreProvider: The active global vector store provider.
+
+    Raises:
+        RuntimeError: If the global vector store provider has not been initialized.
+    """
     global _vector_store_provider
     if _vector_store_provider is None:
         raise RuntimeError("Vector Store provider is not initialized. Check lifespan.")
@@ -26,7 +40,11 @@ def get_vector_store_provider() -> VectorStoreProvider:
 
 
 def get_vector_store_factory() -> VectorStoreFactory:
-    """Get the global vector store factory instance."""
+    """Retrieves a new factory instance using the global vector store provider.
+
+    Returns:
+        VectorStoreFactory: A factory configured with the current global provider.
+    """
     return VectorStoreFactory(get_vector_store_provider())
 
 
@@ -38,7 +56,18 @@ async def get_vector_store(
     retrieval_mode: str = "dense",
     sparse_model: str | None = None,
 ) -> langchain_core.vectorstores.VectorStore:
-    """Get a LangChain VectorStore instance."""
+    """Retrieves a LangChain VectorStore instance for the specified collection and settings.
+
+    Args:
+        collection_name: The name of the vector database collection.
+        model_name: The name of the embedding model to associate with the store.
+        distance: The distance metric to use (e.g., "cosine", "euclidean"). Defaults to "cosine".
+        retrieval_mode: The retrieval mode, either "dense", "sparse", or "hybrid". Defaults to "dense".
+        sparse_model: The name of the sparse embedding model, if applicable. Defaults to None.
+
+    Returns:
+        langchain_core.vectorstores.VectorStore: The initialized LangChain VectorStore instance.
+    """
     factory = get_vector_store_factory()
     return await factory.get_vector_store(
         collection_name,
@@ -50,7 +79,14 @@ async def get_vector_store(
 
 
 async def setup_vector_store_provider(settings: VectorDBSettings) -> None:
-    """Setup the global vector store provider instance."""
+    """Sets up the global vector store provider instance based on settings.
+
+    If the provider is already initialized or set to 'none', this function
+    will skip initialization.
+
+    Args:
+        settings: The configurations containing vector database settings.
+    """
     global _vector_store_provider
     if _vector_store_provider is not None:
         logger.info("Vector Store provider is already initialized.")
@@ -68,7 +104,7 @@ async def setup_vector_store_provider(settings: VectorDBSettings) -> None:
 
 
 async def close_vector_store() -> None:
-    """Close the global vector store provider instance."""
+    """Closes and resets the global vector store provider instance, releasing resources."""
     global _vector_store_provider
     provider = _vector_store_provider
     _vector_store_provider = None
@@ -78,7 +114,11 @@ async def close_vector_store() -> None:
 
 
 async def check_vector_store_health() -> bool:
-    """Check the connection health of the global vector store provider."""
+    """Checks the connection health of the global vector store provider.
+
+    Returns:
+        bool: True if the provider is initialized and healthy, False otherwise.
+    """
     global _vector_store_provider
     if _vector_store_provider is None:
         return False
