@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Card, Row, Col, Input, InputNumber, Spin, Empty, Typography, message } from 'antd';
-import { useMutation } from '@tanstack/react-query';
-import { searchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPost } from '@/generated/api/sdk.gen';
+import { Card, Row, Col, Input, InputNumber, Spin, Empty, Typography, message, Select } from 'antd';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  searchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPost,
+  getProviderOptionsApiV1ProvidersOptionsGet,
+} from '@/generated/api/sdk.gen';
 import type { KnowledgeBaseRead, KnowledgeBaseSearchResponse } from '@/generated/api/types.gen';
 import { SearchResultCards } from './SearchResultCards';
 
@@ -14,6 +17,14 @@ interface RetrievalTestTabProps {
 export const RetrievalTestTab: React.FC<RetrievalTestTabProps> = ({ kb }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLimit, setSearchLimit] = useState<number>(5);
+  const [retrievalMode, setRetrievalMode] = useState<'dense' | 'sparse' | 'hybrid' | undefined>(undefined);
+  const [sparseModel, setSparseModel] = useState<string | undefined>(undefined);
+
+  const { data: configOptions } = useQuery({
+    queryKey: ['configOptions'],
+    queryFn: () => getProviderOptionsApiV1ProvidersOptionsGet({ throwOnError: true }),
+  });
+  const sparseEmbeddingModels = configOptions?.data?.sparse_embedding_models || [];
 
   const searchMutation = useMutation({
     mutationFn: (variables: { query: string; limit: number }) => {
@@ -22,6 +33,8 @@ export const RetrievalTestTab: React.FC<RetrievalTestTabProps> = ({ kb }) => {
         body: {
           query: variables.query,
           limit: variables.limit,
+          retrieval_mode: retrievalMode,
+          sparse_model: sparseModel,
         },
         throwOnError: true,
       });
@@ -81,6 +94,48 @@ export const RetrievalTestTab: React.FC<RetrievalTestTabProps> = ({ kb }) => {
               size="large"
             />
           </Col>
+        </Row>
+        <Row gutter={[16, 16]} style={{ marginTop: '14px' }}>
+          <Col xs={24} sm={12}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginRight: '8px' }}>Retrieval Mode:</span>
+            <Select
+              allowClear
+              placeholder="Use KB default mode"
+              options={[
+                { value: 'dense', label: 'Dense Only' },
+                { value: 'sparse', label: 'Sparse Only' },
+                { value: 'hybrid', label: 'Hybrid (Dense + Sparse)' }
+              ]}
+              value={retrievalMode}
+              onChange={(val) => {
+                setRetrievalMode(val || undefined);
+                if (val !== 'sparse' && val !== 'hybrid') {
+                  setSparseModel(undefined);
+                }
+              }}
+              style={{ width: '180px' }}
+            />
+          </Col>
+          {(retrievalMode === 'sparse' || retrievalMode === 'hybrid') && (
+            <Col xs={24} sm={12}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginRight: '8px' }}>Sparse Model:</span>
+              <Select
+                allowClear
+                placeholder="Use KB default sparse model"
+                options={sparseEmbeddingModels.map((model) => ({
+                  label: model === 'en-bm25'
+                    ? 'English BM25 (en-bm25)'
+                    : model === 'ko-kiwi-bm25'
+                    ? 'Korean Kiwi BM25 (ko-kiwi-bm25)'
+                    : model,
+                  value: model
+                }))}
+                value={sparseModel}
+                onChange={setSparseModel}
+                style={{ width: '220px' }}
+              />
+            </Col>
+          )}
         </Row>
       </div>
 

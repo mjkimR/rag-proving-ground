@@ -1197,6 +1197,16 @@ export type KnowledgeBaseSearchRequest = {
      * The maximum number of search results to return.
      */
     limit?: number;
+    /**
+     * Query-time override for retrieval mode (dense, sparse, hybrid)
+     */
+    retrieval_mode?: RetrievalMode | null;
+    /**
+     * Sparse Model
+     *
+     * Query-time override for sparse embedding model
+     */
+    sparse_model?: string | null;
 };
 
 /**
@@ -1391,6 +1401,16 @@ export type MultiKnowledgeBaseSearchRequest = {
      * Reranker options for merged results.
      */
     reranker_config?: RerankerConfig | null;
+    /**
+     * Query-time override for retrieval mode (dense, sparse, hybrid)
+     */
+    retrieval_mode?: RetrievalMode | null;
+    /**
+     * Sparse Model
+     *
+     * Query-time override for sparse embedding model
+     */
+    sparse_model?: string | null;
 };
 
 /**
@@ -1813,6 +1833,12 @@ export type ProviderOptions = {
      * List of available parser providers
      */
     parser_providers: Array<string>;
+    /**
+     * Sparse Embedding Models
+     *
+     * List of available sparse embedding models
+     */
+    sparse_embedding_models: Array<string>;
 };
 
 /**

@@ -4,8 +4,8 @@ from app.features.knowledge.knowledge_base_documents.api.v1 import router as v1_
 from app.features.knowledge.knowledge_base_pages.api.v1 import router as v1_knowledge_base_pages_router
 from app.features.knowledge.knowledge_bases.api.v1 import router as v1_knowledge_bases_router
 from app.features.providers.ai_models.api.v1 import router as v1_ai_models_router
-from app.features.providers.api.v1 import router as v1_providers_router
 from app.features.providers.document_parsers.api.v1 import router as v1_document_parsers_router
+from app.features.providers.routes.api.v1 import router as v1_providers_router
 from fastapi import APIRouter, status
 from rag_core.adapters.vector_store import check_vector_store_health
 

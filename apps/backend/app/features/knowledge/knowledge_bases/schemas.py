@@ -5,7 +5,7 @@ from uuid import UUID
 from app_layer_base.base.schemas.mixin import TimestampSchemaMixin, UUIDSchemaMixin
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from rag_core.chunkers import ChunkingConfig
-from rag_core.embeddings import KnowledgeEmbeddingConfig
+from rag_core.embeddings import KnowledgeEmbeddingConfig, RetrievalMode
 from rag_core.parsers import KnowledgeParsingConfig
 from rag_core.retrieval import RerankerConfig
 
@@ -64,6 +64,10 @@ class KnowledgeBaseRead(UUIDSchemaMixin, TimestampSchemaMixin, KnowledgeBaseBase
 class KnowledgeBaseSearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000, description="The search query.")
     limit: int = Field(default=5, ge=1, le=100, description="The maximum number of search results to return.")
+    retrieval_mode: RetrievalMode | None = Field(
+        default=None, description="Query-time override for retrieval mode (dense, sparse, hybrid)"
+    )
+    sparse_model: str | None = Field(default=None, description="Query-time override for sparse embedding model")
 
 
 class MultiKnowledgeBaseSearchRequest(BaseModel):
@@ -81,6 +85,10 @@ class MultiKnowledgeBaseSearchRequest(BaseModel):
         description="Initial vector candidates to retrieve per knowledge base before final merging and reranking.",
     )
     reranker_config: RerankerConfig | None = Field(default=None, description="Reranker options for merged results.")
+    retrieval_mode: RetrievalMode | None = Field(
+        default=None, description="Query-time override for retrieval mode (dense, sparse, hybrid)"
+    )
+    sparse_model: str | None = Field(default=None, description="Query-time override for sparse embedding model")
 
     @field_validator("knowledge_base_ids")
     @classmethod

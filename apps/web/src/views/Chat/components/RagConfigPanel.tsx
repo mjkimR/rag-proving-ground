@@ -21,6 +21,10 @@ export interface RagConfigPanelProps {
   setRerankerModel: (m: string | undefined) => void;
   rerankerTopN: number | null;
   setRerankerTopN: (n: number | null) => void;
+  retrievalMode: string | undefined;
+  setRetrievalMode: (m: string | undefined) => void;
+  sparseModel: string | undefined;
+  setSparseModel: (m: string | undefined) => void;
   isStreaming: boolean;
   isDarkMode: boolean;
 }
@@ -38,6 +42,10 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
   setRerankerModel,
   rerankerTopN,
   setRerankerTopN,
+  retrievalMode,
+  setRetrievalMode,
+  sparseModel,
+  setSparseModel,
   isStreaming,
   isDarkMode,
 }) => {
@@ -65,6 +73,10 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
   const rerankerModels = useMemo(
     () => modelOptions?.data?.reranker_models || [],
     [modelOptions?.data?.reranker_models]
+  );
+  const sparseEmbeddingModels = useMemo(
+    () => modelOptions?.data?.sparse_embedding_models || [],
+    [modelOptions?.data?.sparse_embedding_models]
   );
   const hasCatalogRerankerModels = rerankerModels.length > 0 && !rerankerModels.includes('no-model');
   const forcedReranker = selectedKbIds.length >= 2;
@@ -170,6 +182,49 @@ export const RagConfigPanel: React.FC<RagConfigPanelProps> = ({
               disabled={isStreaming || !effectiveRerankerEnabled}
             />
           </Space>
+          <Space orientation="vertical" size={6} style={{ minWidth: 160 }}>
+            <Text strong>Retrieval Mode</Text>
+            <Select
+              allowClear
+              placeholder="KB default"
+              options={[
+                { value: 'dense', label: 'Dense Only' },
+                { value: 'sparse', label: 'Sparse Only' },
+                { value: 'hybrid', label: 'Hybrid (Dense+Sparse)' }
+              ]}
+              value={retrievalMode}
+              onChange={(value) => {
+                setRetrievalMode(value || undefined);
+                if (value !== 'sparse' && value !== 'hybrid') {
+                  setSparseModel(undefined);
+                }
+              }}
+              disabled={isStreaming}
+              style={{ width: '100%' }}
+            />
+          </Space>
+          {(retrievalMode === 'sparse' || retrievalMode === 'hybrid') && (
+            <Space orientation="vertical" size={6} style={{ minWidth: 220 }}>
+              <Text strong>Sparse Model Override</Text>
+              <Select
+                allowClear
+                placeholder="KB default"
+                loading={!modelOptions}
+                options={sparseEmbeddingModels.map((model) => ({
+                  label: model === 'en-bm25'
+                    ? 'English BM25 (en-bm25)'
+                    : model === 'ko-kiwi-bm25'
+                    ? 'Korean Kiwi BM25 (ko-kiwi-bm25)'
+                    : model,
+                  value: model
+                }))}
+                value={sparseModel}
+                onChange={setSparseModel}
+                disabled={isStreaming}
+                style={{ width: '100%' }}
+              />
+            </Space>
+          )}
         </Space>
 
         {forcedReranker && (

@@ -31,8 +31,8 @@ from starlette.responses import RedirectResponse
 async def init_db_and_seed_models_parsers() -> None:
     """Seed models and parsers on startup if tables are empty, and load cache registries."""
     from app.features.providers.ai_models.models import AIModel
-    from app.features.providers.cache import refresh_ai_models_cache, refresh_document_parsers_cache
     from app.features.providers.document_parsers.models import DocumentParser
+    from app.features.providers.routes.cache import refresh_ai_models_cache, refresh_document_parsers_cache
     from app_layer_base.core.database.transaction import AsyncTransaction
     from rag_core.adapters.parser.registry import ParserRegistry
     from rag_core.ai.models import _fetch_raw_model_info_from_gateway, get_litellm_settings
@@ -95,11 +95,7 @@ async def init_db_and_seed_models_parsers() -> None:
                 elif "/" in name:
                     provider = name.split("/")[0]
 
-                connection_info = {
-                    "model": raw_model_val,
-                    "api_base": litellm_params.get("api_base"),
-                    "api_key": litellm_params.get("api_key"),
-                }
+                connection_info = {}
 
                 session.add(
                     AIModel(

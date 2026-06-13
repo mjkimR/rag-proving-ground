@@ -1,4 +1,4 @@
-from app.features.providers.schemas import ProviderOptions
+from app.features.providers.routes.schemas import ProviderOptions
 from app_layer_base.base.usecases.base import BaseUseCase
 from rag_core.adapters.parser.instance import _ACTIVE_PARSERS
 from rag_core.adapters.parser.providers import register_default_parsers
@@ -26,9 +26,15 @@ class GetProviderOptionsUseCase(BaseUseCase):
         # 2. Retrieve document parsers from the DB active parsers registry (fallback to ParserRegistry if empty)
         parsers = list(_ACTIVE_PARSERS.keys()) if _ACTIVE_PARSERS else ParserRegistry.list_parsers()
 
+        # 3. Retrieve supported sparse embedding models from registry
+        from rag_core.ai.sparse.factory import SparseEmbeddingFactory
+
+        sparse_models = SparseEmbeddingFactory.list_supported_models()
+
         return ProviderOptions(
             embedding_models=embedding_models,
             llm_models=llm_models,
             reranker_models=reranker_models,
             parser_providers=parsers,
+            sparse_embedding_models=sparse_models,
         )

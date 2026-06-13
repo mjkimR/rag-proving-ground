@@ -175,6 +175,7 @@ class _FakeService:
 class _FakeKnowledgeBase:
     def __init__(self, knowledge_base_id):
         self.id = knowledge_base_id
+        self.name = "test_kb"
         self.embedding_config = {"model": "test-embedding"}
 
 
@@ -184,3 +185,83 @@ class _FakeKnowledgeBasePageRepository:
 
     async def enrich_chunks_with_page_content(self, session, chunks):
         pass
+
+
+async def test_search_use_case_fails_with_hybrid_override_on_dense_kb(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.features.knowledge.knowledge_bases.schemas import KnowledgeBaseSearchRequest
+    from app.features.knowledge.knowledge_bases.usecases.search import SearchKnowledgeBaseUseCase
+    from rag_core.embeddings import RetrievalMode
+
+    kb_id = uuid4()
+    kb = _FakeKnowledgeBase(kb_id)
+    # KB is dense because embedding_config defaults to {"model": "test-embedding"} which resolves to dense
+    kb.embedding_config = {"model": "test-embedding", "retrieval_mode": "dense"}
+
+    use_case = SearchKnowledgeBaseUseCase(
+        cast(KnowledgeBaseService, _FakeService([kb])),
+        cast(KnowledgeBasePageRepository, _FakeKnowledgeBasePageRepository()),
+    )
+    monkeypatch.setattr(search, "AsyncTransaction", _FakeTransaction)
+
+    # We mock the repo.get_by_pk to return our mock KB
+    async def fake_get_by_pk(session, pk_val):
+        return kb
+
+    use_case.service.repo.get_by_pk = fake_get_by_pk  # type: ignore[assignment]
+
+    # Overriding dense KB search to hybrid should fail with HTTPException 400
+    with pytest.raises(HTTPException) as exc_info:
+        await use_case.execute(
+            kb_id,
+            KnowledgeBaseSearchRequest(
+                query="test",
+                retrieval_mode=RetrievalMode.HYBRID,
+            ),
+        )
+    assert exc_info.value.status_code == 400
+    assert "cannot be searched in 'hybrid' mode" in exc_info.value.detail
+
+
+async def test_search_use_case_succeeds_with_dense_override_on_hybrid_kb(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.features.knowledge.knowledge_bases.schemas import KnowledgeBaseSearchRequest
+    from app.features.knowledge.knowledge_bases.usecases.search import SearchKnowledgeBaseUseCase
+    from rag_core.embeddings import RetrievalMode
+
+    kb_id = uuid4()
+    kb = _FakeKnowledgeBase(kb_id)
+    kb.embedding_config = {
+        "model": "test-embedding",
+        "retrieval_mode": "hybrid",
+        "sparse_model": "en-bm25",
+    }
+
+    use_case = SearchKnowledgeBaseUseCase(
+        cast(KnowledgeBaseService, _FakeService([kb])),
+        cast(KnowledgeBasePageRepository, _FakeKnowledgeBasePageRepository()),
+    )
+    monkeypatch.setattr(search, "AsyncTransaction", _FakeTransaction)
+
+    async def fake_get_by_pk(session, pk_val):
+        return kb
+
+    use_case.service.repo.get_by_pk = fake_get_by_pk  # type: ignore[assignment]
+
+    resolved_configs_called = []
+
+    async def fake_retrieve_knowledge_chunks(query, knowledge_base_id, embedding_config, limit):
+        resolved_configs_called.append(embedding_config)
+        return []
+
+    monkeypatch.setattr(search, "retrieve_knowledge_chunks", fake_retrieve_knowledge_chunks)
+
+    await use_case.execute(
+        kb_id,
+        KnowledgeBaseSearchRequest(
+            query="test",
+            retrieval_mode=RetrievalMode.DENSE,
+        ),
+    )
+
+    assert len(resolved_configs_called) == 1
+    # Check that query-time override to dense is resolved correctly
+    assert resolved_configs_called[0].retrieval_mode == RetrievalMode.DENSE

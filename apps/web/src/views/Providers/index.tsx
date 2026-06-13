@@ -300,7 +300,6 @@ export const Providers: React.FC = () => {
         model_type: model.model_type,
         is_active: model.is_active,
         is_default: model.is_default,
-        connection_info: JSON.stringify(model.connection_info || {}, null, 2),
         extra_metadata: JSON.stringify(model.extra_metadata || {}, null, 2)
       });
     } else {
@@ -308,7 +307,6 @@ export const Providers: React.FC = () => {
       form.setFieldsValue({
         is_active: true,
         is_default: false,
-        connection_info: '{}',
         extra_metadata: '{}'
       });
     }
@@ -341,18 +339,17 @@ export const Providers: React.FC = () => {
   // Save submit handlers
   const handleModelSubmit = (values: Record<string, string>) => {
     try {
-      const connInfo = JSON.parse(values.connection_info || '{}') as Record<string, unknown>;
       const extraMeta = JSON.parse(values.extra_metadata || '{}') as Record<string, unknown>;
       saveModelMutation.mutate({
         id: editingModel ? editingModel.id : null,
         data: {
           ...values,
-          connection_info: connInfo,
+          connection_info: {},
           extra_metadata: extraMeta
         }
       });
     } catch {
-      message.error('Invalid JSON in connection parameters or metadata.');
+      message.error('Invalid JSON in metadata.');
     }
   };
 
@@ -678,7 +675,7 @@ export const Providers: React.FC = () => {
           >
             <Input placeholder="e.g. custom-gpt-4o" disabled={!!editingModel} />
           </Form.Item>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <Form.Item
               name="provider"
@@ -708,15 +705,6 @@ export const Providers: React.FC = () => {
               </select>
             </Form.Item>
           </div>
-
-          <Form.Item
-            name="connection_info"
-            label="Connection Params (JSON Object)"
-            extra="Specify 'model' routing path, 'api_base', 'api_key', 'temperature', 'timeout', etc."
-            rules={[{ required: true, message: 'Please enter connection params.' }]}
-          >
-            <Input.TextArea rows={5} placeholder="{}" />
-          </Form.Item>
 
           <Form.Item
             name="extra_metadata"

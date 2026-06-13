@@ -6,3 +6,4 @@ class ProviderOptions(BaseModel):
     llm_models: list[str] = Field(description="List of available LLM models")
     reranker_models: list[str] = Field(description="List of available reranker models")
     parser_providers: list[str] = Field(description="List of available parser providers")
+    sparse_embedding_models: list[str] = Field(description="List of available sparse embedding models")

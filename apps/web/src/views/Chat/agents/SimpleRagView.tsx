@@ -29,6 +29,8 @@ export const SimpleRagView: React.FC<AgentViewProps> = ({
   const [rerankerEnabled, setRerankerEnabled] = useState(false);
   const [rerankerModel, setRerankerModel] = useState<string | undefined>(undefined);
   const [rerankerTopN, setRerankerTopN] = useState<number | null>(null);
+  const [retrievalMode, setRetrievalMode] = useState<string | undefined>(undefined);
+  const [sparseModel, setSparseModel] = useState<string | undefined>(undefined);
 
   const { data: modelOptions } = useQuery({
     queryKey: ['modelOptions'],
@@ -72,6 +74,8 @@ export const SimpleRagView: React.FC<AgentViewProps> = ({
       limit: retrievalLimit,
       candidate_limit: candidateLimit || undefined,
       reranker_config: rerankerConfig,
+      retrieval_mode: retrievalMode || null,
+      sparse_model: sparseModel || null,
     });
   };
 
@@ -114,6 +118,10 @@ export const SimpleRagView: React.FC<AgentViewProps> = ({
         setRerankerModel={setRerankerModel}
         rerankerTopN={rerankerTopN}
         setRerankerTopN={setRerankerTopN}
+        retrievalMode={retrievalMode}
+        setRetrievalMode={setRetrievalMode}
+        sparseModel={sparseModel}
+        setSparseModel={setSparseModel}
         isStreaming={isStreaming}
         isDarkMode={isDarkMode}
       />

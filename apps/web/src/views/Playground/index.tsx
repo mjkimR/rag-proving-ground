@@ -21,6 +21,8 @@ export const Playground: React.FC = () => {
   const [rerankerEnabled, setRerankerEnabled] = useState(false);
   const [selectedRerankerModel, setRerankerModel] = useState<string | undefined>(undefined);
   const [rerankerTopN, setRerankerTopN] = useState<number | null>(null);
+  const [retrievalMode, setRetrievalMode] = useState<'dense' | 'sparse' | 'hybrid' | undefined>(undefined);
+  const [sparseModelOverride, setSparseModelOverride] = useState<string | undefined>(undefined);
 
   const kbQuery = useQuery({
     queryKey: ['kbList'],
@@ -34,6 +36,7 @@ export const Playground: React.FC = () => {
 
   const knowledgeBases = useMemo(() => kbQuery.data?.data?.items || [], [kbQuery.data]);
   const rerankerModels = useMemo(() => modelQuery.data?.data?.reranker_models || [], [modelQuery.data]);
+  const sparseEmbeddingModels = useMemo(() => modelQuery.data?.data?.sparse_embedding_models || [], [modelQuery.data]);
   const hasCatalogRerankerModels = rerankerModels.length > 0 && !rerankerModels.includes('no-model');
   const forcedReranker = selectedKbIds.length >= 2;
   const effectiveRerankerEnabled = forcedReranker || rerankerEnabled;
@@ -67,6 +70,8 @@ export const Playground: React.FC = () => {
           limit,
           candidate_limit: candidateLimit || undefined,
           reranker_config: rerankerConfig,
+          retrieval_mode: retrievalMode,
+          sparse_model: sparseModelOverride,
         },
         throwOnError: true,
       });
@@ -198,6 +203,64 @@ export const Playground: React.FC = () => {
                     size="large"
                   />
                 </div>
+              </Space>
+            </Card>
+
+            <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
+              <Space align="center" className={styles.cardHeader}>
+                <Space>
+                  <SlidersHorizontal size={18} />
+                  <Title level={4} style={{ margin: 0 }}>
+                    Retrieval Overrides
+                  </Title>
+                </Space>
+              </Space>
+
+              <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+                <div>
+                  <Text strong style={{ display: 'block', marginBottom: '6px' }}>Retrieval Mode</Text>
+                  <Select
+                    size="large"
+                    placeholder="Use KB default mode"
+                    allowClear
+                    options={[
+                      { value: 'dense', label: 'Dense Only' },
+                      { value: 'sparse', label: 'Sparse Only' },
+                      { value: 'hybrid', label: 'Hybrid (Dense + Sparse)' }
+                    ]}
+                    value={retrievalMode}
+                    onChange={(value) => {
+                      setRetrievalMode(value || undefined);
+                      if (value !== 'sparse' && value !== 'hybrid') {
+                        setSparseModelOverride(undefined);
+                      }
+                    }}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                {(retrievalMode === 'sparse' || retrievalMode === 'hybrid') && (
+                  <div>
+                    <Text strong style={{ display: 'block', marginBottom: '6px' }}>Sparse Model Override</Text>
+                    <Select
+                      size="large"
+                      placeholder="Use KB default sparse model"
+                      allowClear
+                      loading={modelQuery.isLoading}
+                      options={sparseEmbeddingModels.map((model) => ({
+                        value: model,
+                        label: model === 'en-bm25'
+                          ? 'English BM25 (en-bm25)'
+                          : model === 'ko-kiwi-bm25'
+                          ? 'Korean Kiwi BM25 (ko-kiwi-bm25)'
+                          : model
+                      }))}
+                      value={sparseModelOverride}
+                      onChange={setSparseModelOverride}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                )}
               </Space>
             </Card>
           </Space>

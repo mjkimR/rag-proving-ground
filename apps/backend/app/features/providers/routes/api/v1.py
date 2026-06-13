@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from app.features.providers.schemas import ProviderOptions
-from app.features.providers.usecases.options import GetProviderOptionsUseCase
+from app.features.providers.routes.schemas import ProviderOptions
+from app.features.providers.routes.usecases.options import GetProviderOptionsUseCase
 from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/providers", tags=["Providers"])

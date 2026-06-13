@@ -2,7 +2,7 @@ from typing import Annotated
 
 from app.features.providers.ai_models.models import AIModel
 from app.features.providers.ai_models.services import AIModelService
-from app.features.providers.cache import refresh_ai_models_cache
+from app.features.providers.routes.cache import refresh_ai_models_cache
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends
@@ -65,11 +65,7 @@ class SyncAIModelsUseCase(BaseUseCase):
                     provider = name.split("/")[0]
 
                 # Extract connection info
-                connection_info = {
-                    "model": raw_model_val,
-                    "api_base": litellm_params.get("api_base"),
-                    "api_key": litellm_params.get("api_key"),
-                }
+                connection_info = {}
 
                 # Merge parameters
                 model_params = metadata.get("model_params") or {}

@@ -117,6 +117,7 @@ export const useKnowledgeBaseDetail = ({
 
   const embeddingModels = configOptions?.data?.embedding_models || [];
   const parserProviders = configOptions?.data?.parser_providers || [];
+  const sparseEmbeddingModels = configOptions?.data?.sparse_embedding_models || [];
 
   const [selectedParserProvider, setParserProvider] = useState<string | null>(null);
   const parserProvider = (selectedParserProvider && parserProviders.includes(selectedParserProvider))
@@ -437,6 +438,7 @@ export const useKnowledgeBaseDetail = ({
     configLoading,
     embeddingModels,
     parserProviders,
+    sparseEmbeddingModels,
     parserProvider,
     setParserProvider,
     isUploading,

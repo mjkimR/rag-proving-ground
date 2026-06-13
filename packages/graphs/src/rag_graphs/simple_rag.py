@@ -32,6 +32,8 @@ class GraphConfig(TypedDict, total=False):
     candidate_limit: int | None
     reranker_config: dict[str, Any] | None
     max_context_chars: int
+    retrieval_mode: str | None
+    sparse_model: str | None
 
 
 class _KnowledgeBaseConfig(BaseModel):
@@ -50,6 +52,8 @@ class _GraphRuntimeConfig(BaseModel):
     candidate_limit: int | None = Field(default=None, ge=1, le=500)
     reranker_config: RerankerConfig | None = None
     max_context_chars: int = Field(default=DEFAULT_MAX_CONTEXT_CHARS, ge=1, le=200_000)
+    retrieval_mode: str | None = None
+    sparse_model: str | None = None
 
     @field_validator("knowledge_base_ids")
     @classmethod
@@ -145,6 +149,8 @@ async def _retrieve_context_chunks(
         limit=runtime_config.limit,
         reranker_config=runtime_config.reranker_config,
         candidate_limit=runtime_config.candidate_limit,
+        retrieval_mode=runtime_config.retrieval_mode,
+        sparse_model=runtime_config.sparse_model,
     )
 
 

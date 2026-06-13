@@ -15,6 +15,7 @@ interface StrategySettingsFormProps {
   setShowParserOverrides: (show: boolean) => void;
   parserProviders: string[];
   embeddingModels: string[];
+  sparseEmbeddingModels?: string[];
   configLoading: boolean;
   patchKbMutationPending: boolean;
   handlePreSaveConfig: (values: Record<string, unknown>) => void;
@@ -29,6 +30,7 @@ export const StrategySettingsForm: React.FC<StrategySettingsFormProps> = ({
   setShowParserOverrides,
   parserProviders,
   embeddingModels,
+  sparseEmbeddingModels,
   configLoading,
   patchKbMutationPending,
   handlePreSaveConfig,
@@ -319,10 +321,21 @@ export const StrategySettingsForm: React.FC<StrategySettingsFormProps> = ({
                         <Select
                           size="large"
                           placeholder="Select sparse model"
-                          options={[
-                            { value: 'en-bm25', label: 'English BM25 (en-bm25)' },
-                            { value: 'ko-kiwi-bm25', label: 'Korean Kiwi BM25 (ko-kiwi-bm25)' }
-                          ]}
+                          options={
+                            sparseEmbeddingModels && sparseEmbeddingModels.length > 0
+                              ? sparseEmbeddingModels.map((model) => ({
+                                  value: model,
+                                  label: model === 'en-bm25'
+                                    ? 'English BM25 (en-bm25)'
+                                    : model === 'ko-kiwi-bm25'
+                                    ? 'Korean Kiwi BM25 (ko-kiwi-bm25)'
+                                    : model
+                                }))
+                              : [
+                                  { value: 'en-bm25', label: 'English BM25 (en-bm25)' },
+                                  { value: 'ko-kiwi-bm25', label: 'Korean Kiwi BM25 (ko-kiwi-bm25)' }
+                                ]
+                          }
                         />
                       </Form.Item>
                     );

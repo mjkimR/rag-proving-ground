@@ -41,6 +41,8 @@ async def search_multi_knowledge_bases(
     limit: int,
     reranker_config: RerankerConfig | None,
     candidate_limit: int | None,
+    retrieval_mode: str | None = None,
+    sparse_model: str | None = None,
     settings: GraphBackendSettings | None = None,
 ) -> list[RetrievedChunk]:
     backend_settings = settings or get_graph_backend_settings()
@@ -55,6 +57,8 @@ async def search_multi_knowledge_bases(
                 limit=limit,
                 reranker_config=reranker_config,
                 candidate_limit=candidate_limit,
+                retrieval_mode=retrieval_mode,
+                sparse_model=sparse_model,
             ),
             timeout=backend_settings.timeout,
         )
@@ -77,6 +81,8 @@ def _search_payload(
     limit: int,
     reranker_config: RerankerConfig | None,
     candidate_limit: int | None,
+    retrieval_mode: str | None = None,
+    sparse_model: str | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "query": query,
@@ -87,6 +93,10 @@ def _search_payload(
         payload["candidate_limit"] = candidate_limit
     if reranker_config is not None:
         payload["reranker_config"] = reranker_config.model_dump(mode="json", exclude_none=True)
+    if retrieval_mode is not None:
+        payload["retrieval_mode"] = retrieval_mode
+    if sparse_model is not None:
+        payload["sparse_model"] = sparse_model
     return payload
 
 

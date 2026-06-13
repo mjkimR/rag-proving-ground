@@ -116,6 +116,7 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
 
   const embeddingModels = configOptions?.data?.embedding_models || [];
   const parserProviders = configOptions?.data?.parser_providers || [];
+  const sparseEmbeddingModels = configOptions?.data?.sparse_embedding_models || [];
   const [form] = Form.useForm();
   const [{
     currentStep,
@@ -526,10 +527,21 @@ export const KnowledgeBaseSettingsModal: React.FC<KnowledgeBaseSettingsModalProp
                     >
                       <Select
                         placeholder="Select sparse model"
-                        options={[
-                          { value: 'en-bm25', label: 'English BM25 (en-bm25)' },
-                          { value: 'ko-kiwi-bm25', label: 'Korean Kiwi BM25 (ko-kiwi-bm25)' }
-                        ]}
+                        options={
+                          sparseEmbeddingModels && sparseEmbeddingModels.length > 0
+                            ? sparseEmbeddingModels.map((model) => ({
+                                value: model,
+                                label: model === 'en-bm25'
+                                  ? 'English BM25 (en-bm25)'
+                                  : model === 'ko-kiwi-bm25'
+                                  ? 'Korean Kiwi BM25 (ko-kiwi-bm25)'
+                                  : model
+                              }))
+                            : [
+                                { value: 'en-bm25', label: 'English BM25 (en-bm25)' },
+                                { value: 'ko-kiwi-bm25', label: 'Korean Kiwi BM25 (ko-kiwi-bm25)' }
+                              ]
+                        }
                       />
                     </Form.Item>
                   );

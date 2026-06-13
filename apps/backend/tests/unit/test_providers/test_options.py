@@ -1,8 +1,8 @@
-from app.features.providers.usecases.options import GetProviderOptionsUseCase
+from app.features.providers.routes.usecases.options import GetProviderOptionsUseCase
 
 
 async def test_get_provider_options_use_case(mocker) -> None:
-    mock_get = mocker.patch("app.features.providers.usecases.options.get_model_options")
+    mock_get = mocker.patch("app.features.providers.routes.usecases.options.get_model_options")
     mock_get.return_value = {
         "embedding_models": ["mock-embed", "vllm-embedding"],
         "llm_models": ["mock-llm"],
@@ -16,3 +16,5 @@ async def test_get_provider_options_use_case(mocker) -> None:
     assert options.llm_models == ["mock-llm"]
     assert options.reranker_models == ["mock-rerank"]
     assert "docling" in options.parser_providers
+    assert "en-bm25" in options.sparse_embedding_models
+    assert "ko-kiwi-bm25" in options.sparse_embedding_models

@@ -48,6 +48,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
     configLoading,
     embeddingModels,
     parserProviders,
+    sparseEmbeddingModels,
     parserProvider,
     setParserProvider,
     isUploading,
@@ -247,6 +248,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
                 setShowParserOverrides={setShowParserOverrides}
                 parserProviders={parserProviders}
                 embeddingModels={embeddingModels}
+                sparseEmbeddingModels={sparseEmbeddingModels}
                 configLoading={configLoading}
                 patchKbMutationPending={patchKbMutation.isPending}
                 handlePreSaveConfig={handlePreSaveConfig}
