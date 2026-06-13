@@ -185,7 +185,7 @@ class ParsedDocument(BaseModel):
             if self.markdown.strip():
                 self.text = self.markdown
             elif self.html.strip():
-                from rag_core.parsers.renderers import _html_to_text
+                from rag_core.parsers.renderers.text import _html_to_text
 
                 self.text = _html_to_text(self.html)
         return self

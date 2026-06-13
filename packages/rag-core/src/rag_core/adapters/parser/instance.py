@@ -115,7 +115,7 @@ def _ensure_elements(doc: Any) -> Any:
     if not hasattr(doc, "elements") or doc.elements:
         return doc
 
-    from rag_core.adapters.parser.providers.native_text import NativeTextParser
+    from rag_core.adapters.parser.providers import NativeTextParser
 
     logger.warning(
         "ParsedDocument has no elements; reconstructing elements from markdown/html/text "

@@ -1,10 +1,27 @@
-from html import escape
 from pathlib import Path
 from typing import Any
 
 from loguru import logger
 
 from rag_core.adapters.parser.interface import ParserInput
+from rag_core.adapters.parser.providers.shared.type_conversion import (
+    to_dict as _dict,
+)
+from rag_core.adapters.parser.providers.shared.type_conversion import (
+    to_dict_or_none as _dict_or_none,
+)
+from rag_core.adapters.parser.providers.shared.type_conversion import (
+    to_float as _float,
+)
+from rag_core.adapters.parser.providers.shared.type_conversion import (
+    to_int as _int,
+)
+from rag_core.adapters.parser.providers.shared.type_conversion import (
+    to_list as _list,
+)
+from rag_core.adapters.parser.providers.shared.type_conversion import (
+    to_string as _string,
+)
 from rag_core.parsers.schemas import (
     AssetRef,
     BoundingBox,
@@ -14,6 +31,12 @@ from rag_core.parsers.schemas import (
     ParsedElement,
     ParsedPage,
     Provenance,
+)
+
+from .table import (
+    is_complex_table,
+    table_data,
+    table_html,
 )
 
 # Mappings from Docling element labels to standard semantic ElementTypes
@@ -222,7 +245,7 @@ def _handle_list_item(item: dict[str, Any], common: dict[str, Any]) -> list[Pars
 
 
 def _handle_table(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
-    html = _table_html(item)
+    html = table_html(item)
     table_common = {key: value for key, value in common.items() if key != "metadata"}
     return [
         ParsedElement(
@@ -232,9 +255,9 @@ def _handle_table(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedEl
             content=html,
             metadata={
                 **_metadata(item),
-                "is_complex": _is_complex_table(item),
-                "num_rows": _table_data(item).get("num_rows"),
-                "num_cols": _table_data(item).get("num_cols"),
+                "is_complex": is_complex_table(item),
+                "num_rows": table_data(item).get("num_rows"),
+                "num_cols": table_data(item).get("num_cols"),
             },
         )
     ]
@@ -322,7 +345,7 @@ def _handle_page_footer(item: dict[str, Any], common: dict[str, Any]) -> list[Pa
 
 
 def _handle_document_index(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
-    html = _table_html(item)
+    html = table_html(item)
     return [
         ParsedElement(
             **common,
@@ -424,52 +447,6 @@ def _list_item_content(item: dict[str, Any]) -> str:
     text = _string(item.get("text")) or ""
     marker = _string(item.get("marker")) or "-"
     return f"{marker} {text}".strip()
-
-
-def _table_html(item: dict[str, Any]) -> str:
-    data = _table_data(item)
-    rows = _int(data.get("num_rows")) or 0
-    cols = _int(data.get("num_cols")) or 0
-    cells = _list(data.get("table_cells"))
-    grid: list[list[str | None]] = [["" for _ in range(cols)] for _ in range(rows)]
-
-    for cell in cells:
-        if not isinstance(cell, dict):
-            continue
-        row = _int(cell.get("start_row_offset_idx"))
-        col = _int(cell.get("start_col_offset_idx"))
-        if row is None or col is None or row < 0 or col < 0 or row >= rows or col >= cols:
-            continue
-        tag = "th" if cell.get("column_header") or cell.get("row_header") else "td"
-        attrs = []
-        row_span = _int(cell.get("row_span")) or 1
-        col_span = _int(cell.get("col_span")) or 1
-        if row_span > 1:
-            attrs.append(f' rowspan="{row_span}"')
-        if col_span > 1:
-            attrs.append(f' colspan="{col_span}"')
-        grid[row][col] = f"<{tag}{''.join(attrs)}>{escape(_string(cell.get('text')) or '')}</{tag}>"
-        for covered_row in range(row, min(row + row_span, rows)):
-            for covered_col in range(col, min(col + col_span, cols)):
-                if covered_row != row or covered_col != col:
-                    grid[covered_row][covered_col] = None
-
-    body = "\n".join(f"  <tr>{''.join((cell or '<td></td>') for cell in row if cell is not None)}</tr>" for row in grid)
-    return f"<table>\n{body}\n</table>"
-
-
-def _is_complex_table(item: dict[str, Any]) -> bool:
-    cells = _table_data(item).get("table_cells")
-    if not isinstance(cells, list):
-        return False
-    return any(
-        isinstance(cell, dict) and ((_int(cell.get("row_span")) or 1) > 1 or (_int(cell.get("col_span")) or 1) > 1)
-        for cell in cells
-    )
-
-
-def _table_data(item: dict[str, Any]) -> dict[str, Any]:
-    return _dict(item.get("data"))
 
 
 def _provenance(item: dict[str, Any], source_ref: str | None, page_height_by_no: dict[int, float]) -> list[Provenance]:
@@ -640,41 +617,3 @@ def _first_page_no(provenance: list[Provenance]) -> int | None:
         if item.page_no is not None:
             return item.page_no
     return None
-
-
-def _string(value: Any) -> str | None:
-    if isinstance(value, str):
-        return value
-    return None
-
-
-def _dict(value: Any) -> dict[str, Any]:
-    if isinstance(value, dict):
-        return value
-    return {}
-
-
-def _dict_or_none(value: Any) -> dict[str, Any] | None:
-    if isinstance(value, dict):
-        return value
-    return None
-
-
-def _list(value: Any) -> list[Any]:
-    if isinstance(value, list):
-        return value
-    return []
-
-
-def _int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _float(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None

@@ -6,8 +6,9 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from rag_core.adapters.parser.interface import Parser, ParserInput
-from rag_core.adapters.parser.normalizers import normalize_docling_document
 from rag_core.parsers.schemas import PARSED_DOCUMENT_SCHEMA_VERSION, ParsedDocument
+
+from .normalizer import normalize_docling_document
 
 
 class DoclingParserSettings(BaseSettings):

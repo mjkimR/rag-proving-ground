@@ -1,7 +1,7 @@
 import pytest
 from rag_core.adapters.parser.instance import get_parser, parse_document
 from rag_core.adapters.parser.interface import ParserInput
-from rag_core.adapters.parser.providers.native_text import NativeTextParser
+from rag_core.adapters.parser.providers.native_text.parser import NativeTextParser
 from rag_core.config import get_native_text_parser_settings
 from rag_core.parsers.config import KnowledgeParsingConfig, knowledge_parsing_config_hash
 from rag_core.parsers.schemas import ContentFormat, ElementType, ParsedDocument
@@ -248,7 +248,7 @@ async def test_native_text_parser_ssrf_mitigation() -> None:
 
 async def test_native_text_parser_ssrf_dns_rebinding_mock(mocker) -> None:
     import httpcore
-    from rag_core.adapters.parser.providers.native_text import SafeAsyncNetworkBackend
+    from rag_core.adapters.parser.providers.shared.network_security import SafeAsyncNetworkBackend
 
     backend = SafeAsyncNetworkBackend()
 

@@ -7,8 +7,8 @@ from typing import Any
 from app_file_storage import FileStorageClient
 from rag_core.adapters.parser.cache import ParserCache
 from rag_core.adapters.parser.interface import ParserInput
-from rag_core.adapters.parser.normalizers import normalize_docling_document
-from rag_core.adapters.parser.providers.docling import DoclingParser
+from rag_core.adapters.parser.providers.docling.normalizer import normalize_docling_document
+from rag_core.adapters.parser.providers.docling.parser import DoclingParser
 from rag_core.parsers.schemas import ElementType, ParsedDocument, ParsedElement
 
 
@@ -167,7 +167,7 @@ async def test_parser_cache_update_meta_does_nested_merge() -> None:
 
 
 def test_docling_normalizer_new_labels_and_warning_counts(mocker: Any) -> None:
-    from rag_core.adapters.parser.normalizers.docling import _UNSEEN_LABEL_WARNING_COUNTS
+    from rag_core.adapters.parser.providers.docling.normalizer import _UNSEEN_LABEL_WARNING_COUNTS
 
     # Reset warning counts to get a clean test state
     _UNSEEN_LABEL_WARNING_COUNTS.clear()
