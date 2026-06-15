@@ -1,0 +1,13 @@
+{
+  "name": "sample_rag_evaluation",
+  "cases": [
+    {
+      "question": "What are the core components of RAG Proving Ground?",
+      "ground_truth": "The core components of RAG Proving Ground are documentation parsing, chunking, embedding/indexing, retrieval, generation (routing/citation), and evaluation. It is structured as a monorepo containing apps/backend, apps/web, packages/rag-core, packages/graphs, and experiments."
+    },
+    {
+      "question": "RAG Proving Ground 프로젝트의 핵심 설계 원칙은 무엇인가요?",
+      "ground_truth": "핵심 설계 원칙은 비동기식 파이프라인(Asynchronous Ingestion), 모듈화 및 확장성(Modularity & Extensibility), 점진적 고도화(Incremental Complexity) 입니다."
+    }
+  ]
+}

@@ -32,12 +32,15 @@ override-dependencies = [
 members = [
     "apps/backend",
     "packages/graphs",
-    "packages/rag-core", "apps/web",
+    "packages/rag-core",
+    "packages/rag-eval",
+    "apps/web",
 ]
 
 [tool.uv.sources]
 rag-core = { workspace = true }
 rag-graphs = { workspace = true }
+rag-eval = { workspace = true }
 
 [tool.ruff]
 exclude = [".git", ".venv", "migrations"]
@@ -64,6 +67,7 @@ typeCheckingMode = "basic"
 extraPaths = [
     "./packages/graphs/src",
     "./packages/rag-core/src",
+    "./packages/rag-eval/src",
     "./apps/backend",
 ]
 
@@ -72,11 +76,13 @@ log_level = "INFO"
 pythonpath = [
     "packages/graphs/src",
     "packages/rag-core/src",
+    "packages/rag-eval/src",
     "apps/backend",
 ]
 testpaths = [
     "packages/rag-core/tests",
     "packages/graphs/tests",
+    "packages/rag-eval/tests",
     "apps/backend/tests"
 ]
 asyncio_mode = "auto"

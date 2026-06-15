@@ -6,6 +6,7 @@ PATHS=("$@")
 DEFAULT_TEST_PATHS=(
     "packages/rag-core/tests"
     "packages/graphs/tests"
+    "packages/rag-eval/tests"
     "apps/backend/tests"
 )
 
