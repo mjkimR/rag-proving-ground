@@ -67,6 +67,16 @@ services:
       - parser
       - basic
 
+  fast-parser:
+    image: ghcr.io/mjkimr/fast-parser:latest
+    container_name: fast-parser
+    ports:
+      - "15002:8000"
+    profiles:
+      - fast-parser
+      - parser
+      - basic
+
   rag-redis:
     image: redis:7-alpine
     container_name: rag-redis
