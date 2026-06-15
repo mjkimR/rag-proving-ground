@@ -342,3 +342,31 @@ async def _update_status_to_failed(pipeline_service, document_id) -> None:
             await session.execute(stmt)
     except Exception as db_exc:
         logger.error(f"Failed to update document status to FAILED in catch block: {db_exc}")
+
+
+def register_dynamic_parser_subscribers() -> None:
+    """Dynamically register FastStream subscribers for all registered parser providers."""
+    from rag_core.adapters.parser.providers import register_default_parsers
+    from rag_core.adapters.parser.registry import ParserRegistry
+
+    register_default_parsers()
+    providers = ParserRegistry.list_parsers()
+
+    for provider in providers:
+        queue_name = f"document.parse.{provider}"
+        max_workers = 2 if provider == "docling" else 10
+
+        logger.info(f"Registering dynamic FastStream subscriber for '{queue_name}' with max_workers={max_workers}")
+
+        decorator = router.subscriber(queue_name, max_workers=max_workers)
+
+        def make_handler(p_name: str):
+            async def dynamic_handle_parse(msg: ParseDocumentMessage) -> None:
+                if not msg.provider:
+                    msg.provider = p_name
+                await handle_parse(msg)
+
+            dynamic_handle_parse.__name__ = f"handle_parse_{p_name}"
+            return dynamic_handle_parse
+
+        decorator(make_handler(provider))

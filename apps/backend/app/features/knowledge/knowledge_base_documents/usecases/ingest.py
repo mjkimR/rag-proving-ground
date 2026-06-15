@@ -12,7 +12,6 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
-from app.worker.broker import broker
 from app_file_storage import get_storage_client
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
@@ -68,6 +67,8 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
 
         file_hash = file_content_hash(content)
 
+        default_parsing_config = None
+
         # 2. Database record setup (First Transaction: Initialize/Get Document)
         async with AsyncTransaction() as session:
             kb = await self.kb_service.repo.get_by_pk(session, knowledge_base_id)
@@ -76,6 +77,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Knowledge base with ID '{knowledge_base_id}' not found.",
                 )
+            default_parsing_config = kb.default_parsing_config
 
             # Check if document already exists
             existing_docs = await self.doc_service.repo.get_all(
@@ -130,22 +132,28 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                 detail=f"Failed to save document to storage: {exc}",
             ) from exc
 
-        # 4. Publish parse message to Redis
+        # 4. Enqueue parse message to Redis scheduling queue
         try:
-            logger.info(f"Publishing document.parse message for document {doc_id}")
-            await broker.publish(
-                ParseDocumentMessage(
-                    document_id=doc_id,
-                    knowledge_base_id=knowledge_base_id,
-                    file_hash=file_hash,
-                    filename=filename,
-                    content_type=file.content_type,
-                    provider=provider,
-                ),
-                "document.parse",
+            logger.info(f"Queueing document.parse message for document {doc_id}")
+            from rag_core.parsers import resolve_knowledge_parsing_config
+
+            resolved_config = resolve_knowledge_parsing_config(default_parsing_config, provider_override=provider)
+            resolved_provider = resolved_config.get_provider_for_filename(filename)
+
+            msg = ParseDocumentMessage(
+                document_id=doc_id,
+                knowledge_base_id=knowledge_base_id,
+                file_hash=file_hash,
+                filename=filename,
+                content_type=file.content_type,
+                provider=resolved_provider,
             )
+
+            from app.worker.scheduling import enqueue_parse_document_message
+
+            await enqueue_parse_document_message(knowledge_base_id, msg, resolved_provider)
         except Exception as exc:
-            logger.warning(f"Failed to publish ingest message for doc {doc_id}: {exc}")
+            logger.warning(f"Failed to enqueue ingest message for doc {doc_id}: {exc}")
 
         # 5. Return immediate response
         async with AsyncTransaction() as session:

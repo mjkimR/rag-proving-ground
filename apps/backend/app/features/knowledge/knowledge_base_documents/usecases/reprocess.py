@@ -63,6 +63,10 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
             filename = doc.name
             content_type = doc.document_info.get("content_type") if doc.document_info else None
 
+            # Save config for resolving provider outside transaction
+            doc_parsing_config = doc.parsing_config
+            kb_default_parsing_config = kb.default_parsing_config
+
             # Update status to QUEUED to signify processing is requested
             doc.status = KnowledgeBaseDocumentStatus.QUEUED
             await refresh_knowledge_base_status(session, self.kb_service, self.doc_service, doc.knowledge_base_id)
@@ -71,16 +75,25 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
         try:
             logger.info(f"Publishing reprocessing message for document {document_id} with mode {reprocess_mode}")
             if reprocess_mode == KnowledgeBaseDocumentReprocessMode.REPARSE:
-                await broker.publish(
-                    ParseDocumentMessage(
-                        document_id=document_id,
-                        knowledge_base_id=knowledge_base_id,
-                        file_hash=file_hash,
-                        filename=filename,
-                        content_type=content_type,
-                    ),
-                    "document.parse",
+                from rag_core.parsers import resolve_knowledge_parsing_config
+
+                resolved_config = resolve_knowledge_parsing_config(
+                    doc_parsing_config if doc_parsing_config is not None else kb_default_parsing_config
                 )
+                resolved_provider = resolved_config.get_provider_for_filename(filename)
+
+                msg = ParseDocumentMessage(
+                    document_id=document_id,
+                    knowledge_base_id=knowledge_base_id,
+                    file_hash=file_hash,
+                    filename=filename,
+                    content_type=content_type,
+                    provider=resolved_provider,
+                )
+
+                from app.worker.scheduling import enqueue_parse_document_message
+
+                await enqueue_parse_document_message(knowledge_base_id, msg, resolved_provider)
             elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.RECHUNK:
                 await broker.publish(
                     ChunkDocumentMessage(
