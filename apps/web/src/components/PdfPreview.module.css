@@ -1,0 +1,170 @@
+.pdfFrame {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 16px;
+  z-index: 10;
+}
+
+.fileNameBlock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fileName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pageCountBadge {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--border-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.viewModeControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewModeLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.segmentedControl {
+  display: flex;
+  background: var(--bg-app);
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid var(--border-color);
+}
+
+.segmentedButton {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  transition: all 0.2s;
+}
+
+.segmentedButtonActive {
+  background: var(--bg-card);
+  color: var(--accent-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.zoomControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbarButton {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.toolbarButton:hover {
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.zoomText {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.viewportScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 16px;
+  background: var(--bg-app);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+}
+
+.pageContainer {
+  position: relative;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.pageLoadingPlaceholder {
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statusContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px;
+  color: var(--text-secondary);
+}
+
+.loadingSpinner {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.statusText {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.errorText {
+  font-size: 13px;
+  font-weight: 600;
+}

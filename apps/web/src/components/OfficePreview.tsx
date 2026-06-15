@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ChangeEvent } from "react";
 import { convertOfficeToPdf } from "../lib/office";
+import styles from "./OfficePreview.module.css";
 
 type OfficePreviewProps = {
   onPdfReady: (url: string, name: string) => void;
@@ -35,10 +36,10 @@ export function OfficePreview({ onPdfReady }: OfficePreviewProps) {
   }
 
   return (
-    <div className="office-panel">
+    <div className={styles.officePanel}>
       <h2>Office to PDF</h2>
       <p>Office documents will be converted using Gotenberg and displayed in the PDF viewer.</p>
-      <label className="office-upload" htmlFor="office-file">
+      <label className={styles.officeUpload} htmlFor="office-file">
         Select Office file
       </label>
       <input

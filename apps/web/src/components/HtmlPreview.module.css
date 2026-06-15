@@ -1,0 +1,12 @@
+.htmlPreview {
+  border: 0;
+  height: 100%;
+  width: 100%;
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .htmlPreview {
+    height: 560px;
+  }
+}

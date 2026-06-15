@@ -107,7 +107,11 @@ export function PreviewPanel({
                   {mode === "compare-html" && <HtmlPreview html={html} />}
                   {mode === "compare-elements" && (
                     parsedDoc?.elements ? (
-                      <ElementsExplorer elements={parsedDoc.elements} onElementClick={setActiveElement} />
+                      <ElementsExplorer 
+                        elements={parsedDoc.elements} 
+                        onElementClick={setActiveElement} 
+                        activeElement={activeElement} 
+                      />
                     ) : (
                       <div className="no-elements-multi">Run parser to inspect layout elements.</div>
                     )

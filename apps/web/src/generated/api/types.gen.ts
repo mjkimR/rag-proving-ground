@@ -1732,6 +1732,16 @@ export type ParsedElement = {
      */
     ignored?: boolean;
     /**
+     * Logical Role
+     *
+     * Logical role of the element, e.g. title, sectionHeading, footnote.
+     */
+    logical_role?: string | null;
+    /**
+     * Detailed grid structure of a table element.
+     */
+    table_data?: TableGridData | null;
+    /**
      * Metadata
      */
     metadata?: {
@@ -1867,6 +1877,59 @@ export type RerankerConfig = {
  * Supported retrieval modes for knowledge search.
  */
 export type RetrievalMode = 'dense' | 'sparse' | 'hybrid';
+
+/**
+ * TableCellData
+ *
+ * Grid data for a single table cell.
+ */
+export type TableCellData = {
+    /**
+     * Row Index
+     */
+    row_index: number;
+    /**
+     * Col Index
+     */
+    col_index: number;
+    /**
+     * Row Span
+     */
+    row_span?: number;
+    /**
+     * Col Span
+     */
+    col_span?: number;
+    /**
+     * Cell Type
+     */
+    cell_type?: string;
+    /**
+     * Content
+     */
+    content: string;
+    bbox?: BoundingBox | null;
+};
+
+/**
+ * TableGridData
+ *
+ * Grid structural data for table elements.
+ */
+export type TableGridData = {
+    /**
+     * Row Count
+     */
+    row_count: number;
+    /**
+     * Col Count
+     */
+    col_count: number;
+    /**
+     * Cells
+     */
+    cells: Array<TableCellData>;
+};
 
 /**
  * ValidationError

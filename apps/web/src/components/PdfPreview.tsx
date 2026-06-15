@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import type { ParsedElement } from "./ElementsExplorer";
-import type { ParsedPage } from "@/generated/api/types.gen";
+import type { ParsedPage, BoundingBox } from "@/generated/api/types.gen";
 import { Document, Page, pdfjs } from "react-pdf";
+import styles from "./PdfPreview.module.css";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -20,8 +21,50 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
   const [docLoaded, setDocLoaded] = useState(false);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [scale, setScale] = useState(0.9);
-  
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const [showSectionBoundaries, setShowSectionBoundaries] = useState(true);
+
+  const childElements = useMemo(() => {
+    if (!activeElement || !parsedDoc?.elements || !showSectionBoundaries) return [];
+
+    const elementsList = parsedDoc.elements;
+    const result: ParsedElement[] = [];
+    const queue = [...(activeElement.children_ids || [])];
+    const visited = new Set<string>();
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const found = elementsList.find((el) => el.element_id === currentId);
+      if (found) {
+        result.push(found);
+        if (found.children_ids) {
+          queue.push(...found.children_ids);
+        }
+      }
+    }
+    return result;
+  }, [activeElement, parsedDoc, showSectionBoundaries]);
+
+  const getPageInfoByPageNo = useCallback((pageNo: number) => {
+    let targetIndex = pageNo - 1;
+    let width = 612;
+    let height = 792;
+
+    if (parsedDoc && parsedDoc.pages && Array.isArray(parsedDoc.pages)) {
+      const page = parsedDoc.pages.find((p) => p.page_no === pageNo);
+      if (page) {
+        targetIndex = page.page_no - 1;
+        if (page.width) width = page.width;
+        if (page.height) height = page.height;
+      }
+    }
+    return { targetIndex, width, height };
+  }, [parsedDoc]);
 
   const getPageInfo = useCallback((element: ParsedElement) => {
     let targetIndex = 0;
@@ -31,7 +74,6 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
     if (parsedDoc && parsedDoc.pages && Array.isArray(parsedDoc.pages)) {
       const page = parsedDoc.pages.find((p) => p.page_id === element.page_id);
       if (page) {
-        // page_no is 1-indexed in Docling
         targetIndex = page.page_no - 1;
         if (page.width) width = page.width;
         if (page.height) height = page.height;
@@ -39,7 +81,6 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
       }
     }
 
-    // Fallback if parsedDoc not provided or page_id not found
     const match = element.page_id ? element.page_id.match(/\d+/) : null;
     if (match && match[0].length < 10) {
       targetIndex = parseInt(match[0], 10) - 1;
@@ -48,62 +89,153 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
     return { targetIndex, width, height };
   }, [parsedDoc]);
 
+  const getHighlightColor = useCallback((element: ParsedElement) => {
+    const role = element.logical_role || element.type;
+    switch (role?.toLowerCase()) {
+      case "heading":
+      case "title":
+      case "sectionheading":
+        return {
+          bg: "rgba(99, 102, 241, 0.15)",
+          bgChild: "rgba(99, 102, 241, 0.05)",
+          border: "#6366f1",
+          shadow: "rgba(99, 102, 241, 0.25)",
+        };
+      case "table":
+      case "table_cell":
+        return {
+          bg: "rgba(16, 185, 129, 0.15)",
+          bgChild: "rgba(16, 185, 129, 0.05)",
+          border: "#10b981",
+          shadow: "rgba(16, 185, 129, 0.25)",
+        };
+      case "footnote":
+      case "caption":
+        return {
+          bg: "rgba(249, 115, 22, 0.15)",
+          bgChild: "rgba(249, 115, 22, 0.05)",
+          border: "#f97316",
+          shadow: "rgba(249, 115, 22, 0.25)",
+        };
+      case "image":
+      case "picture":
+        return {
+          bg: "rgba(168, 85, 247, 0.15)",
+          bgChild: "rgba(168, 85, 247, 0.05)",
+          border: "#a855f7",
+          shadow: "rgba(168, 85, 247, 0.25)",
+        };
+      default:
+        return {
+          bg: "rgba(79, 70, 229, 0.15)",
+          bgChild: "rgba(79, 70, 229, 0.05)",
+          border: "#4f46e5",
+          shadow: "rgba(79, 70, 229, 0.25)",
+        };
+    }
+  }, []);
+
   const renderHighlightsForPage = (pageIndex: number) => {
-    if (!activeElement || !activeElement.bbox || !activeElement.page_id) return null;
+    if (!activeElement) return null;
 
-    const { targetIndex, width: pdfPageWidthPoints, height: pdfPageHeightPoints } = getPageInfo(activeElement);
+    const highlights: React.ReactNode[] = [];
+    const colors = getHighlightColor(activeElement);
 
-    if (pageIndex !== targetIndex) return null;
+    const addHighlightsForElement = (el: ParsedElement, isChild: boolean, elIdx: string) => {
+      const elementColors = getHighlightColor(el);
 
-    const { bbox } = activeElement;
+      const renderSingleBox = (bbox: BoundingBox, pageNo: number, boxKey: string) => {
+        const targetPageIndex = pageNo - 1;
+        if (pageIndex !== targetPageIndex) return;
 
-    // Backend normalizes all bbox to TOPLEFT origin, so no Y-axis inversion needed
-    const leftPercent = (bbox.left / pdfPageWidthPoints) * 100;
-    const topPercent = (bbox.top / pdfPageHeightPoints) * 100;
-    const widthPercent = ((bbox.right - bbox.left) / pdfPageWidthPoints) * 100;
-    const heightPercent = ((bbox.bottom - bbox.top) / pdfPageHeightPoints) * 100;
+        const { width: pageWidth, height: pageHeight } = getPageInfoByPageNo(pageNo);
 
-    return (
-      <div
-        style={{
-          position: "absolute",
-          left: `calc(${leftPercent}% - 3px)`,
-          top: `calc(${topPercent}% - 3px)`,
-          width: `calc(${widthPercent}% + 6px)`,
-          height: `calc(${heightPercent}% + 6px)`,
-          background: "var(--highlight-bg, rgba(79, 70, 229, 0.15))",
-          border: "2px solid var(--accent-color, #4f46e5)",
-          borderRadius: "4px",
-          boxSizing: "border-box",
-          pointerEvents: "none",
-          zIndex: 10,
-          boxShadow: "0 0 6px rgba(79, 70, 229, 0.25)",
-        }}
-      />
-    );
+        const leftPercent = (bbox.left / pageWidth) * 100;
+        const topPercent = (bbox.top / pageHeight) * 100;
+        const widthPercent = ((bbox.right - bbox.left) / pageWidth) * 100;
+        const heightPercent = ((bbox.bottom - bbox.top) / pageHeight) * 100;
+
+        highlights.push(
+          <div
+            key={boxKey}
+            style={{
+              position: "absolute",
+              left: `calc(${leftPercent}% - 3px)`,
+              top: `calc(${topPercent}% - 3px)`,
+              width: `calc(${widthPercent}% + 6px)`,
+              height: `calc(${heightPercent}% + 6px)`,
+              background: isChild ? (elementColors.bgChild || "rgba(79, 70, 229, 0.05)") : colors.bg,
+              border: isChild 
+                ? `1.5px dashed ${elementColors.border}` 
+                : `2px solid ${colors.border}`,
+              borderRadius: "4px",
+              boxSizing: "border-box",
+              pointerEvents: "none",
+              zIndex: isChild ? 5 : 10,
+              boxShadow: isChild ? "none" : `0 0 6px ${colors.shadow}`,
+            }}
+          />
+        );
+      };
+
+      if (el.provenance && el.provenance.length > 0) {
+        el.provenance.forEach((prov, idx) => {
+          if (!prov.bbox || prov.page_no === undefined || prov.page_no === null) return;
+          renderSingleBox(prov.bbox, prov.page_no, `highlight-${elIdx}-${idx}`);
+        });
+      } else if (el.bbox && el.page_id) {
+        const { targetIndex } = getPageInfo(el);
+        renderSingleBox(el.bbox, targetIndex + 1, `highlight-${elIdx}-fallback`);
+      }
+    };
+
+    // 1. Render children highlights first (behind the active element highlight)
+    childElements.forEach((childEl: ParsedElement) => {
+      if (childEl.element_id === activeElement.element_id) return;
+      addHighlightsForElement(childEl, true, childEl.element_id);
+    });
+
+    // 2. Render active element highlight
+    addHighlightsForElement(activeElement, false, "active");
+
+    return highlights.length > 0 ? <>{highlights}</> : null;
   };
 
   // Scroll to activeElement bounding box when activeElement changes
   useEffect(() => {
-    if (docLoaded && numPages && numPages > 0 && activeElement && activeElement.page_id && activeElement.bbox) {
-      const { targetIndex, height: pdfPageHeightPoints } = getPageInfo(activeElement);
+    if (docLoaded && numPages && numPages > 0 && activeElement) {
+      let bbox = activeElement.bbox;
+      let targetPageIndex = -1;
+      let targetPageHeightPoints = 792;
 
-      if (targetIndex < 0 || targetIndex >= numPages) {
-        console.warn(`Highlight target page ${targetIndex} is out of bounds (0 - ${numPages - 1})`);
-        return;
+      if (activeElement.provenance && activeElement.provenance.length > 0) {
+        const firstProv = activeElement.provenance.find(p => p.bbox && p.page_no !== undefined && p.page_no !== null);
+        if (firstProv) {
+          bbox = firstProv.bbox;
+          targetPageIndex = firstProv.page_no! - 1;
+          const pageInfo = getPageInfoByPageNo(firstProv.page_no!);
+          targetPageHeightPoints = pageInfo.height;
+        }
       }
 
-      const bbox = activeElement.bbox;
-      if (!bbox) return;
+      if (targetPageIndex === -1 && activeElement.bbox && activeElement.page_id) {
+        const pageInfo = getPageInfo(activeElement);
+        targetPageIndex = pageInfo.targetIndex;
+        targetPageHeightPoints = pageInfo.height;
+      }
+
+      if (targetPageIndex < 0 || targetPageIndex >= numPages || !bbox) {
+        return;
+      }
 
       // 100ms timeout ensures standard react-pdf render lifecycle finishes layout first
       const timer = setTimeout(() => {
         try {
-          const pageWrapper = document.querySelector(`[data-page-index="${targetIndex}"]`);
+          const pageWrapper = document.querySelector(`[data-page-index="${targetPageIndex}"]`);
           const container = scrollContainerRef.current;
-          
+
           if (pageWrapper && container) {
-            const bboxTopPercent = bbox.top / pdfPageHeightPoints;
+            const bboxTopPercent = bbox.top / targetPageHeightPoints;
             const pageHeight = pageWrapper.clientHeight;
             const scrollOffsetInPage = pageHeight * bboxTopPercent;
 
@@ -126,7 +258,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
     }
 
     return undefined;
-  }, [activeElement, docLoaded, numPages, getPageInfo]);
+  }, [activeElement, docLoaded, numPages, getPageInfo, getPageInfoByPageNo]);
 
   if (!fileUrl) {
     return (
@@ -138,106 +270,61 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
   }
 
   return (
-    <div className="pdf-frame" style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className={styles.pdfFrame}>
       {/* Premium Glassmorphic Toolbar */}
-      <div 
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: "var(--bg-card)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          borderBottom: "1px solid var(--border-color)",
-          padding: "8px 16px",
-          zIndex: 10,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-          <span 
-            style={{ 
-              fontSize: "14px", 
-              fontWeight: 700, 
-              color: "var(--text-primary)",
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-              whiteSpace: "nowrap"
-            }}
-          >
+      <div className={styles.toolbar}>
+        <div className={styles.fileNameBlock}>
+          <span className={styles.fileName}>
             {fileName}
           </span>
           {numPages && (
-            <span 
-              style={{ 
-                fontSize: "11px", 
-                color: "var(--text-secondary)", 
-                background: "var(--border-color)", 
-                padding: "2px 6px", 
-                borderRadius: "4px",
-                whiteSpace: "nowrap"
-              }}
-            >
+            <span className={styles.pageCountBadge}>
               {numPages} Pages
             </span>
           )}
         </div>
         
+        {/* View Mode Segmented Controls */}
+        <div className={styles.viewModeControls}>
+          <span className={styles.viewModeLabel}>
+            View:
+          </span>
+          <div className={styles.segmentedControl}>
+            <button
+              onClick={() => setShowSectionBoundaries(false)}
+              title="Show only the selected element outline"
+              className={`${styles.segmentedButton} ${!showSectionBoundaries ? styles.segmentedButtonActive : ""}`}
+            >
+              Selected
+            </button>
+            <button
+              onClick={() => setShowSectionBoundaries(true)}
+              title="Show selected element outline and its children sections"
+              className={`${styles.segmentedButton} ${showSectionBoundaries ? styles.segmentedButtonActive : ""}`}
+            >
+              Section + Children
+            </button>
+          </div>
+        </div>
+
         {/* Zoom Controls */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className={styles.zoomControls}>
           <button
             onClick={() => setScale(prev => Math.max(0.5, prev - 0.1))}
             title="Zoom Out"
-            style={{
-              background: "transparent",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              padding: "6px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-secondary)",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent-color)";
-              e.currentTarget.style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-color)";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
+            className={styles.toolbarButton}
           >
             <ZoomOut size={15} />
           </button>
           
-          <span style={{ fontSize: "12px", fontWeight: 600, minWidth: "40px", textAlign: "center", color: "var(--text-primary)" }}>
+          <span className={styles.zoomText}>
             {Math.round(scale * 100)}%
           </span>
           
           <button
             onClick={() => setScale(prev => Math.min(2.5, prev + 0.1))}
             title="Zoom In"
-            style={{
-              background: "transparent",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              padding: "6px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-secondary)",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent-color)";
-              e.currentTarget.style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-color)";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
+            className={styles.toolbarButton}
           >
             <ZoomIn size={15} />
           </button>
@@ -245,26 +332,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
           <button
             onClick={() => setScale(0.9)}
             title="Reset Zoom"
-            style={{
-              background: "transparent",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              padding: "6px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-secondary)",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent-color)";
-              e.currentTarget.style.color = "var(--text-primary)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-color)";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
+            className={styles.toolbarButton}
           >
             <RotateCcw size={15} />
           </button>
@@ -274,17 +342,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
       {/* PDF Viewport Scroll Area */}
       <div
         ref={scrollContainerRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "24px 16px",
-          background: "var(--bg-app)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "24px",
-          position: "relative",
-        }}
+        className={styles.viewportScrollArea}
       >
         <Document
           file={fileUrl}
@@ -293,15 +351,15 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
             setNumPages(pdf.numPages);
           }}
           loading={
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "48px" }}>
-              <div className="spinner" />
-              <p style={{ color: "var(--text-secondary)", fontSize: "13px" }}>Loading PDF...</p>
+            <div className={styles.statusContainer}>
+              <div className={`spinner ${styles.loadingSpinner}`} />
+              <p className={styles.statusText}>Loading PDF...</p>
             </div>
           }
           error={
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", padding: "48px", color: "var(--text-secondary)" }}>
+            <div className={styles.statusContainer}>
               <AlertCircle size={32} color="var(--accent-color)" />
-              <p style={{ fontSize: "13px", fontWeight: 600 }}>Failed to load PDF</p>
+              <p className={styles.errorText}>Failed to load PDF</p>
             </div>
           }
         >
@@ -309,15 +367,7 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
             <div
               key={`page_${index + 1}`}
               data-page-index={index}
-              style={{
-                position: "relative",
-                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
-                borderRadius: "8px",
-                overflow: "hidden",
-                border: "1px solid var(--border-color)",
-                background: "#ffffff",
-                transition: "transform 0.2s ease",
-              }}
+              className={styles.pageContainer}
             >
               <Page
                 pageNumber={index + 1}
@@ -325,8 +375,8 @@ export function PdfPreview({ fileName, fileUrl, activeElement, parsedDoc }: PdfP
                 renderAnnotationLayer={false}
                 renderTextLayer={false}
                 loading={
-                  <div style={{ width: 612 * scale, height: 792 * scale, background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div className="spinner" style={{ width: "24px", height: "24px", borderWidth: "2px" }} />
+                  <div className={styles.pageLoadingPlaceholder} style={{ width: 612 * scale, height: 792 * scale }}>
+                    <div className={`spinner ${styles.loadingSpinner}`} />
                   </div>
                 }
               />

@@ -100,6 +100,30 @@ class ParsedPage(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class TableCellData(BaseModel):
+    """Grid data for a single table cell."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    row_index: int
+    col_index: int
+    row_span: int = 1
+    col_span: int = 1
+    cell_type: str = "data"  # "header", "data", "stub"
+    content: str
+    bbox: BoundingBox | None = None
+
+
+class TableGridData(BaseModel):
+    """Grid structural data for table elements."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    row_count: int
+    col_count: int
+    cells: list[TableCellData]
+
+
 class ParsedElement(BaseModel):
     """Smallest parser-normalized unit consumed by chunking.
 
@@ -126,6 +150,10 @@ class ParsedElement(BaseModel):
     ignored: bool = Field(
         default=False, description="Whether this element is layout boilerplate and ignored during chunking."
     )
+    logical_role: str | None = Field(
+        default=None, description="Logical role of the element, e.g. title, sectionHeading, footnote."
+    )
+    table_data: TableGridData | None = Field(default=None, description="Detailed grid structure of a table element.")
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

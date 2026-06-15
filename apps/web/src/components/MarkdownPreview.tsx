@@ -4,6 +4,7 @@ import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { Popover } from "antd";
 import { FileText, ArrowRight } from "lucide-react";
+import styles from "./MarkdownPreview.module.css";
 
 import type { Reference } from '@/views/Chat/types';
 
@@ -17,7 +18,7 @@ type MarkdownPreviewProps = {
 
 export function MarkdownPreview({
   markdown,
-  className = "markdown-preview",
+  className,
   references = [],
   onReferenceClick,
   isDarkMode = false,
@@ -161,7 +162,7 @@ export function MarkdownPreview({
   }), [references, onReferenceClick, isDarkMode]);
 
   return (
-    <article className={className}>
+    <article className={className || styles.markdownPreview}>
       <ReactMarkdown
         rehypePlugins={[rehypeSanitize]}
         remarkPlugins={[remarkGfm]}

@@ -31,6 +31,8 @@ from rag_core.parsers.schemas import (
     ParsedElement,
     ParsedPage,
     Provenance,
+    TableCellData,
+    TableGridData,
 )
 
 from .table import (
@@ -48,6 +50,7 @@ _LABEL_TO_ELEMENT_TYPE: dict[str, ElementType] = {
     "list_item": ElementType.LIST_ITEM,
     "table": ElementType.TABLE,
     "picture": ElementType.IMAGE,
+    "chart": ElementType.IMAGE,
     "caption": ElementType.CAPTION,
     "footnote": ElementType.FOOTNOTE,
     "formula": ElementType.EQUATION,
@@ -56,6 +59,33 @@ _LABEL_TO_ELEMENT_TYPE: dict[str, ElementType] = {
     "page_footer": ElementType.PAGE_FOOTER,
     "document_index": ElementType.SECTION_INDEX,
     "code": ElementType.CODE,
+    "reference": ElementType.PARAGRAPH,
+    "form": ElementType.PARAGRAPH,
+    "key_value_region": ElementType.PARAGRAPH,
+    "checkbox_selected": ElementType.PARAGRAPH,
+    "checkbox-selected": ElementType.PARAGRAPH,
+    "checkbox_unselected": ElementType.PARAGRAPH,
+    "checkbox-unselected": ElementType.PARAGRAPH,
+    "grading_scale": ElementType.PARAGRAPH,
+    "handwritten_text": ElementType.PARAGRAPH,
+    "empty_value": ElementType.PARAGRAPH,
+    "field_region": ElementType.PARAGRAPH,
+    "field_heading": ElementType.PARAGRAPH,
+    "field_item": ElementType.PARAGRAPH,
+    "field_key": ElementType.PARAGRAPH,
+    "field_value": ElementType.PARAGRAPH,
+    "field_hint": ElementType.PARAGRAPH,
+    "marker": ElementType.PARAGRAPH,
+}
+
+# Mappings from Docling element labels to standard logical roles (benchmarked from Azure AI Document Intelligence)
+_LABEL_TO_LOGICAL_ROLE: dict[str, str] = {
+    "title": "title",
+    "section_header": "sectionHeading",
+    "page_header": "pageHeader",
+    "page_footer": "pageFooter",
+    "footnote": "footnote",
+    "caption": "caption",
 }
 
 # Labels that represent layout boilerplate to be marked as ignored during chunking
@@ -92,6 +122,7 @@ def normalize_docling_document(
     page_id_by_no = {page.page_no: page.page_id for page in pages}
     page_height_by_no = {page.page_no: page.height for page in pages if page.height}
     elements = _elements(document_data, page_id_by_no, page_height_by_no)
+    _build_heading_tree(elements)
     origin = _dict(document_data.get("origin"))
 
     return ParsedDocument(
@@ -165,15 +196,41 @@ def _elements(
         "groups": _list(document_data.get("groups")),
     }
     body = _dict(document_data.get("body"))
-    children = _list(body.get("children"))
+    root_children = _list(body.get("children"))
 
     elements: list[ParsedElement] = []
-    for child in children:
-        ref = _ref(child)
+    visited: set[str] = set()
+
+    def traverse(ref: str, parent_id: str | None = None) -> None:
+        if ref in visited:
+            return
+        visited.add(ref)
+
         item = _resolve_ref(ref, indexes)
         if not isinstance(item, dict):
-            continue
-        elements.extend(_element_from_item(item, ref, len(elements), indexes, page_id_by_no, page_height_by_no))
+            return
+
+        parsed_items = _element_from_item(
+            item, ref, len(elements), indexes, page_id_by_no, page_height_by_no, parent_id=parent_id
+        )
+        if not parsed_items:
+            return
+
+        primary_el = parsed_items[0]
+        elements.extend(parsed_items)
+
+        # Traverse children recursively, but skip table cells to avoid double-chunking
+        if primary_el.type != ElementType.TABLE:
+            children = _list(item.get("children"))
+            for child in children:
+                child_ref = _ref(child)
+                if child_ref:
+                    traverse(child_ref, parent_id=primary_el.element_id)
+
+    for child in root_children:
+        child_ref = _ref(child)
+        if child_ref:
+            traverse(child_ref)
 
     return elements
 
@@ -186,20 +243,10 @@ def _handle_group(
     page_id_by_no: dict[int, str],
     page_height_by_no: dict[int, float],
     provenance: list[Provenance],
+    parent_id: str | None = None,
 ) -> list[ParsedElement]:
     children = _list(item.get("children"))
-    list_items: list[str] = []
-    child_ids: list[str] = []
-    for child in children:
-        child_ref = _ref(child)
-        child_item = _resolve_ref(child_ref, indexes)
-        if not isinstance(child_item, dict):
-            continue
-        text = _string(child_item.get("text")) or ""
-        marker = _string(child_item.get("marker")) or "-"
-        list_items.append(f"{marker} {text}".strip())
-        if child_ref:
-            child_ids.append(child_ref)
+    child_ids = [child_ref for child in children if (child_ref := _ref(child))]
 
     if not provenance:
         provenance = _union_child_provenances(children, indexes, page_height_by_no)
@@ -209,12 +256,13 @@ def _handle_group(
             element_id=ref or f"element_{order}",
             type=ElementType.LIST,
             format=ContentFormat.MARKDOWN,
-            content="\n".join(list_items),
+            content="",
             page_id=page_id_by_no.get(page_no) if page_no is not None else None,
             order=order,
             bbox=provenance[0].bbox if provenance else None,
             provenance=provenance,
             children_ids=child_ids,
+            parent_id=parent_id,
             metadata=_metadata(item),
         )
     ]
@@ -244,20 +292,69 @@ def _handle_list_item(item: dict[str, Any], common: dict[str, Any]) -> list[Pars
     ]
 
 
-def _handle_table(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+def _handle_table(
+    item: dict[str, Any],
+    common: dict[str, Any],
+    page_height_by_no: dict[int, float],
+) -> list[ParsedElement]:
     html = table_html(item)
     table_common = {key: value for key, value in common.items() if key != "metadata"}
+
+    t_data = table_data(item)
+    row_count = _int(t_data.get("num_rows")) or 0
+    col_count = _int(t_data.get("num_cols")) or 0
+    raw_cells = _list(t_data.get("table_cells"))
+
+    cells: list[TableCellData] = []
+    page_no = _first_page_no(common.get("provenance", []))
+
+    for cell in raw_cells:
+        if not isinstance(cell, dict):
+            continue
+
+        row_idx = _int(cell.get("start_row_offset_idx"))
+        col_idx = _int(cell.get("start_col_offset_idx"))
+        if row_idx is None or col_idx is None:
+            continue
+
+        row_span = _int(cell.get("row_span")) or 1
+        col_span = _int(cell.get("col_span")) or 1
+        cell_type = "header" if (cell.get("column_header") or cell.get("row_header")) else "data"
+        content = _string(cell.get("text")) or ""
+
+        raw_bbox = cell.get("bbox")
+        bbox = _bbox(raw_bbox, page_no, page_height_by_no) if raw_bbox else None
+
+        cells.append(
+            TableCellData(
+                row_index=row_idx,
+                col_index=col_idx,
+                row_span=row_span,
+                col_span=col_span,
+                cell_type=cell_type,
+                content=content,
+                bbox=bbox,
+            )
+        )
+
+    grid_data = TableGridData(
+        row_count=row_count,
+        col_count=col_count,
+        cells=cells,
+    )
+
     return [
         ParsedElement(
             **table_common,
             type=ElementType.TABLE,
             format=ContentFormat.HTML,
             content=html,
+            table_data=grid_data,
             metadata={
                 **_metadata(item),
                 "is_complex": is_complex_table(item),
-                "num_rows": table_data(item).get("num_rows"),
-                "num_cols": table_data(item).get("num_cols"),
+                "num_rows": row_count,
+                "num_cols": col_count,
             },
         )
     ]
@@ -367,6 +464,21 @@ def _handle_code(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedEle
     ]
 
 
+def _handle_checkbox(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
+    label = _string(item.get("label")) or "checkbox_unselected"
+    is_selected = "selected" in label.lower() and "unselected" not in label.lower()
+    prefix = "[x] " if is_selected else "[ ] "
+    text = _string(item.get("text")) or ""
+    return [
+        ParsedElement(
+            **common,
+            type=ElementType.PARAGRAPH,
+            format=ContentFormat.MARKDOWN,
+            content=f"{prefix}{text}".strip(),
+        )
+    ]
+
+
 def _handle_default(item: dict[str, Any], common: dict[str, Any]) -> list[ParsedElement]:
     return [
         ParsedElement(
@@ -384,6 +496,7 @@ _ELEMENT_HANDLERS = {
     "list_item": _handle_list_item,
     "table": _handle_table,
     "picture": _handle_picture,
+    "chart": _handle_picture,
     "footnote": _handle_footnote,
     "caption": _handle_caption,
     "formula": _handle_equation,
@@ -394,6 +507,23 @@ _ELEMENT_HANDLERS = {
     "page_footer": _handle_page_footer,
     "document_index": _handle_document_index,
     "code": _handle_code,
+    "reference": _handle_paragraph,
+    "form": _handle_paragraph,
+    "key_value_region": _handle_paragraph,
+    "checkbox_selected": _handle_checkbox,
+    "checkbox-selected": _handle_checkbox,
+    "checkbox_unselected": _handle_checkbox,
+    "checkbox-unselected": _handle_checkbox,
+    "grading_scale": _handle_paragraph,
+    "handwritten_text": _handle_paragraph,
+    "empty_value": _handle_paragraph,
+    "field_region": _handle_paragraph,
+    "field_heading": _handle_paragraph,
+    "field_item": _handle_paragraph,
+    "field_key": _handle_paragraph,
+    "field_value": _handle_paragraph,
+    "field_hint": _handle_paragraph,
+    "marker": _handle_paragraph,
 }
 
 
@@ -404,11 +534,14 @@ def _element_from_item(
     indexes: dict[str, list[Any]],
     page_id_by_no: dict[int, str],
     page_height_by_no: dict[int, float],
+    parent_id: str | None = None,
 ) -> list[ParsedElement]:
     provenance = _provenance(item, ref, page_height_by_no)
 
     if ref and ref.startswith("#/groups/"):
-        return _handle_group(item, ref, order, indexes, page_id_by_no, page_height_by_no, provenance)
+        return _handle_group(
+            item, ref, order, indexes, page_id_by_no, page_height_by_no, provenance, parent_id=parent_id
+        )
 
     label = _string(item.get("label")) or "unknown"
 
@@ -430,9 +563,13 @@ def _element_from_item(
         "bbox": provenance[0].bbox if provenance else None,
         "provenance": provenance,
         "ignored": label in _LAYOUT_IGNORED_LABELS,
+        "logical_role": _LABEL_TO_LOGICAL_ROLE.get(label),
         "metadata": _metadata(item),
+        "parent_id": parent_id,
     }
 
+    if label == "table":
+        return _handle_table(item, common, page_height_by_no)
     handler = _ELEMENT_HANDLERS.get(label, _handle_default)
     return handler(item, common)
 
@@ -617,3 +754,36 @@ def _first_page_no(provenance: list[Provenance]) -> int | None:
         if item.page_no is not None:
             return item.page_no
     return None
+
+
+def _build_heading_tree(elements: list[ParsedElement]) -> None:
+    """Build nested layout tree by setting parent_id and children_ids.
+
+    Links non-heading elements and lower-level headings to the closest active parent heading.
+    """
+    stack: list[tuple[int, ParsedElement]] = []
+
+    for el in elements:
+        if el.ignored:
+            continue
+
+        if el.type == ElementType.HEADING:
+            level = el.level if el.level is not None else 1
+            while stack and stack[-1][0] >= level:
+                stack.pop()
+
+            if stack:
+                parent = stack[-1][1]
+                if el.parent_id is None:
+                    el.parent_id = parent.element_id
+                    if el.element_id not in parent.children_ids:
+                        parent.children_ids.append(el.element_id)
+
+            stack.append((level, el))
+        else:
+            if stack:
+                parent = stack[-1][1]
+                if el.parent_id is None:
+                    el.parent_id = parent.element_id
+                    if el.element_id not in parent.children_ids:
+                        parent.children_ids.append(el.element_id)

@@ -108,8 +108,7 @@ textarea {
   overflow: hidden;
 }
 
-.empty-state,
-.office-panel {
+.empty-state {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -119,15 +118,13 @@ textarea {
   padding: 48px;
 }
 
-.empty-state h2,
-.office-panel h2 {
+.empty-state h2 {
   font-size: 24px;
   letter-spacing: 0;
   margin: 0;
 }
 
-.empty-state p,
-.office-panel p {
+.empty-state p {
   color: #586579;
   line-height: 1.6;
   margin: 0;
@@ -149,58 +146,7 @@ textarea {
   padding: 0 16px;
 }
 
-.markdown-preview {
-  color: #1d2634;
-  line-height: 1.65;
-  height: 100%;
-  overflow: auto;
-  padding: 32px 40px;
-}
 
-.markdown-preview table {
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.markdown-preview th,
-.markdown-preview td {
-  border: 1px solid #d7dee7;
-  padding: 8px 10px;
-  text-align: left;
-}
-
-.html-preview {
-  border: 0;
-  height: 100%;
-  width: 100%;
-  display: block;
-}
-
-.office-upload {
-  align-items: center;
-  background: #243247;
-  border-radius: 8px;
-  color: #ffffff;
-  cursor: pointer;
-  display: inline-flex;
-  font-weight: 700;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0 16px;
-  width: fit-content;
-}
-
-.office-panel input {
-  max-width: 420px;
-}
-
-.office-panel code {
-  background: #eef1f5;
-  border-radius: 6px;
-  color: #354154;
-  padding: 8px 10px;
-  width: fit-content;
-}
 
 /* Parser Settings */
 .parser-settings-block {
@@ -293,24 +239,22 @@ textarea {
   }
 
   .preview-panel,
-  .empty-state,
-  .office-panel {
+  .empty-state {
     min-height: 560px;
   }
 
-  .pdf-frame,
-  .html-preview {
+  .pdf-frame {
     height: 560px;
   }
 
   .multi-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .multi-view-container {
     height: auto;
   }
-  
+
   .multi-panel {
     height: 380px;
   }
