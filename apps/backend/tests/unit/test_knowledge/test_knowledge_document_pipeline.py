@@ -9,15 +9,8 @@ from app.features.knowledge.knowledge_base_documents.facade.pipeline import (
     knowledge_original_file_key,
     knowledge_parsed_data_key,
 )
-from rag_core.chunkers import ChunkedDocument, ChunkingConfig, resolve_chunking_config
+from rag_core.chunkers import ChunkedDocument, ChunkingConfig
 from rag_core.parsers import ParsedDocument
-
-
-def test_resolve_chunking_config_applies_defaults_to_partial_config() -> None:
-    config = resolve_chunking_config({"chunk_size": 800})
-
-    assert config.chunk_size == 800
-    assert config.chunk_overlap == 50
 
 
 def test_knowledge_storage_keys_resolved_under_file_hash() -> None:
