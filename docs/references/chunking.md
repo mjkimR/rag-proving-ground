@@ -55,21 +55,13 @@
 
 현재는 다른 RAG 시스템 구현 먼저 작업하기 위해 Track 1 부분만 구현 후 향후에 추가 확장할 예정입니다.
 
-* **[Refactor] Breadcrumb 최적화:** 정규식을 활용하여 문서 내 목차 번호("제1조", "1항" 등) 필터링 로직 추가.
 * **[Feature] Table 요약화:** `ElementType.TABLE`을 식별하여 LLM 기반 요약 텍스트를 메타데이터로 사전 주입하는 파이프라인 구성.
 * **[Feature] 가성비 중심의 Contextual Retrieval (Anthropic 방식 변형):** 토큰 비용을 최적화한 문서 요약 및 청크 컨텍스트 합성 파이프라인 구축.
 * **[Track 2] ColPali 파이프라인 통합 (하이브리드 비전 RAG):**
 * 파싱 불가능한 복잡한 도표나 차트를 위해 문서 페이지 단위의 렌더링 파이프라인 구축.
 * 검색 시 ColPali로 이미지를 리트리브한 후, 매핑된 파서 텍스트를 LLM에 전달하는 Decoupled Architecture 구현.
 
-### ① Breadcrumb(메타데이터 경로) 정규식 압축 누락
-
-* **설계 문서:** "제2장", "1항" 등 불필요한 기호를 정규식으로 날려 키워드만 보존하도록 권장하고 있습니다.
-* **현재 구현:** `semantic.py`의 `_trim_breadcrumb` 메서드는 단순히 리스트의 깊이(Depth)만 잘라내고(Slicing) 있습니다.
-* **개선 제안:** `_trim_breadcrumb` 또는 `_with_breadcrumb` 내부에서 정규식(Regex)을 활용해 "제N조", "제N항" 등의 패턴을 필터링하는 로직을 추가하면 토큰 낭비를 줄이고
-  검색 노이즈를 낮출 수 있습니다.
-
-### ② 토큰 기반 분할(Tiktoken Encoder) 적용 여부
+### 토큰 기반 분할(Tiktoken Encoder) 적용 여부
 
 * **설계 문서:** 한국어 최적화 스플리터 세팅 시 `RecursiveCharacterTextSplitter.from_tiktoken_encoder`를 사용하여 임베딩 모델의 토큰 제한에 맞출 것을 명시했습니다.
 * **현재 구현:** `recursive.py`의 `RAGFallbackTextSplitter`는 기본 `RecursiveCharacterTextSplitter`의 `__init__`을 상속받아 사용 중이므로,
@@ -77,14 +69,14 @@
 * **개선 제안:** 토큰 기반 길이 계산을 원한다면, 초기화 로직에서 `from_tiktoken_encoder` 팩토리 메서드를 오버라이딩하거나 커스텀 `length_function`에 `tiktoken`을
   연결하는 방식이 필요합니다.
 
-### ③ 표(Table) 데이터의 LLM 자연어 요약 파이프라인
+### 표(Table) 데이터의 LLM 자연어 요약 파이프라인
 
 * **설계 문서:** 표 구조의 맥락을 살리기 위해 자연어 요약본을 생성하여 임베딩하는 방식을 추천했습니다.
 * **현재 구현:** 현재 코드는 `_element_text`에서 표 데이터를 단순히 문자열로 추출할 뿐, LLM을 거치는 요약 처리 로직은 없습니다.
 * **개선 제안:** 구조를 복잡하게 만들고 싶지 않다면 일단은 현재 상태를 유지하되, 향후 콜백(Callback)이나 별도 전처리 파이프라인에서 Table Element를 가로채어 요약본을 주입할 수 있는 확장
   포인트(Hook)를 열어두는 것이 좋습니다.
 
-### ④ Anthropic식 Contextual Retrieval의 비용 최적화 변형 구현
+### Anthropic식 Contextual Retrieval의 비용 최적화 변형 구현
 
 * **설계 문서:** 청크 분할 시 문맥 소실을 막기 위해 각 청크마다 문서 전체의 맥락을 LLM으로 생성하여 주입하는 Anthropic의 'Contextual Retrieval' 기법이 제안되었습니다.
 * **현재 제한 사항:** 청크마다 전체 문서를 매번 컨텍스트로 전달할 경우, 토큰 소비와 API 비용 감당이 어렵다는 치명적인 현실적 문제가 있습니다.
