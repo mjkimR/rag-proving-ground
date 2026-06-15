@@ -151,4 +151,3 @@ def test_detect_config_changes_ignores_identical_parsed_config_with_different_fi
     assert not change_set.parsing_changed
     assert not change_set.chunking_changed
     assert not change_set.embedding_changed
-

@@ -7,6 +7,7 @@ model_list:
       api_key: "os.environ/VLLM_API_KEY"
     metadata:
       role: llm
+      context_window: 32768  # Optional: Specifying context window prevents context length errors in tree_summarize
 
   - model_name: gpt-oss-120b
     litellm_params:
