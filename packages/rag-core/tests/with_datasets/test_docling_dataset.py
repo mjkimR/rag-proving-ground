@@ -3,6 +3,8 @@ from pathlib import Path
 import pytest
 from rag_core.parsers.schemas import ElementType, ParsedDocument
 
+pytestmark = pytest.mark.parser
+
 
 def test_no_unknown_elements(docling_dataset_document: ParsedDocument) -> None:
     """Verify that no parsed elements have ElementType.UNKNOWN semantic type."""
@@ -67,62 +69,14 @@ def test_element_counts_and_type_integrity(docling_dataset_document: ParsedDocum
     )
 
 
-CRITICAL_SNIPPETS = {
-    "076523s007lbl_p2": [
-        "your liver",
-        "Use protective clothin",
-        "insect repellents, and bednets",
-    ],
-    "1212.1661v1_page7": [
-        "August",
-        "ORPR",
-        "112.917",
-        "2.914",
-    ],
-    "1634690602_page10": [
-        "Product (active substance(s))",
-        "CVMP meeting date",
-        "Recommendation - SPC change",
-    ],
-    "1653739079_page34": [
-        "jspears on DSK121TN23PROD",
-        "Implicit Price Deflator",
-        "Rules and Regulations",
-    ],
-    "2010-k_page85": [
-        "Management's Discussion and Analysis",
-        "tax credit investments",
-        "Other investments include",
-    ],
-    "2501.17887v1_p1-2": [
-        "Docling: An Efficient Open-Source Toolkit",
-        "Nikolaos Livathinos",
-        "Document Conversion",
-    ],
-    "2501.17887v1_p4-5": [
-        "Layout",
-        "Tables",
-        "Docling",
-        "Easy",
-    ],
-    "AONR32314_page1": [
-        "ALPHA&OMEGA",
-        "Low R DS(ON)",
-        "RoHS and Halogen-Free Compliant",
-    ],
-    "DS5795A-06_page2": [
-        "Functional Pin Description",
-        "EN",
-        "Pin Function",
-    ],
-}
-
-
-def test_text_completeness(docling_dataset_document: ParsedDocument) -> None:
+def test_text_completeness(
+    docling_dataset_document: ParsedDocument,
+    critical_snippets: dict[str, list[str]],
+) -> None:
     """Verify that critical text snippets are fully preserved after parsing and rendering."""
     filename = docling_dataset_document.filename or ""
     stem = Path(filename).stem
-    if not stem or stem not in CRITICAL_SNIPPETS:
+    if not stem or stem not in critical_snippets:
         pytest.skip(f"No critical snippets mapped for stem: {stem}")
 
     # Use include_ignored=True to ensure boilerplate page headers like "Rules and Regulations" are searched
@@ -130,7 +84,7 @@ def test_text_completeness(docling_dataset_document: ParsedDocument) -> None:
     # Normalize whitespaces to prevent double-space format discrepancies from causing failures
     normalized_markdown = " ".join(full_markdown.split())
 
-    for snippet in CRITICAL_SNIPPETS[stem]:
+    for snippet in critical_snippets[stem]:
         assert snippet in normalized_markdown, (
             f"Text completeness validation failed in {filename}: missing critical snippet '{snippet}'"
         )

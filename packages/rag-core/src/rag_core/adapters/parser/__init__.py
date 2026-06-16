@@ -8,9 +8,10 @@ from rag_core.adapters.parser.instance import (
     register_parser,
 )
 from rag_core.adapters.parser.interface import Parser, ParserInput
-from rag_core.adapters.parser.registry import ParserRegistry
+from rag_core.adapters.parser.registry import SUPPORTED_PDF_PROVIDERS, ParserRegistry
 
 __all__ = [
+    "SUPPORTED_PDF_PROVIDERS",
     "Parser",
     "ParserFactory",
     "ParserInput",

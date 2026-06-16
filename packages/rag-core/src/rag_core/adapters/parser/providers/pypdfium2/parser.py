@@ -4,14 +4,12 @@ from typing import Any, ClassVar
 from app_http_client import get_http_client
 
 from rag_core.adapters.parser.interface import Parser, ParserInput
-from rag_core.adapters.parser.providers.native_text.parser import NativeTextParser
 from rag_core.adapters.parser.providers.shared.fetcher import get_input_bytes
+from rag_core.adapters.parser.providers.shared.type_conversion import process_parser_pages
 from rag_core.config import get_fast_parser_settings
 from rag_core.parsers.schemas import (
     PARSED_DOCUMENT_SCHEMA_VERSION,
     ParsedDocument,
-    ParsedElement,
-    ParsedPage,
 )
 
 
@@ -56,37 +54,8 @@ class PyPdfium2Parser(Parser):
         response.raise_for_status()
         data = response.json()
 
-        # Parse and normalize response
         pages_list = data.get("pages", [])
-
-        pages: list[ParsedPage] = []
-        elements: list[ParsedElement] = []
-        all_texts = []
-
-        native_text_parser = NativeTextParser()
-
-        # Loop through pages to generate elements per page
-        for page_data in pages_list:
-            page_no = page_data.get("page_no", 1)
-            page_text = page_data.get("text", "")
-            page_id = f"{doc_id}_page_{page_no}"
-
-            pages.append(ParsedPage(page_id=page_id, page_no=page_no))
-            all_texts.append(page_text)
-
-            # Parse page plain text content into elements
-            page_elements = native_text_parser._parse_plain_text(page_text, doc_id)
-            for el in page_elements:
-                # Assign actual page_id and page_no to each element
-                el.page_id = page_id
-                elements.append(el)
-
-        # Fix sequence/order of elements and ensure element IDs are unique
-        for idx, el in enumerate(elements):
-            el.order = idx
-            el.element_id = f"{doc_id}_el_{idx}"
-
-        full_text = "\n\n".join(all_texts)
+        pages, elements, full_text = process_parser_pages(pages_list, doc_id, parse_format="text")
 
         parsed_doc = ParsedDocument(
             doc_id=doc_id,

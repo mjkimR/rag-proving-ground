@@ -7,6 +7,7 @@ from pathlib import Path
 
 import click
 from loguru import logger
+from rag_core.adapters.parser import SUPPORTED_PDF_PROVIDERS
 from rag_core.adapters.parser.instance import get_parser
 from rag_core.adapters.parser.interface import ParserInput
 from rag_core.parsers import KnowledgeParsingConfig, knowledge_parsing_config_hash
@@ -144,7 +145,7 @@ async def parse_all_pdfs(
     "--provider",
     "-p",
     default="docling",
-    type=click.Choice(["docling"]),
+    type=click.Choice(SUPPORTED_PDF_PROVIDERS),
     help="Parser provider name.",
 )
 @click.option(
