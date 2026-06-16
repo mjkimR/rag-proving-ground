@@ -131,6 +131,15 @@ duplicate parsing, embedding, or vector-store logic.
 - Worker entry points live under `apps/backend/app/worker/`; use `just worker` or `just dev backend` to run them.
 - When backend API schemas change, run `just gen-ui-api` and include the generated web client changes.
 
+#### CPU-Bound & Heavy Tasks Decoupling (Strict Guideline)
+
+To avoid resource starvation, worker blocking, and tight coupling of heavy runtime packages:
+- **Pipeline Orchestration Only**: FastStream background workers (e.g., [ingest.py](apps/backend/app/worker/handlers/ingest.py)) must only orchestrate the asynchronous pipeline and coordinate metadata.
+- **Containerized Isolation**: All heavy, CPU-bound, or GPU-bound operations—specifically **AI models** (LLMs, embedding engines, rerankers) and **document parser engines** (e.g., Docling, fast-parser)—must be isolated as external containerized services in [docker-compose.yml](infra/services/docker-compose.yml).
+- **Asynchronous Network Invocation**: The backend application and workers must interact with these services exclusively via network APIs (HTTP, gRPC, etc.) using client adapters. **Never** import, bundle, or run large model frameworks (like native `docling` ML models, local PyTorch models, or massive native tokenizers) directly within the main FastAPI or FastStream worker processes. *(Note: Lightweight token count utilities like `tiktoken` are exceptions and can be run directly for client-side/application-side token estimation.)*
+- **Future Tasks**: Any future heavy CPU-bound or blocking compute-heavy jobs (e.g., OCR, complex raw data processing) must follow the same pattern: split them into separate containers and invoke them asynchronously over the network.
+
+
 ### Frontend (`apps/web`)
 
 - **Tech Stack**: React 19, TypeScript, Vite, CopilotKit, TanStack Query, Ant Design, generated OpenAPI client.

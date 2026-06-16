@@ -26,3 +26,5 @@ apps/web/dist/
 .integrations
 **/logs
 
+# datasets
+datasets/**/*.json
