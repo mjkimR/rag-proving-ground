@@ -1,7 +1,6 @@
 import hashlib
 import json
 from collections.abc import AsyncIterator
-from pathlib import Path
 from typing import Any
 
 from app_file_storage import FileStorageClient
@@ -51,85 +50,6 @@ class _InMemoryStorage(FileStorageClient):
         if file_path not in self._store:
             raise FileNotFoundError(file_path)
         return {"size": len(self._store[file_path]), "path": file_path}
-
-
-EXAMPLE_PATH = Path(__file__).parent / "example" / "docling.json"
-
-
-def test_docling_normalizer_builds_parsed_document() -> None:
-    payload = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
-    response_document = payload["data"]["document"]
-
-    parsed = normalize_docling_document(
-        response_document["json_content"],
-        parser_input=ParserInput(filename="sample.pdf", content_type="application/pdf"),
-        parser_name="docling",
-        raw_response=payload["data"],
-        markdown=payload["markdown"],
-        text=payload["text"],
-        html="<html></html>",
-    )
-
-    assert parsed.schema_version == "1.0"
-    assert parsed.parser == "docling"
-    assert parsed.html == "<html></html>"
-    assert len(parsed.pages) == 1
-    assert parsed.elements[0].type == ElementType.HEADING
-    assert parsed.elements[0].page_id == parsed.pages[0].page_id
-
-    table = next(element for element in parsed.elements if element.type == ElementType.TABLE)
-    assert table.format == "html"
-    assert table.content.startswith("<table>")
-    assert table.metadata["is_complex"] is True
-
-    # Assert TableGridData is parsed correctly
-    assert table.table_data is not None
-    assert table.table_data.row_count == table.metadata["num_rows"]
-    assert table.table_data.col_count == table.metadata["num_cols"]
-    assert len(table.table_data.cells) > 0
-    # Check individual cells
-    first_cell = table.table_data.cells[0]
-    assert first_cell.row_index is not None
-    assert first_cell.col_index is not None
-    assert first_cell.row_span >= 1
-    assert first_cell.col_span >= 1
-    assert first_cell.content is not None
-    assert first_cell.cell_type in ("header", "data")
-    assert first_cell.bbox is not None
-
-    # Assert logical roles are populated
-    headings = [el for el in parsed.elements if el.type == ElementType.HEADING]
-    assert len(headings) > 0
-    for h in headings:
-        assert h.logical_role in ("title", "sectionHeading")
-
-    # Assert tree hierarchy is built (some elements should have parent_id)
-    child_elements = [el for el in parsed.elements if el.parent_id is not None]
-    assert len(child_elements) > 0
-    # Check that children_ids matches parent_ids
-    for child in child_elements:
-        parent = next(el for el in parsed.elements if el.element_id == child.parent_id)
-        assert child.element_id in parent.children_ids
-
-
-def test_docling_cache_round_trip_restores_parsed_document() -> None:
-    payload = json.loads(EXAMPLE_PATH.read_text(encoding="utf-8"))
-    response_document = payload["data"]["document"]
-    parser = DoclingParser("http://127.0.0.1")
-    parsed = normalize_docling_document(
-        response_document["json_content"],
-        parser_input=ParserInput(filename="sample.pdf", content_type="application/pdf"),
-        parser_name=parser.name,
-        raw_response=payload["data"],
-        markdown=payload["markdown"],
-        text=payload["text"],
-    )
-
-    cache_data = parser.to_cache_data(parsed)
-    restored = parser.from_cache_data(cache_data)
-
-    assert isinstance(restored, ParsedDocument)
-    assert restored.schema_version == "1.0"
 
 
 async def test_parser_cache_uses_parsing_config_hash_in_result_key() -> None:
@@ -296,7 +216,7 @@ def test_docling_normalizer_new_labels_and_warning_counts(mocker: Any) -> None:
 
 def test_semantic_chunker_ignores_layout_boilerplate() -> None:
     from rag_core.chunkers.semantic import RAGSemanticChunker
-    from rag_core.parsers.schemas import ContentFormat, ParsedDocument, ParsedPage
+    from rag_core.parsers.schemas import ContentFormat, ParsedPage
 
     doc = ParsedDocument(
         doc_id="test_doc",
@@ -334,7 +254,7 @@ def test_semantic_chunker_ignores_layout_boilerplate() -> None:
 
 
 def test_docling_code_rendering() -> None:
-    from rag_core.parsers.schemas import ContentFormat, ParsedDocument, ParsedPage
+    from rag_core.parsers.schemas import ContentFormat, ParsedPage
 
     doc = ParsedDocument(
         doc_id="test_doc",

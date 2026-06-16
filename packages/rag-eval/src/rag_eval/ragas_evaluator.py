@@ -10,13 +10,13 @@ if "langchain_community.chat_models.vertexai" not in sys.modules:
     mock_vertexai.ChatVertexAI = object  # type: ignore
     sys.modules["langchain_community.chat_models.vertexai"] = mock_vertexai
 
-from datasets import Dataset
 from rag_core.ai.models import get_embedding_model, get_llm_model
 from ragas import evaluate
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
 from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
 
+from datasets import Dataset
 from rag_eval.base import BaseEvaluator
 from rag_eval.schemas import EvalCase, MetricScore
 

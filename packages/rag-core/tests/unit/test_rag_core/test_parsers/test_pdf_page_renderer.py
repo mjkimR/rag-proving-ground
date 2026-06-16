@@ -8,27 +8,25 @@ async def test_render_and_store_pdf_pages(mocker):
     mock_storage = MagicMock()
     mock_storage.upload_file = mocker.AsyncMock()
 
-    # Mock fitz
+    # Mock pypdfium2
     mock_doc = MagicMock()
     mock_page_1 = MagicMock()
-    mock_page_1.rect.width = 1000
-    mock_page_1.rect.height = 2000
-    mock_pixmap_1 = MagicMock()
-    mock_pixmap_1.width = 500
-    mock_pixmap_1.height = 1000
-    mock_pixmap_1.samples = b"raw_pixels"
-    mock_page_1.get_pixmap.return_value = mock_pixmap_1
+    mock_page_1.get_size.return_value = (1000, 2000)
+
+    mock_bitmap = MagicMock()
+    mock_img_instance = MagicMock()
+    mock_img_instance.width = 500
+    mock_img_instance.height = 1000
+    mock_img_instance.mode = "RGB"
+
+    mock_bitmap.to_pil.return_value = mock_img_instance
+    mock_page_1.render.return_value = mock_bitmap
 
     mock_doc.__len__.return_value = 1
-    mock_doc.load_page.return_value = mock_page_1
+    mock_doc.__getitem__.return_value = mock_page_1
     mock_doc.close = MagicMock()
 
-    # Mock Pillow Image
-    mock_image_class = mocker.patch("PIL.Image.frombytes")
-    mock_img_instance = MagicMock()
-    mock_image_class.return_value = mock_img_instance
-
-    with patch("fitz.open", return_value=mock_doc):
+    with patch("pypdfium2.PdfDocument", return_value=mock_doc):
         asset_refs = await render_and_store_pdf_pages(
             pdf_bytes=b"dummy_pdf",
             doc_id="doc1",

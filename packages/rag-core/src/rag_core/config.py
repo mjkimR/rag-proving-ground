@@ -118,3 +118,20 @@ class ColPaliSettings(BaseSettings):
 @lru_cache
 def get_colpali_settings() -> ColPaliSettings:
     return ColPaliSettings()
+
+
+class FastParserSettings(BaseSettings):
+    """Settings used for external fast-parser microservice engines."""
+
+    base_url: str = Field(
+        default="http://localhost:15002",
+        validation_alias="FAST_PARSER_BASE_URL",
+    )
+    timeout: float = Field(default=120.0, validation_alias="FAST_PARSER_TIMEOUT", gt=0)
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_fast_parser_settings() -> FastParserSettings:
+    return FastParserSettings()

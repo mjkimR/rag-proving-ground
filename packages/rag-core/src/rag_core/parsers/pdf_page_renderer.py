@@ -22,30 +22,38 @@ async def render_and_store_pdf_pages(
     image_format: str = "jpeg",
     jpeg_quality: int = 80,
 ) -> list[AssetRef]:
-    import fitz  # PyMuPDF
-    from PIL import Image
+    """Render PDF pages as images and upload them to object storage.
+
+    TODO: This function is a CPU-bound operation (rendering PDF pages and PIL JPEG encoding)
+    mixed with I/O-bound object storage uploads. Currently, it runs synchronously on the main
+    async event loop. Consider offloading the CPU-bound parts (page rendering & image compression)
+    to a separate thread using `asyncio.to_thread` or decoupling it into an external containerized
+    rendering service to prevent event loop blocking under heavy loads.
+    """
+    import pypdfium2 as pdfium
 
     mimetype = f"image/{image_format}"
     asset_refs: list[AssetRef] = []
 
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    doc = pdfium.PdfDocument(pdf_bytes)
     try:
         for page_no in range(len(doc)):
-            page = doc.load_page(page_no)
-            rect = page.rect
-            width, height = rect.width, rect.height
+            page = doc[page_no]
+            # get_size() returns (width, height) in PDF points (1 point = 1/72 inch)
+            width, height = page.get_size()
 
             # 1. Calculate zoom ratio based on the target maximum dimension (target_max_dim)
             max_dim = max(width, height)
-            zoom = target_max_dim / max_dim if max_dim > target_max_dim else 150 / 72.0
+            scale = target_max_dim / max_dim if max_dim > target_max_dim else 150 / 72.0
 
-            mat = fitz.Matrix(zoom, zoom)
-            pix = page.get_pixmap(matrix=mat)
+            bitmap = page.render(scale=scale)  # type: ignore
+            img = bitmap.to_pil()
 
-            # 2. Wrap the PyMuPDF Pixmap data into a Pillow Image object
-            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            # Ensure image is in RGB mode if saving as JPEG
+            if img.mode != "RGB" and image_format.lower() in ("jpeg", "jpg"):
+                img = img.convert("RGB")
 
-            # 3. Lightly compress to JPEG using Pillow (recommended quality is 80)
+            # 2. Lightly compress to JPEG using Pillow (recommended quality is 80)
             img_byte_arr = io.BytesIO()
             img.save(img_byte_arr, format=image_format.upper(), quality=jpeg_quality)
             img_bytes = img_byte_arr.getvalue()
@@ -57,9 +65,9 @@ async def render_and_store_pdf_pages(
                 AssetRef(
                     path=storage_key,
                     mimetype=mimetype,
-                    width=float(pix.width),
-                    height=float(pix.height),
-                    dpi=int(zoom * 72),
+                    width=float(img.width),
+                    height=float(img.height),
+                    dpi=int(scale * 72),
                 )
             )
             logger.debug(f"Rendered, compressed and uploaded page {page_no + 1}: {storage_key}")
