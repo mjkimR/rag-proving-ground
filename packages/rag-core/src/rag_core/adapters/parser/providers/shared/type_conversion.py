@@ -4,7 +4,13 @@ import copy
 from typing import Any, Literal, cast
 
 from rag_core.adapters.parser.providers.native_text.parser import NativeTextParser
-from rag_core.parsers.schemas import ParsedElement, ParsedPage
+from rag_core.parsers.schemas import (
+    BoundingBox,
+    ContentFormat,
+    ElementType,
+    ParsedElement,
+    ParsedPage,
+)
 
 
 def to_string(value: Any) -> str | None:
@@ -156,13 +162,83 @@ def process_parser_pages(
         pages.append(ParsedPage(page_id=page_id, page_no=page_no))
 
         # Parse page content into elements dynamically
-        actual_format = "plain_text" if parse_format == "text" else parse_format
-        parser_method_name = f"_parse_{actual_format}"
-        if hasattr(native_text_parser, parser_method_name):
-            parse_fn = getattr(native_text_parser, parser_method_name)
-            page_elements = parse_fn(page_text, doc_id)
+        page_boxes = page_data.get("page_boxes", [])
+        if page_boxes:
+            import re
+
+            page_elements = []
+            for box in page_boxes:
+                box_class = box.get("class", "text")
+
+                # Map class to ElementType
+                el_type = ElementType.PARAGRAPH
+                if box_class == "page-header":
+                    el_type = ElementType.PAGE_HEADER
+                elif box_class == "section-header":
+                    el_type = ElementType.HEADING
+                elif box_class == "table":
+                    el_type = ElementType.TABLE
+                elif box_class == "picture":
+                    el_type = ElementType.IMAGE
+                elif box_class == "page-footer":
+                    el_type = ElementType.PAGE_FOOTER
+                elif box_class == "caption":
+                    el_type = ElementType.CAPTION
+                elif box_class == "footnote":
+                    el_type = ElementType.FOOTNOTE
+                elif box_class == "equation":
+                    el_type = ElementType.EQUATION
+                elif box_class == "code":
+                    el_type = ElementType.CODE
+
+                pos = box.get("pos", (0, 0))
+                if not pos or len(pos) < 2:
+                    continue
+                start, end = pos[0], pos[1]
+                content = page_text[start:end].strip()
+                if not content:
+                    continue
+
+                # Parse level for headings if possible (e.g. ## -> level=2)
+                level = None
+                if el_type == ElementType.HEADING:
+                    match = re.match(r"^(#{1,6})\s+", content)
+                    if match:
+                        level = len(match.group(1))
+                        content = content[match.end() :].strip()
+                    else:
+                        level = 1
+
+                # Extract bbox coordinates
+                raw_bbox = box.get("bbox")
+                bbox = None
+                if raw_bbox and len(raw_bbox) == 4:
+                    bbox = BoundingBox(
+                        left=float(raw_bbox[0]),
+                        top=float(raw_bbox[1]),
+                        right=float(raw_bbox[2]),
+                        bottom=float(raw_bbox[3]),
+                    )
+
+                el = ParsedElement(
+                    element_id="",  # Assigned below sequentially
+                    type=el_type,
+                    format=ContentFormat.MARKDOWN if parse_format == "markdown" else ContentFormat.TEXT,
+                    content=content,
+                    page_id=page_id,
+                    order=0,  # Assigned below sequentially
+                    level=level,
+                    bbox=bbox,
+                )
+                page_elements.append(el)
         else:
-            raise ValueError(f"Unsupported parse format: {parse_format}")
+            actual_format = "plain_text" if parse_format == "text" else parse_format
+            parser_method_name = f"_parse_{actual_format}"
+            if hasattr(native_text_parser, parser_method_name):
+                parse_fn = getattr(native_text_parser, parser_method_name)
+                page_elements = parse_fn(page_text, doc_id)
+            else:
+                raise ValueError(f"Unsupported parse format: {parse_format}")
 
         for el in page_elements:
             el.page_id = page_id

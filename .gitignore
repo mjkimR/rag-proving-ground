@@ -24,6 +24,7 @@ apps/web/dist/
 
 # Etc
 .integrations
+.deepeval
 **/logs
 
 # datasets

@@ -70,6 +70,7 @@ services:
   fast-parser:
     image: ghcr.io/mjkimr/fast-parser:latest
     container_name: fast-parser
+    pull_policy: always
     ports:
       - "15002:8000"
     profiles:

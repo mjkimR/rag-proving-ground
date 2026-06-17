@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from rag_core.adapters.parser.interface import Parser
 
-SUPPORTED_PDF_PROVIDERS: list[str] = ["docling", "pymupdf4llm", "pypdfium2", "pdf_oxide"]
+SUPPORTED_PDF_PROVIDERS: list[str] = ["docling", "pymupdf4llm", "pdf_oxide"]
 
 
 class ParserRegistry:

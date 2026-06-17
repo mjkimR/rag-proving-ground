@@ -98,7 +98,7 @@ def get_parser(provider: str | None = None) -> Parser:
     cached_parser = _ACTIVE_PARSERS.get(resolved_provider)
     if cached_parser and cached_parser.get("connection_info"):
         conn_info = cached_parser["connection_info"]
-        if resolved_provider == "docling" or resolved_provider in ("pymupdf4llm", "pypdfium2", "pdf_oxide"):
+        if resolved_provider == "docling" or resolved_provider in ("pymupdf4llm", "pdf_oxide"):
             if hasattr(parser, "base_url") and "base_url" in conn_info:
                 parser.base_url = conn_info["base_url"].rstrip("/")  # type: ignore
             if hasattr(parser, "timeout") and "timeout" in conn_info:
