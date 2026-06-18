@@ -31,7 +31,7 @@ export const RetrievalTestTab: React.FC<RetrievalTestTabProps> = ({ kb }) => {
       return searchKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdSearchPost({
         path: { knowledge_base_id: kb.id },
         body: {
-          query: variables.query,
+          queries: [variables.query],
           limit: variables.limit,
           retrieval_mode: retrievalMode,
           sparse_model: sparseModel,

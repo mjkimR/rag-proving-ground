@@ -141,6 +141,21 @@ def get_lifespan():
     async def lifespan(app: FastAPI):
         logger.info("Starting app lifespan")
         async with lifespan_http_client(app), lifespan_file_storage(app), lifespan_vector_store(app):
+            # Register synonym loader callback
+            from app.features.knowledge.synonyms.repos import SynonymMapRepository
+            from app_layer_base.base.repos.query_options import ListQueryOptions
+            from app_layer_base.core.database.transaction import AsyncTransaction
+            from rag_core.query_rewrite.synonym_expander import register_synonym_loader
+
+            async def db_synonym_loader() -> dict[str, list[str]]:
+                async with AsyncTransaction() as session:
+                    repo = SynonymMapRepository()
+                    query_options = ListQueryOptions(limit=10000)
+                    res = await repo.get_multi(session, query_options=query_options)
+                    return {item.keyword: item.synonyms for item in res.items}
+
+            register_synonym_loader(db_synonym_loader)
+
             # Seed and populate registry caches on boot
             await init_db_and_seed_models_parsers()
             await broker.connect()

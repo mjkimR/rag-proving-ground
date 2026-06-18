@@ -1186,11 +1186,11 @@ export type KnowledgeBaseRead = {
  */
 export type KnowledgeBaseSearchRequest = {
     /**
-     * Query
+     * Queries
      *
-     * The search query.
+     * The list of search queries. Must contain at least one query.
      */
-    query: string;
+    queries: Array<string>;
     /**
      * Limit
      *
@@ -1214,11 +1214,11 @@ export type KnowledgeBaseSearchRequest = {
  */
 export type KnowledgeBaseSearchResponse = {
     /**
-     * Query
+     * Queries
      *
-     * The original search query.
+     * The search queries used.
      */
-    query: string;
+    queries: Array<string>;
     /**
      * Results
      *
@@ -1374,11 +1374,11 @@ export type KnowledgeParsingConfig = {
  */
 export type MultiKnowledgeBaseSearchRequest = {
     /**
-     * Query
+     * Queries
      *
-     * The search query.
+     * The list of search queries. Must contain at least one query.
      */
-    query: string;
+    queries: Array<string>;
     /**
      * Knowledge Base Ids
      *
@@ -1581,6 +1581,38 @@ export type PaginatedListKnowledgeBaseRead = {
      * Items
      */
     items: Array<KnowledgeBaseRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
+ * PaginatedList[SynonymMapRead]
+ */
+export type PaginatedListSynonymMapRead = {
+    /**
+     * Items
+     */
+    items: Array<SynonymMapRead>;
     /**
      * Total Count
      */
@@ -1879,6 +1911,114 @@ export type RerankerConfig = {
 export type RetrievalMode = 'dense' | 'sparse' | 'hybrid';
 
 /**
+ * SynonymMapCreate
+ */
+export type SynonymMapCreate = {
+    /**
+     * Keyword
+     *
+     * The trigger keyword or abbreviation (e.g. RAG).
+     */
+    keyword: string;
+    /**
+     * Synonyms
+     *
+     * List of synonyms to map to this keyword.
+     */
+    synonyms: Array<string>;
+    /**
+     * Description
+     *
+     * Optional description of this synonym mapping.
+     */
+    description?: string | null;
+};
+
+/**
+ * SynonymMapPatch
+ */
+export type SynonymMapPatch = {
+    /**
+     * Keyword
+     *
+     * The trigger keyword or abbreviation.
+     */
+    keyword?: string | null;
+    /**
+     * Synonyms
+     *
+     * List of synonyms to map to this keyword.
+     */
+    synonyms?: Array<string> | null;
+    /**
+     * Description
+     *
+     * Optional description of this synonym mapping.
+     */
+    description?: string | null;
+};
+
+/**
+ * SynonymMapPut
+ */
+export type SynonymMapPut = {
+    /**
+     * Keyword
+     *
+     * The trigger keyword or abbreviation (e.g. RAG).
+     */
+    keyword: string;
+    /**
+     * Synonyms
+     *
+     * List of synonyms to map to this keyword.
+     */
+    synonyms: Array<string>;
+    /**
+     * Description
+     *
+     * Optional description of this synonym mapping.
+     */
+    description?: string | null;
+};
+
+/**
+ * SynonymMapRead
+ */
+export type SynonymMapRead = {
+    /**
+     * Keyword
+     *
+     * The trigger keyword or abbreviation (e.g. RAG).
+     */
+    keyword: string;
+    /**
+     * Synonyms
+     *
+     * List of synonyms to map to this keyword.
+     */
+    synonyms: Array<string>;
+    /**
+     * Description
+     *
+     * Optional description of this synonym mapping.
+     */
+    description?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
  * TableCellData
  *
  * Grid data for a single table cell.
@@ -2077,6 +2217,28 @@ export type PaginatedListKnowledgeBaseReadWritable = {
      * Items
      */
     items: Array<KnowledgeBaseRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
+ * PaginatedList[SynonymMapRead]
+ */
+export type PaginatedListSynonymMapReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<SynonymMapRead>;
     /**
      * Total Count
      */
@@ -3626,3 +3788,186 @@ export type TestAiModelApiV1AiModelsAiModelIdTestPostResponses = {
      */
     200: unknown;
 };
+
+export type GetSynonymMapsApiV1SynonymsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/synonyms';
+};
+
+export type GetSynonymMapsApiV1SynonymsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSynonymMapsApiV1SynonymsGetError = GetSynonymMapsApiV1SynonymsGetErrors[keyof GetSynonymMapsApiV1SynonymsGetErrors];
+
+export type GetSynonymMapsApiV1SynonymsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListSynonymMapRead;
+};
+
+export type GetSynonymMapsApiV1SynonymsGetResponse = GetSynonymMapsApiV1SynonymsGetResponses[keyof GetSynonymMapsApiV1SynonymsGetResponses];
+
+export type CreateSynonymMapApiV1SynonymsPostData = {
+    body: SynonymMapCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/synonyms';
+};
+
+export type CreateSynonymMapApiV1SynonymsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateSynonymMapApiV1SynonymsPostError = CreateSynonymMapApiV1SynonymsPostErrors[keyof CreateSynonymMapApiV1SynonymsPostErrors];
+
+export type CreateSynonymMapApiV1SynonymsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SynonymMapRead;
+};
+
+export type CreateSynonymMapApiV1SynonymsPostResponse = CreateSynonymMapApiV1SynonymsPostResponses[keyof CreateSynonymMapApiV1SynonymsPostResponses];
+
+export type DeleteSynonymMapApiV1SynonymsSynonymIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Synonym Id
+         */
+        synonym_id: string;
+    };
+    query?: never;
+    url: '/api/v1/synonyms/{synonym_id}';
+};
+
+export type DeleteSynonymMapApiV1SynonymsSynonymIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteSynonymMapApiV1SynonymsSynonymIdDeleteError = DeleteSynonymMapApiV1SynonymsSynonymIdDeleteErrors[keyof DeleteSynonymMapApiV1SynonymsSynonymIdDeleteErrors];
+
+export type DeleteSynonymMapApiV1SynonymsSynonymIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteSynonymMapApiV1SynonymsSynonymIdDeleteResponse = DeleteSynonymMapApiV1SynonymsSynonymIdDeleteResponses[keyof DeleteSynonymMapApiV1SynonymsSynonymIdDeleteResponses];
+
+export type GetSynonymMapApiV1SynonymsSynonymIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Synonym Id
+         */
+        synonym_id: string;
+    };
+    query?: never;
+    url: '/api/v1/synonyms/{synonym_id}';
+};
+
+export type GetSynonymMapApiV1SynonymsSynonymIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSynonymMapApiV1SynonymsSynonymIdGetError = GetSynonymMapApiV1SynonymsSynonymIdGetErrors[keyof GetSynonymMapApiV1SynonymsSynonymIdGetErrors];
+
+export type GetSynonymMapApiV1SynonymsSynonymIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SynonymMapRead;
+};
+
+export type GetSynonymMapApiV1SynonymsSynonymIdGetResponse = GetSynonymMapApiV1SynonymsSynonymIdGetResponses[keyof GetSynonymMapApiV1SynonymsSynonymIdGetResponses];
+
+export type PatchSynonymMapApiV1SynonymsSynonymIdPatchData = {
+    body: SynonymMapPatch;
+    path: {
+        /**
+         * Synonym Id
+         */
+        synonym_id: string;
+    };
+    query?: never;
+    url: '/api/v1/synonyms/{synonym_id}';
+};
+
+export type PatchSynonymMapApiV1SynonymsSynonymIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchSynonymMapApiV1SynonymsSynonymIdPatchError = PatchSynonymMapApiV1SynonymsSynonymIdPatchErrors[keyof PatchSynonymMapApiV1SynonymsSynonymIdPatchErrors];
+
+export type PatchSynonymMapApiV1SynonymsSynonymIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: SynonymMapRead;
+};
+
+export type PatchSynonymMapApiV1SynonymsSynonymIdPatchResponse = PatchSynonymMapApiV1SynonymsSynonymIdPatchResponses[keyof PatchSynonymMapApiV1SynonymsSynonymIdPatchResponses];
+
+export type PutSynonymMapApiV1SynonymsSynonymIdPutData = {
+    body: SynonymMapPut;
+    path: {
+        /**
+         * Synonym Id
+         */
+        synonym_id: string;
+    };
+    query?: never;
+    url: '/api/v1/synonyms/{synonym_id}';
+};
+
+export type PutSynonymMapApiV1SynonymsSynonymIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutSynonymMapApiV1SynonymsSynonymIdPutError = PutSynonymMapApiV1SynonymsSynonymIdPutErrors[keyof PutSynonymMapApiV1SynonymsSynonymIdPutErrors];
+
+export type PutSynonymMapApiV1SynonymsSynonymIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: SynonymMapRead;
+};
+
+export type PutSynonymMapApiV1SynonymsSynonymIdPutResponse = PutSynonymMapApiV1SynonymsSynonymIdPutResponses[keyof PutSynonymMapApiV1SynonymsSynonymIdPutResponses];

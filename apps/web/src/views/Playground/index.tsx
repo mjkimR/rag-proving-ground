@@ -65,7 +65,7 @@ export const Playground: React.FC = () => {
 
       return searchMultiKnowledgeBasesApiV1KnowledgeBasesSearchPost({
         body: {
-          query,
+          queries: [query],
           knowledge_base_ids: selectedKbIds,
           limit,
           candidate_limit: candidateLimit || undefined,

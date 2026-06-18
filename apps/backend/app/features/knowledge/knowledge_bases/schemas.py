@@ -62,7 +62,11 @@ class KnowledgeBaseRead(UUIDSchemaMixin, TimestampSchemaMixin, KnowledgeBaseBase
 
 
 class KnowledgeBaseSearchRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=2000, description="The search query.")
+    queries: list[str] = Field(
+        ...,
+        min_length=1,
+        description="The list of search queries. Must contain at least one query.",
+    )
     limit: int = Field(default=5, ge=1, le=100, description="The maximum number of search results to return.")
     retrieval_mode: RetrievalMode | None = Field(
         default=None, description="Query-time override for retrieval mode (dense, sparse, hybrid)"
@@ -71,7 +75,11 @@ class KnowledgeBaseSearchRequest(BaseModel):
 
 
 class MultiKnowledgeBaseSearchRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=2000, description="The search query.")
+    queries: list[str] = Field(
+        ...,
+        min_length=1,
+        description="The list of search queries. Must contain at least one query.",
+    )
     knowledge_base_ids: list[UUID] = Field(
         ...,
         min_length=1,
@@ -123,6 +131,6 @@ class KnowledgeBaseSearchResultItem(BaseModel):
 
 
 class KnowledgeBaseSearchResponse(BaseModel):
-    query: str = Field(description="The original search query.")
+    queries: list[str] = Field(description="The search queries used.")
     results: list[KnowledgeBaseSearchResultItem] = Field(description="The list of search results.")
     total: int = Field(description="The total number of results found.")

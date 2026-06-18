@@ -433,3 +433,49 @@ async def test_retrieve_chunks_deduplication_multi_page(monkeypatch: pytest.Monk
     assert len(results) == 2
     assert results[0].chunk_id == "chunk_1"
     assert results[1].chunk_id == "chunk_3"  # chunk 2 is skipped because all its page_ids (page_2) were seen
+
+
+async def test_retrieve_multi_knowledge_chunks_with_multiple_queries(monkeypatch: pytest.MonkeyPatch) -> None:
+    kb_id = uuid4()
+    embedding_config = KnowledgeEmbeddingConfig(model="test-embedding-model", distance=EmbeddingDistanceMetric.COSINE)
+
+    seen_queries = []
+
+    class FakeVectorStore:
+        async def asimilarity_search_with_score(
+            self, query: str, k: int, filter: qmodels.Filter
+        ) -> list[tuple[Document, float]]:
+            seen_queries.append(query)
+            return [
+                (
+                    Document(
+                        page_content="duplicated chunk content",
+                        metadata={
+                            "chunk_id": "chunk_123",
+                            "doc_id": "doc_123",
+                            "knowledge_id": str(kb_id),
+                        },
+                    ),
+                    0.85,
+                )
+            ]
+
+    async def fake_get_knowledge_vector_store(config):
+        return FakeVectorStore(), "collection_name", "hash_val"
+
+    monkeypatch.setattr(search, "get_knowledge_vector_store", fake_get_knowledge_vector_store)
+
+    results = await retrieve_multi_knowledge_chunks(
+        query=["query variation 1", "query variation 2"],
+        kb_configs=[(kb_id, embedding_config)],
+        limit=5,
+    )
+
+    # Both queries should be processed
+    assert len(seen_queries) == 2
+    assert "query variation 1" in seen_queries
+    assert "query variation 2" in seen_queries
+
+    # The result should be deduplicated (only 1 retrieved chunk in results)
+    assert len(results) == 1
+    assert results[0].chunk_id == "chunk_123"

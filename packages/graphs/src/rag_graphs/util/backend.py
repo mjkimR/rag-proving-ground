@@ -36,7 +36,8 @@ def get_graph_backend_settings() -> GraphBackendSettings:
 
 async def search_multi_knowledge_bases(
     *,
-    query: str,
+    query: str | list[str] | None = None,
+    queries: list[str] | None = None,
     knowledge_base_ids: list[UUID],
     limit: int,
     reranker_config: RerankerConfig | None,
@@ -53,6 +54,7 @@ async def search_multi_knowledge_bases(
             url,
             json=_search_payload(
                 query=query,
+                queries=queries,
                 knowledge_base_ids=knowledge_base_ids,
                 limit=limit,
                 reranker_config=reranker_config,
@@ -76,7 +78,8 @@ async def search_multi_knowledge_bases(
 
 def _search_payload(
     *,
-    query: str,
+    query: str | list[str] | None = None,
+    queries: list[str] | None = None,
     knowledge_base_ids: list[UUID],
     limit: int,
     reranker_config: RerankerConfig | None,
@@ -85,10 +88,16 @@ def _search_payload(
     sparse_model: str | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
-        "query": query,
         "knowledge_base_ids": [str(knowledge_base_id) for knowledge_base_id in knowledge_base_ids],
         "limit": limit,
     }
+    if query is not None:
+        if isinstance(query, list):
+            payload["queries"] = query
+        else:
+            payload["query"] = query
+    if queries is not None:
+        payload["queries"] = queries
     if candidate_limit is not None:
         payload["candidate_limit"] = candidate_limit
     if reranker_config is not None:

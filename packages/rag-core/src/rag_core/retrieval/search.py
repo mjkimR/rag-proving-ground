@@ -21,7 +21,7 @@ class _ResolvedKnowledgeConfig:
 
 
 async def retrieve_knowledge_chunks(
-    query: str,
+    query: str | list[str],
     knowledge_base_id: UUID,
     embedding_config: KnowledgeEmbeddingConfig,
     *,
@@ -30,7 +30,7 @@ async def retrieve_knowledge_chunks(
     """Retrieves similar document chunks for a query from a specific knowledge base.
 
     Args:
-        query: The search query text.
+        query: The search query text or list of query variations.
         knowledge_base_id: The ID of the target knowledge base.
         embedding_config: The embedding configuration associated with the knowledge base.
         limit: The maximum number of retrieved chunks to return. Defaults to 5.
@@ -47,7 +47,7 @@ async def retrieve_knowledge_chunks(
 
 
 async def retrieve_multi_knowledge_chunks(
-    query: str,
+    query: str | list[str],
     kb_configs: list[tuple[UUID, KnowledgeEmbeddingConfig]],
     *,
     limit: int = 5,
@@ -60,7 +60,7 @@ async def retrieve_multi_knowledge_chunks(
     and compare the similarity scores of candidates across different knowledge bases.
 
     Args:
-        query: The search query text.
+        query: The search query text or list of query variations.
         kb_configs: A list of tuples containing the knowledge base ID and its embedding config.
         limit: The final maximum number of retrieved chunks to return. Defaults to 5.
         reranker_config: Optional configuration for the reranking step.
@@ -93,23 +93,40 @@ async def retrieve_multi_knowledge_chunks(
         kb_count=len(resolved_configs),
         reranker_config=reranker_config,
     )
-    search_tasks = [
-        _search_knowledge_base(
-            query=query,
-            config=config,
-            limit=per_kb_candidate_limit,
-        )
-        for config in resolved_configs
-    ]
+
+    queries = [query] if isinstance(query, str) else query
+
+    search_tasks = []
+    task_configs = []
+    for config in resolved_configs:
+        for q in queries:
+            search_tasks.append(
+                _search_knowledge_base(
+                    query=q,
+                    config=config,
+                    limit=per_kb_candidate_limit,
+                )
+            )
+            task_configs.append(config)
+
     search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
     candidates = []
-    for result, config in zip(search_results, resolved_configs, strict=True):
+    for result, config in zip(search_results, task_configs, strict=True):
         if isinstance(result, BaseException):
             logger.opt(exception=result).error(
                 f"Error retrieving chunks for knowledge base {config.knowledge_base_id}: {result}"
             )
         elif isinstance(result, list):
             candidates.extend(result)
+
+    # Deduplicate candidate chunks by chunk_id to avoid redundant reranking
+    unique_candidates = []
+    seen_chunk_ids = set()
+    for chunk in candidates:
+        if chunk.chunk_id in seen_chunk_ids:
+            continue
+        seen_chunk_ids.add(chunk.chunk_id)
+        unique_candidates.append(chunk)
 
     if reranker_config is not None:
         # Create an oversampled reranker config to allow reranking more candidates
@@ -120,15 +137,15 @@ async def retrieve_multi_knowledge_chunks(
             oversampled_reranker_config.top_n = limit * 4
 
         ranked_chunks = await rerank_chunks(
-            query=query,
-            chunks=candidates,
+            query=queries[0],
+            chunks=unique_candidates,
             limit=limit * 4,
             reranker_config=oversampled_reranker_config,
         )
     else:
-        ranked_chunks = sorted(candidates, key=lambda chunk: chunk.score, reverse=True)
+        ranked_chunks = sorted(unique_candidates, key=lambda chunk: chunk.score, reverse=True)
 
-    # Perform memory-based deduplication
+    # Perform memory-based page-level deduplication
     seen_pages = set()
     deduped_chunks = []
     for chunk in ranked_chunks:

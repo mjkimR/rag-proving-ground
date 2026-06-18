@@ -56,9 +56,10 @@ class SearchKnowledgeBaseUseCase(BaseUseCase):
             ) from e
 
         # Retrieve chunks from the core library
+        queries = search_request.queries
         try:
             chunks = await retrieve_knowledge_chunks(
-                query=search_request.query,
+                query=queries,
                 knowledge_base_id=knowledge_base_id,
                 embedding_config=resolved_config,
                 limit=search_request.limit,
@@ -78,7 +79,7 @@ class SearchKnowledgeBaseUseCase(BaseUseCase):
 
         # Note: 'total' represents the count of retrieved results under the requested limit.
         return KnowledgeBaseSearchResponse(
-            query=search_request.query,
+            queries=queries,
             results=results,
             total=len(results),
         )
@@ -133,9 +134,10 @@ class SearchMultiKnowledgeBaseUseCase(BaseUseCase):
                 ) from e
             kb_configs.append((kb_id, resolved_config))
 
+        queries = search_request.queries
         try:
             chunks = await retrieve_multi_knowledge_chunks(
-                query=search_request.query,
+                query=queries,
                 kb_configs=kb_configs,
                 limit=search_request.limit,
                 reranker_config=search_request.reranker_config,
@@ -159,7 +161,7 @@ class SearchMultiKnowledgeBaseUseCase(BaseUseCase):
 
         results = [_search_result_from_chunk(chunk) for chunk in chunks]
         return KnowledgeBaseSearchResponse(
-            query=search_request.query,
+            queries=queries,
             results=results,
             total=len(results),
         )

@@ -6,6 +6,7 @@ from uuid import UUID
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, MessagesState, StateGraph
+from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from rag_core.ai.models import get_llm_model, get_model_options
 from rag_core.retrieval import RerankerConfig, RetrievedChunk
@@ -34,6 +35,7 @@ class GraphConfig(TypedDict, total=False):
     max_context_chars: int
     retrieval_mode: str | None
     sparse_model: str | None
+    rewrite_mode: str | None
 
 
 class _KnowledgeBaseConfig(BaseModel):
@@ -54,6 +56,7 @@ class _GraphRuntimeConfig(BaseModel):
     max_context_chars: int = Field(default=DEFAULT_MAX_CONTEXT_CHARS, ge=1, le=200_000)
     retrieval_mode: str | None = None
     sparse_model: str | None = None
+    rewrite_mode: str | None = None
 
     @field_validator("knowledge_base_ids")
     @classmethod
@@ -143,8 +146,41 @@ async def _retrieve_context_chunks(
     if query is None or not knowledge_base_ids:
         return []
 
+    # 1. Apply Synonym Expansion (Dictionary-based)
+    queries = [query]
+    from rag_core.query_rewrite.synonym_expander import SynonymExpander
+
+    try:
+        expander = SynonymExpander()
+        query = await expander.expand_query(query)
+        queries = [query]
+    except Exception as exc:
+        logger.warning(f"Synonym expansion failed: {exc}")
+
+    # 2. Apply LLM Query Rewrite / Expansion based on runtime configuration
+    rewrite_mode = runtime_config.rewrite_mode
+    if rewrite_mode in ("rewrite", "expand", "hybrid"):
+        from rag_core.query_rewrite.rewriter import QueryRewriter
+
+        try:
+            rewriter = QueryRewriter(model_name=runtime_config.model_name)
+
+            # A. Conversational Rewrite based on history
+            if rewrite_mode in ("rewrite", "hybrid") and len(messages) >= 2:
+                # Use preceding messages as history context (excluding the latest message)
+                history = messages[:-1]
+                query = await rewriter.rewrite(query, history=history)
+                queries = [query]
+
+            # B. Query Expansion
+            if rewrite_mode in ("expand", "hybrid"):
+                queries = await rewriter.expand(query, num_queries=3)
+
+        except Exception as exc:
+            logger.error(f"Query rewrite/expansion failed: {exc}. Using raw query.")
+
     return await search_multi_knowledge_bases(
-        query=query,
+        queries=queries,
         knowledge_base_ids=knowledge_base_ids,
         limit=runtime_config.limit,
         reranker_config=runtime_config.reranker_config,

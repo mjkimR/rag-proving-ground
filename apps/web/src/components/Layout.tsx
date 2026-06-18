@@ -12,6 +12,7 @@ import {
   Menu as MenuIcon,
   MessageSquare,
   GitMerge,
+  BookOpen,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { healthApiHealthGet } from '../generated/api/sdk.gen';
@@ -76,6 +77,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       key: 'providers',
       icon: <Server size={18} />,
       label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Providers & Models</span>,
+    },
+    {
+      key: 'synonyms',
+      icon: <BookOpen size={18} />,
+      label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Synonym Dictionary</span>,
     },
   ];
 
@@ -232,6 +238,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   ? 'Agent Chat Proving'
                 : activeTab === 'providers'
                   ? 'Providers & Models Registry'
+                : activeTab === 'synonyms'
+                  ? 'Synonym Dictionary Admin'
                   : 'Dashboard Overview'}
             </h2>
           </div>

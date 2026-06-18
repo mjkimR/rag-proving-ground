@@ -54,7 +54,7 @@ async def test_simple_rag_retrieves_context_and_injects_system_message(mocker):
     mock_get_llm.assert_called_once_with("allowed-model")
     mock_search.assert_awaited_once()
     search_kwargs = mock_search.await_args.kwargs
-    assert search_kwargs["query"] == "What is RAG?"
+    assert search_kwargs["queries"] == ["What is RAG?"]
     assert search_kwargs["knowledge_base_ids"] == [KB_ID]
     assert search_kwargs["limit"] == 3
     assert search_kwargs["reranker_config"] is None

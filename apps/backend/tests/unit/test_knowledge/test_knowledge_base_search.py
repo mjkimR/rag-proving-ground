@@ -15,7 +15,7 @@ from rag_core.retrieval import RerankerConfig, RetrievedChunk
 def test_multi_search_request_dedupes_ids_and_requires_reranker_for_unique_multi_kb() -> None:
     kb_id = uuid4()
     request = MultiKnowledgeBaseSearchRequest(
-        query="test query",
+        queries=["test query"],
         knowledge_base_ids=[kb_id, kb_id],
     )
 
@@ -23,7 +23,7 @@ def test_multi_search_request_dedupes_ids_and_requires_reranker_for_unique_multi
 
     with pytest.raises(ValueError, match="reranker_config is required"):
         MultiKnowledgeBaseSearchRequest(
-            query="test query",
+            queries=["test query"],
             knowledge_base_ids=[uuid4(), uuid4()],
         )
 
@@ -31,7 +31,7 @@ def test_multi_search_request_dedupes_ids_and_requires_reranker_for_unique_multi
 def test_multi_search_request_rejects_reranker_top_n_below_limit() -> None:
     with pytest.raises(ValueError, match=r"reranker_config\.top_n"):
         MultiKnowledgeBaseSearchRequest(
-            query="test query",
+            queries=["test query"],
             knowledge_base_ids=[uuid4(), uuid4()],
             limit=5,
             reranker_config=RerankerConfig(model="test-reranker", top_n=2),
@@ -50,7 +50,7 @@ async def test_search_multi_knowledge_base_usecase_rejects_missing_ids(monkeypat
     with pytest.raises(HTTPException) as exc_info:
         await use_case.execute(
             MultiKnowledgeBaseSearchRequest(
-                query="test query",
+                queries=["test query"],
                 knowledge_base_ids=[existing_id, missing_id],
                 reranker_config=RerankerConfig(model="test-reranker"),
             )
@@ -79,7 +79,7 @@ async def test_search_multi_knowledge_base_usecase_maps_results(monkeypatch: pyt
     monkeypatch.setattr(search, "AsyncTransaction", _FakeTransaction)
 
     async def fake_retrieve_multi_knowledge_chunks(**kwargs):
-        assert kwargs["query"] == "test query"
+        assert kwargs["query"] in ("test query", ["test query"])
         assert [kb_id for kb_id, _ in kwargs["kb_configs"]] == [kb_id_1, kb_id_2]
         assert kwargs["limit"] == 2
         assert kwargs["candidate_limit"] == 10
@@ -100,7 +100,7 @@ async def test_search_multi_knowledge_base_usecase_maps_results(monkeypatch: pyt
 
     response = await use_case.execute(
         MultiKnowledgeBaseSearchRequest(
-            query="test query",
+            queries=["test query"],
             knowledge_base_ids=[kb_id_1, kb_id_2],
             limit=2,
             candidate_limit=10,
@@ -133,7 +133,7 @@ async def test_search_multi_knowledge_base_usecase_dedupes_ids_when_called_direc
 
     response = await use_case.execute(
         MultiKnowledgeBaseSearchRequest.model_construct(
-            query="test query",
+            queries=["test query"],
             knowledge_base_ids=[kb_id, kb_id],
             limit=2,
             candidate_limit=None,
@@ -214,7 +214,7 @@ async def test_search_use_case_fails_with_hybrid_override_on_dense_kb(monkeypatc
         await use_case.execute(
             kb_id,
             KnowledgeBaseSearchRequest(
-                query="test",
+                queries=["test"],
                 retrieval_mode=RetrievalMode.HYBRID,
             ),
         )
@@ -257,7 +257,7 @@ async def test_search_use_case_succeeds_with_dense_override_on_hybrid_kb(monkeyp
     await use_case.execute(
         kb_id,
         KnowledgeBaseSearchRequest(
-            query="test",
+            queries=["test"],
             retrieval_mode=RetrievalMode.DENSE,
         ),
     )
