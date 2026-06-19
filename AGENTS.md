@@ -59,6 +59,12 @@ Parser and vector-store providers follow the adapter pattern: `interface.py`, `r
 
 Define new graphs in `packages/graphs/src/rag_graphs/`. Depend on `rag-core` for shared utilities; do not duplicate parsing, embedding, or vector-store logic.
 
+#### Layering Boundaries (`rag-core`, `apps/backend`, `packages/graphs`)
+
+To prevent blurred responsibilities, duplication, and configuration leakage:
+- **Stateful/Database Connections (Backend Only)**: The LangGraph runner (`packages/graphs`) must **never** connect directly to databases (PostgreSQL, Qdrant, Redis, etc.) or use their client drivers. All retrieval, document state checks, and metadata queries must be routed through `apps/backend` API endpoints (e.g. using `search_multi_knowledge_bases`).
+- **Stateless LLM & Computation Utilities (Shared/Dual Run)**: Stateless operations (e.g., `QueryRewriter`, `TreeSummarizer`, `SynonymExpander`, `CitationValidator`) belong to `rag-core` and can be imported and executed directly in both `packages/graphs` (within the Aegra server) and `apps/backend`. They must remain stateless, requiring no direct database handles or persistent local storage.
+
 ### Backend (`apps/backend`)
 
 - Keep API routes under feature packages in `apps/backend/app/features/**/api/`.

@@ -72,6 +72,7 @@
   * **BM25 및 한국어 형태소 분석기 연동**:
     * 영어 및 일반 텍스트용 기본 BM25 모듈 개발.
     * 한국어 고유 명사 및 조사 분리를 위해 경량 형태소 분석기(Kiwipiepy 등)를 내장한 BM25 Retrieval 모듈 개발 및 Qdrant 연동.
+  * **언어별 처리 전략 패턴화 (Language Strategy Pattern)**: `synonym_expander`의 정규식 바운더리 체크, `tree_summarize`의 한글 토큰 수 계산 및 형태소 분석기 연동 등, 코드베이스 전반에 산재해 있는 한글(한국어) 분기 처리 및 언어별 별도 로직을 전략 패턴(Strategy Pattern)으로 구조화하여 다국어 확장성 확보.
   * **Hybrid Search & Reranker 검증**: Dense와 BM25 검색 결과를 결합하는 하이브리드 쿼리 아키텍처를 구현하고, 다중 검색 점수 표준화를 위해 LiteLLM Reranker 모듈을 필수 결합하여 품질 측정.
   * **다중 표현 인덱싱 (Summary + Raw Text)**: LLM으로 요약한 문서/페이지/섹션 요약본 벡터로 검색을 수행하고, 실제 LLM 컨텍스트에는 원문(Raw Text)을 매핑하여 입력하는 Parent-Child 다중 벡터 매핑 구조 도입.
   * **메타데이터 강제 태깅 (Tagging) 체계 구축**: 인제스션 시 생성일(`timestamp`), 문서 버전, 카테고리 등 메타데이터를 필수 태깅하도록 강제하여 최신성 가중치 부여 및 필터링 쿼리에 활용.
@@ -152,6 +153,7 @@ graph TD
 - **웹 및 특수 파서 어댑터 확장**: 웹 크롤링/동적 컨텐츠를 위한 `Firecrawl` 및 복잡한 구조 문서 파싱을 위한 `LlamaParse`/`Marker-PDF` 어댑터 플러그인 구현.
 
 ### 5.2 임베딩 및 검색 (Embedding & Hybrid Search)
+- **언어별 처리 전략 패턴화 (Language Strategy Pattern)**: `synonym_expander`의 정규식 바운더리 체크, `tree_summarize`의 한글 토큰 수 계산 및 분석기 연동 등, 코드베이스 전반에 산재한 한국어 분기 처리 및 언어별 별도 로직을 전략 패턴(Strategy Pattern)으로 구조화하여 다국어 지원이 용이하도록 고도화.
 - **메타데이터 강제 태깅 체계 구축**: 인제스션 시 생성일(`timestamp`), 문서 버전, 카테고리 등의 메타데이터 필드를 강제 부여하고, 검색 쿼리에서 최신 문서 가중치 부여 및 필터링 필드로 활용.
 - **다중 표현 인덱싱 (Summary + Raw Text)**: 전체 문서/섹션 요약본 벡터로 검색을 수행하고, 실제 생성 모델 입력에는 캡슐화된 원문(Raw Text)을 전달하는 다중 표현(Parent-Child) 매핑 구조 구현.
 - **LLM 기반 쿼리 재작성 (Query Rewrite/Expansion)**: 검색 쿼리의 모호성 및 동의어 매칭 한계를 극복하기 위해 LLM을 활용한 질문 재작성 및 동의어 확장 엔진 구축.
