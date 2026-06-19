@@ -16,16 +16,13 @@ from app.worker.broker import broker
 from app.worker.services import build_pipeline_service
 from app_file_storage import get_storage_client
 from app_layer_base.core.database.transaction import AsyncTransaction
-from faststream.redis import RedisRouter
 from loguru import logger
 from rag_core.embeddings import resolve_knowledge_embedding_config
 from sqlalchemy import update
 from tenacity import retry, stop_after_attempt
 
-router = RedisRouter()
 
-
-@router.subscriber("document.parse", max_workers=2)
+@broker.task(task_name="parse_document")
 @retry(stop=stop_after_attempt(3))
 async def handle_parse(msg: ParseDocumentMessage) -> None:
     """Process a document parsing stage.
@@ -55,7 +52,6 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
                 return
 
             if doc.status in (
-                KnowledgeBaseDocumentStatus.PARSING,
                 KnowledgeBaseDocumentStatus.CHUNKING,
                 KnowledgeBaseDocumentStatus.EMBEDDING,
                 KnowledgeBaseDocumentStatus.COMPLETED,
@@ -144,15 +140,16 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
             if page_creates:
                 await pipeline_service.page_service.repo.bulk_create(session, page_creates, msg.document_id)
 
-        # 4. Chain: Publish to document.chunk
-        logger.info(f"Worker completed parse stage. Publishing document.chunk for {msg.document_id}")
-        await broker.publish(
+        # 4. Chain: Dispatch to handle_chunk
+        logger.info(f"Worker completed parse stage. Dispatching chunk task for {msg.document_id}")
+        kicker = handle_chunk.kicker().with_labels(queue_name=msg.priority)
+        await kicker.kiq(
             ChunkDocumentMessage(
                 document_id=msg.document_id,
                 knowledge_base_id=msg.knowledge_base_id,
                 filename=msg.filename,
-            ),
-            "document.chunk",
+                priority=msg.priority,
+            )
         )
 
     except Exception as exc:
@@ -161,7 +158,7 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
         raise exc
 
 
-@router.subscriber("document.chunk", max_workers=10)
+@broker.task(task_name="chunk_document")
 @retry(stop=stop_after_attempt(3))
 async def handle_chunk(msg: ChunkDocumentMessage) -> None:
     """Process a document chunking stage.
@@ -237,15 +234,16 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
             ),
         )
 
-        # 4. Chain: Publish to document.embed
-        logger.info(f"Worker completed chunk stage. Publishing document.embed for {msg.document_id}")
-        await broker.publish(
+        # 4. Chain: Dispatch to handle_embed
+        logger.info(f"Worker completed chunk stage. Dispatching embed task for {msg.document_id}")
+        kicker = handle_embed.kicker().with_labels(queue_name=msg.priority)
+        await kicker.kiq(
             EmbedDocumentMessage(
                 document_id=msg.document_id,
                 knowledge_base_id=msg.knowledge_base_id,
                 filename=msg.filename,
-            ),
-            "document.embed",
+                priority=msg.priority,
+            )
         )
 
     except Exception as exc:
@@ -254,7 +252,7 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
         raise exc
 
 
-@router.subscriber("document.embed", max_workers=2)
+@broker.task(task_name="embed_document")
 @retry(stop=stop_after_attempt(3))
 async def handle_embed(msg: EmbedDocumentMessage) -> None:
     """Process a document embedding stage.
@@ -342,31 +340,3 @@ async def _update_status_to_failed(pipeline_service, document_id) -> None:
             await session.execute(stmt)
     except Exception as db_exc:
         logger.error(f"Failed to update document status to FAILED in catch block: {db_exc}")
-
-
-def register_dynamic_parser_subscribers() -> None:
-    """Dynamically register FastStream subscribers for all registered parser providers."""
-    from rag_core.adapters.parser.providers import register_default_parsers
-    from rag_core.adapters.parser.registry import ParserRegistry
-
-    register_default_parsers()
-    providers = ParserRegistry.list_parsers()
-
-    for provider in providers:
-        queue_name = f"document.parse.{provider}"
-        max_workers = 2 if provider == "docling" else 10
-
-        logger.info(f"Registering dynamic FastStream subscriber for '{queue_name}' with max_workers={max_workers}")
-
-        decorator = router.subscriber(queue_name, max_workers=max_workers)
-
-        def make_handler(p_name: str):
-            async def dynamic_handle_parse(msg: ParseDocumentMessage) -> None:
-                if not msg.provider:
-                    msg.provider = p_name
-                await handle_parse(msg)
-
-            dynamic_handle_parse.__name__ = f"handle_parse_{p_name}"
-            return dynamic_handle_parse
-
-        decorator(make_handler(provider))

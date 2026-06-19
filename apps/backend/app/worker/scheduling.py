@@ -1,19 +1,21 @@
-"""Redis-based staging queue and fair round-robin scheduling dispatchers."""
+"""DB-polling staging queue and fair round-robin scheduling dispatchers."""
 
 import asyncio
-from typing import Any
-from uuid import UUID
+from typing import Any, cast
+from uuid import uuid4
 
 import redis.asyncio as aioredis
 from app.features.knowledge.knowledge_base_documents.schemas import ParseDocumentMessage
-from faststream.redis import RedisBroker
 from loguru import logger
 from rag_core.config import get_redis_settings
 
-# Global Redis client instance
 _redis_client: aioredis.Redis | None = None
+_dispatcher_task: asyncio.Task | None = None
+_stop_event: asyncio.Event | None = None
+_dispatcher_id: str | None = None
 
-MAX_DISPATCH_RETRIES = 3
+DISPATCH_TRIGGER_LIMIT = 2
+SLEEP_INTERVALS = [0.2, 0.5, 1.0, 2.0, 3.0]
 
 
 async def get_redis_client() -> aioredis.Redis:
@@ -25,7 +27,7 @@ async def get_redis_client() -> aioredis.Redis:
             settings.url,
             encoding="utf-8",
             decode_responses=False,
-            max_connections=20,
+            max_connections=10,
         )
     return _redis_client
 
@@ -38,207 +40,212 @@ async def close_redis_client() -> None:
         _redis_client = None
 
 
-# Lua script to guarantee atomic enqueueing of messages
-LUA_ENQUEUE_SCRIPT = """
-local active_kbs_key = KEYS[1]
-local active_queues_key = KEYS[2]
-local kb_queue_key = KEYS[3]
-local kb_id = ARGV[1]
-local msg_json = ARGV[2]
-
-local is_new = redis.call("SADD", active_kbs_key, kb_id)
-if is_new == 1 then
-    redis.call("RPUSH", active_queues_key, kb_id)
-end
-redis.call("RPUSH", kb_queue_key, msg_json)
-return 1
-"""
-
-
-async def enqueue_parse_document_message(
-    knowledge_base_id: UUID,
-    msg: ParseDocumentMessage,
-    provider: str,
-) -> None:
-    """Enqueue a parse message to the Redis staging queue atomically using a Lua script."""
-    client = await get_redis_client()
-    redis: Any = client
-    try:
-        msg_json = msg.model_dump_json()
-        kb_str = str(knowledge_base_id)
-
-        active_kbs_key = f"active_kbs:{provider}"
-        active_queues_key = f"active_queues:{provider}"
-        kb_queue_key = f"kb_queue:{kb_str}:{provider}"
-
-        # Execute atomic Lua script
-        await redis.eval(
-            LUA_ENQUEUE_SCRIPT,
-            3,
-            active_kbs_key,
-            active_queues_key,
-            kb_queue_key,
-            kb_str,
-            msg_json,
-        )
-        logger.info(f"Atomically enqueued document {msg.document_id} for KB {kb_str} to staging queue '{provider}'")
-    except Exception as exc:
-        logger.error(f"Failed to enqueue message to Redis staging queue for KB {knowledge_base_id}: {exc}")
-        raise exc
-
-
 async def dispatcher_loop(
-    provider: str,
-    broker: RedisBroker,
+    broker: Any,
     stop_event: asyncio.Event,
+    dispatcher_id: str,
 ) -> None:
-    """Background dispatcher loop that pops staging messages in round-robin and publishes them with At-Least-Once guarantee."""
-    logger.info(f"Starting scheduling dispatcher loop for provider: {provider}")
-    client = await get_redis_client()
-    redis: Any = client
+    """Background dispatcher loop that polls the database for QUEUED or PENDING_REPARSE documents
 
-    from rag_core.adapters.parser.registry import ParserRegistry
+    and dispatches them to Taskiq in a fair round-robin manner.
+    """
+    logger.info(f"Starting DB-polling scheduling dispatcher loop (ID: {dispatcher_id})...")
+    from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
+    from app.features.knowledge.knowledge_bases.models import KnowledgeBase
+    from app.worker.handlers.ingest import handle_parse
+    from app_layer_base.core.database.transaction import AsyncTransaction
+    from rag_core.parsers import resolve_knowledge_parsing_config
+    from sqlalchemy import func, select, update
 
-    active_providers = ParserRegistry.list_parsers()
-
+    sleep_index = 0
     while not stop_event.is_set():
         try:
-            # 1. Pop the next active KB from the round-robin queue
-            kb_id_bytes = await redis.lpop(f"active_queues:{provider}")
-            if not kb_id_bytes:
-                # Staging queue is empty, sleep to avoid high CPU/Redis polling
-                await asyncio.sleep(0.5)
-                continue
+            # 1. Leader election / Lock renewal using Redis
+            redis_client = await get_redis_client()
+            lock_key = "lock:dispatcher"
 
-            kb_str = kb_id_bytes.decode("utf-8") if isinstance(kb_id_bytes, bytes) else kb_id_bytes
+            # Check who holds the lock currently
+            current_holder_bytes = await redis_client.get(lock_key)
+            current_holder = (
+                current_holder_bytes.decode("utf-8")
+                if isinstance(current_holder_bytes, bytes)
+                else current_holder_bytes
+            )
 
-            main_key = f"kb_queue:{kb_str}:{provider}"
-            processing_key = f"kb_queue:{kb_str}:{provider}:processing"
-            retry_key = f"retry_counter:{kb_str}:{provider}"
-
-            success = False
-            try:
-                # 2. Atomically move the head message from the main queue into the processing
-                #    queue (Reliable Queue pattern — safe across multiple worker processes)
-                msg_bytes = await redis.lmove(main_key, processing_key, "LEFT", "RIGHT")
-                if not msg_bytes:
-                    # Main queue is empty (out of sync), clean up active set
-                    await redis.srem(f"active_kbs:{provider}", kb_str)
+            if current_holder is None:
+                # Try to acquire the lock
+                acquired = await redis_client.set(lock_key, dispatcher_id, ex=5, nx=True)
+                if not acquired:
+                    await asyncio.sleep(2.0)
                     continue
+            elif current_holder != dispatcher_id:
+                # Someone else is the active leader, skip this cycle
+                await asyncio.sleep(2.0)
+                continue
+            else:
+                # We are the active leader, renew our lock TTL
+                await redis_client.expire(lock_key, 5)
 
-                # 3. Publish to FastStream broker
-                msg_json = msg_bytes.decode("utf-8") if isinstance(msg_bytes, bytes) else msg_bytes
-                msg = ParseDocumentMessage.model_validate_json(msg_json)
+            # 2. Check the total number of waiting tasks in Redis priority queues
+            total_waiting = 0
+            for queue in ["critical", "high", "medium", "low", "lowest"]:
+                total_waiting += await cast(Any, redis_client.llen(queue))
 
-                # Route to dynamic provider-specific queue or fallback based on active registry
-                queue_name = f"document.parse.{provider}" if provider in active_providers else "document.parse"
-
-                logger.debug(
-                    f"Dispatcher dispatching message for doc {msg.document_id} from KB {kb_str} to {queue_name}"
-                )
-                await broker.publish(msg, queue_name)
-
-                # 4. Successfully published: remove from processing queue and clear distributed retry counter
-                await redis.lpop(processing_key)
-                await redis.delete(retry_key)
-                success = True
-
-            except Exception as exc:
-                logger.error(f"Error dispatching message for KB {kb_str} (will retry): {exc}")
-
-                # Atomically increment the shared retry counter in Redis so all worker processes
-                # contribute to the same failure tally (unlike an in-memory dict).
-                fail_count = await redis.incr(retry_key)
-
-                if fail_count >= MAX_DISPATCH_RETRIES:
-                    # Max retries exceeded: isolate the message to DLQ
-                    logger.warning(
-                        f"KB {kb_str} exceeded {MAX_DISPATCH_RETRIES} retries, "
-                        f"isolating to DLQ for provider '{provider}'"
-                    )
-                    try:
-                        await redis.lmove(processing_key, f"dlq:{provider}", "LEFT", "RIGHT")
-                        await redis.delete(retry_key)
-                        await redis.srem(f"active_kbs:{provider}", kb_str)
-                    except Exception as redis_exc:
-                        # If the DLQ move itself fails (e.g. Redis network blip), the message
-                        # remains stranded in processing_key. A periodic recovery scan of
-                        # 'kb_queue:*:processing' keys is required to drain such orphans.
-                        logger.critical(
-                            f"Failed to isolate KB {kb_str} to DLQ: {redis_exc}. "
-                            f"Message is stranded in '{processing_key}' and requires manual recovery."
-                        )
-                else:
-                    # Restore the message to the head of the main queue and re-schedule the KB
-                    try:
-                        await redis.lmove(processing_key, main_key, "LEFT", "LEFT")
-                        await redis.rpush(f"active_queues:{provider}", kb_str)
-                    except Exception as redis_exc:
-                        # If the restore lmove fails, the message is stranded in processing_key.
-                        # The retry counter is already incremented, so it will trend toward DLQ.
-                        logger.critical(
-                            f"Failed to restore KB {kb_str} message from processing queue: {redis_exc}. "
-                            f"Message is stranded in '{processing_key}' and requires manual recovery."
-                        )
-                    else:
-                        await asyncio.sleep(1.0)
+            if total_waiting > DISPATCH_TRIGGER_LIMIT:
+                # Taskiq queues have enough buffer tasks, wait and check again using progressive backoff
+                sleep_time = SLEEP_INTERVALS[sleep_index]
+                sleep_index = min(sleep_index + 1, len(SLEEP_INTERVALS) - 1)
+                await asyncio.sleep(sleep_time)
                 continue
 
-            # 5. Check if there are more messages left in this KB's main queue
-            if success:
-                queue_len = await redis.llen(main_key)
-                if queue_len > 0:
-                    # Still has messages: push it back to the end of the round-robin list
-                    await redis.rpush(f"active_queues:{provider}", kb_str)
-                else:
-                    # Empty: remove from active set
-                    await redis.srem(f"active_kbs:{provider}", kb_str)
+            docs_to_dispatch = []
+            async with AsyncTransaction() as session:
+                # 3. Window function query to select candidate documents per KB using a CTE
+                candidates_cte = (
+                    select(
+                        KnowledgeBaseDocument.id,
+                        func.row_number()
+                        .over(
+                            partition_by=KnowledgeBaseDocument.knowledge_base_id,
+                            order_by=KnowledgeBaseDocument.created_at.asc(),
+                        )
+                        .label("rn"),
+                    )
+                    .where(KnowledgeBaseDocument.status.in_(["QUEUED", "PENDING_REPARSE"]))
+                    .cte("candidates")
+                )
+
+                # Lock the target candidate documents atomically using FOR UPDATE SKIP LOCKED
+                # (1st Step: select candidate IDs under row lock)
+                lock_stmt = (
+                    select(KnowledgeBaseDocument.id)
+                    .where(KnowledgeBaseDocument.id.in_(select(candidates_cte.c.id).where(candidates_cte.c.rn == 1)))
+                    .where(KnowledgeBaseDocument.status.in_(["QUEUED", "PENDING_REPARSE"]))
+                    .with_for_update(skip_locked=True)
+                )
+                result = await session.execute(lock_stmt)
+                locked_ids = [r[0] for r in result.all()]
+
+                docs = []
+                if locked_ids:
+                    # Update status of locked documents to PARSING (2nd Step: atomic update)
+                    update_stmt = (
+                        update(KnowledgeBaseDocument)
+                        .where(KnowledgeBaseDocument.id.in_(locked_ids))
+                        .values(status="PARSING")
+                        .returning(
+                            KnowledgeBaseDocument.id,
+                            KnowledgeBaseDocument.knowledge_base_id,
+                            KnowledgeBaseDocument.priority,
+                            KnowledgeBaseDocument.name,
+                            KnowledgeBaseDocument.file_hash,
+                            KnowledgeBaseDocument.document_info,
+                        )
+                    )
+                    update_result = await session.execute(update_stmt)
+                    docs = update_result.all()
+
+                if docs:
+                    # Bulk fetch KnowledgeBase configurations to resolve default_parsing_config
+                    # while avoiding N+1 queries.
+                    kb_ids = list({d.knowledge_base_id for d in docs})
+                    kb_stmt = select(KnowledgeBase.id, KnowledgeBase.default_parsing_config).where(
+                        KnowledgeBase.id.in_(kb_ids)
+                    )
+                    kb_result = await session.execute(kb_stmt)
+                    kb_configs = {r.id: r.default_parsing_config for r in kb_result.all()}
+
+                    logger.info(f"Dispatcher enqueuing fair batch of {len(docs)} document(s)")
+
+                    for doc in docs:
+                        default_parsing_config = kb_configs.get(doc.knowledge_base_id)
+                        resolved_config = resolve_knowledge_parsing_config(default_parsing_config)
+                        provider = resolved_config.get_provider_for_filename(doc.name)
+
+                        docs_to_dispatch.append(
+                            {
+                                "document_id": doc.id,
+                                "knowledge_base_id": doc.knowledge_base_id,
+                                "file_hash": doc.file_hash,
+                                "filename": doc.name,
+                                "content_type": doc.document_info.get("content_type") if doc.document_info else None,
+                                "provider": provider,
+                                "priority": doc.priority,
+                            }
+                        )
+
+            # Dispatch outside transaction with publish failure rollback to preserve status consistency
+            dispatched_ids = []
+            try:
+                for d in docs_to_dispatch:
+                    msg = ParseDocumentMessage(
+                        document_id=d["document_id"],
+                        knowledge_base_id=d["knowledge_base_id"],
+                        file_hash=d["file_hash"],
+                        filename=d["filename"],
+                        content_type=d["content_type"],
+                        provider=d["provider"],
+                        priority=d["priority"],
+                    )
+                    logger.info(
+                        f"Dispatching parse task for document {d['document_id']} (priority: {d['priority']}, provider: {d['provider']})"
+                    )
+                    kicker = handle_parse.kicker().with_labels(queue_name=d["priority"])
+                    await kicker.kiq(msg)
+                    dispatched_ids.append(d["document_id"])
+            except Exception as exc:
+                logger.error(f"Error occurred during Taskiq dispatch: {exc}")
+                # Identify document IDs that failed to publish and revert their status to QUEUED
+                failed_ids = [d["document_id"] for d in docs_to_dispatch if d["document_id"] not in dispatched_ids]
+                if failed_ids:
+                    logger.info(f"Reverting status of failed document(s) {failed_ids} back to QUEUED")
+                    try:
+                        async with AsyncTransaction() as session:
+                            revert_stmt = (
+                                update(KnowledgeBaseDocument)
+                                .where(KnowledgeBaseDocument.id.in_(failed_ids))
+                                .values(status="QUEUED")
+                            )
+                            await session.execute(revert_stmt)
+                    except Exception as revert_exc:
+                        logger.error(f"Failed to revert document statuses: {revert_exc}")
+                raise exc
+
+            # Progressive back-off sleep: reset on dispatch, backoff otherwise
+            sleep_index = 0 if docs_to_dispatch else min(sleep_index + 1, len(SLEEP_INTERVALS) - 1)
+            sleep_time = SLEEP_INTERVALS[sleep_index]
+            await asyncio.sleep(sleep_time)
 
         except asyncio.CancelledError:
             break
         except Exception as exc:
-            logger.error(f"Error in dispatcher loop for provider {provider}: {exc}")
-            await asyncio.sleep(1.0)
+            logger.error(f"Error in scheduling dispatcher loop: {exc}")
+            await asyncio.sleep(5.0)
 
-    logger.info(f"Stopped scheduling dispatcher loop for provider: {provider}")
-
-
-_dispatcher_tasks: list[asyncio.Task] = []
-_stop_event: asyncio.Event | None = None
+    logger.info("Stopped DB-polling scheduling dispatcher loop.")
 
 
-async def start_dispatchers(broker: RedisBroker) -> None:
-    """Start scheduling dispatchers for all registered parser providers."""
-    global _dispatcher_tasks, _stop_event
-
-    from rag_core.adapters.parser.providers import register_default_parsers
-    from rag_core.adapters.parser.registry import ParserRegistry
-
-    register_default_parsers()
-    providers = ParserRegistry.list_parsers()  # e.g., ["docling", "native_text"]
-
+async def start_dispatchers(broker: Any) -> None:
+    """Start scheduling dispatchers."""
+    global _dispatcher_task, _stop_event, _dispatcher_id
     _stop_event = asyncio.Event()
-    _dispatcher_tasks = []
-
-    for provider in providers:
-        task = asyncio.create_task(
-            dispatcher_loop(provider, broker, _stop_event),
-            name=f"dispatcher_{provider}",
-        )
-        _dispatcher_tasks.append(task)
+    _dispatcher_id = str(uuid4())  # Unique ID for this process's dispatcher
+    _dispatcher_task = asyncio.create_task(
+        dispatcher_loop(broker, _stop_event, _dispatcher_id),
+        name="dispatcher_loop",
+    )
 
 
 async def stop_dispatchers() -> None:
-    """Stop all running scheduling dispatcher tasks gracefully and close connection pool."""
-    global _dispatcher_tasks, _stop_event
+    """Stop all running scheduling dispatcher tasks gracefully."""
+    global _dispatcher_task, _stop_event
     if _stop_event:
         _stop_event.set()
-    if _dispatcher_tasks:
-        logger.info("Stopping scheduling dispatcher loops...")
-        for task in _dispatcher_tasks:
-            task.cancel()
-        await asyncio.gather(*_dispatcher_tasks, return_exceptions=True)
-        _dispatcher_tasks = []
+    if _dispatcher_task:
+        logger.info("Stopping scheduling dispatcher loop...")
+        _dispatcher_task.cancel()
+        await asyncio.gather(_dispatcher_task, return_exceptions=True)
+        _dispatcher_task = None
         logger.info("All scheduling dispatcher loops stopped.")
 
     # Close connection pool

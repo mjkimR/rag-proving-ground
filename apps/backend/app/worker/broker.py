@@ -1,12 +1,19 @@
-"""FastStream Redis broker singleton."""
+"""Taskiq Redis broker configuration."""
 
-from faststream.redis import RedisBroker
 from rag_core.config import get_redis_settings
+from taskiq_redis import ListQueueBroker, RedisAsyncResultBackend
 
+settings = get_redis_settings()
 
-def create_broker() -> RedisBroker:
-    settings = get_redis_settings()
-    return RedisBroker(url=settings.url)
+# Configure Result Backend with 2-hour TTL (7200 seconds) to prevent memory leak
+result_backend = RedisAsyncResultBackend(
+    redis_url=settings.url,
+    keep_results=True,
+    result_ex_time=7200,
+)
 
-
-broker = create_broker()
+# Configure Redis List Broker
+broker = ListQueueBroker(
+    url=settings.url,
+    result_backend=result_backend,
+)

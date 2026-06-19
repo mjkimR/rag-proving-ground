@@ -16,6 +16,7 @@ class KnowledgeBaseDocument(Base, UUIDMixin, TimestampMixin):
     name: Mapped[str] = mapped_column()
     knowledge_base_id: Mapped[UUID] = mapped_column(ForeignKey("knowledge_bases.id", ondelete="CASCADE"))
     status: Mapped[str] = mapped_column(default="READY")
+    priority: Mapped[str] = mapped_column(default="medium")
     file_hash: Mapped[str] = mapped_column()
     document_info: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
     parsing_config: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)

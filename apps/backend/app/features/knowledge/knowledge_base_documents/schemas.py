@@ -21,6 +21,14 @@ class KnowledgeBaseDocumentStatus(StrEnum):
     DELETING = "DELETING"
 
 
+class TaskPriority(StrEnum):
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    LOWEST = "lowest"
+
+
 class KnowledgeBaseDocumentReprocessMode(StrEnum):
     AUTO = "AUTO"
     REPARSE = "REPARSE"
@@ -40,6 +48,9 @@ class KnowledgeBaseDocumentBase(BaseModel):
     knowledge_base_id: UUID = Field(description="The ID of the parent knowledge base.")
     status: KnowledgeBaseDocumentStatus = Field(
         default=KnowledgeBaseDocumentStatus.READY, description="The status of document processing."
+    )
+    priority: TaskPriority = Field(
+        default=TaskPriority.MEDIUM, description="The processing priority/queue of the document."
     )
     file_hash: str = Field(description="The SHA-256 hash of the file content.")
     document_info: dict | None = Field(default=None, description="File size, path, element count metadata.")
@@ -79,6 +90,7 @@ class ParseDocumentMessage(BaseModel):
     filename: str
     content_type: str | None = None
     provider: str | None = None
+    priority: TaskPriority = TaskPriority.MEDIUM
 
 
 # Alias for compatibility
@@ -91,6 +103,7 @@ class ChunkDocumentMessage(BaseModel):
     document_id: UUID
     knowledge_base_id: UUID
     filename: str
+    priority: TaskPriority = TaskPriority.MEDIUM
 
 
 class EmbedDocumentMessage(BaseModel):
@@ -99,6 +112,7 @@ class EmbedDocumentMessage(BaseModel):
     document_id: UUID
     knowledge_base_id: UUID
     filename: str
+    priority: TaskPriority = TaskPriority.MEDIUM
 
 
 class ReprocessDocumentMessage(BaseModel):

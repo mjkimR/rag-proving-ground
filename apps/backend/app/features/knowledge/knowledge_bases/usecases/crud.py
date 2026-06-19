@@ -8,7 +8,7 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     ChunkDocumentMessage,
     EmbedDocumentMessage,
     KnowledgeBaseDocumentStatus,
-    ParseDocumentMessage,
+    TaskPriority,
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_base_documents.usecases.crud import (
@@ -25,7 +25,6 @@ from app.features.knowledge.knowledge_bases.schemas import (
 )
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseContextKwargs, KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
-from app.worker.broker import broker
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.base.usecases.crud import (
@@ -261,6 +260,7 @@ class ReprocessDocumentInfo:
     file_hash: str
     name: str
     content_type: str | None
+    priority: TaskPriority = TaskPriority.LOW
 
 
 async def _update_knowledge_base_with_document_transitions(
@@ -316,6 +316,7 @@ async def _update_knowledge_base_with_document_transitions(
             file_hash=doc.file_hash,
             name=doc.name,
             content_type=doc.document_info.get("content_type") if doc.document_info else None,
+            priority=TaskPriority(doc.priority),
         )
         for doc in updated_docs
     ]
@@ -328,39 +329,34 @@ async def _trigger_documents_reprocessing(
     target_status: KnowledgeBaseDocumentStatus,
 ) -> None:
     logger.info(f"Triggering reprocessing for {len(docs)} document(s) with target status {target_status}")
+    from app.worker.handlers.ingest import handle_chunk, handle_embed
+
     for doc in docs:
         try:
             if target_status == KnowledgeBaseDocumentStatus.PENDING_REPARSE:
-                logger.info(f"Publishing document.parse message for document {doc.id} (REPARSE)")
-                await broker.publish(
-                    ParseDocumentMessage(
-                        document_id=doc.id,
-                        knowledge_base_id=doc.knowledge_base_id,
-                        file_hash=doc.file_hash,
-                        filename=doc.name,
-                        content_type=doc.content_type,
-                    ),
-                    "document.parse",
-                )
+                # DB polling scheduler will automatically pick up the PENDING_REPARSE document.
+                logger.info(f"Document {doc.id} marked as PENDING_REPARSE. Will be picked up by DB-polling dispatcher.")
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_RECHUNK:
-                logger.info(f"Publishing document.chunk message for document {doc.id} (RECHUNK)")
-                await broker.publish(
+                logger.info(f"Dispatching chunk task for document {doc.id} (RECHUNK)")
+                kicker = handle_chunk.kicker().with_labels(queue_name=doc.priority)
+                await kicker.kiq(
                     ChunkDocumentMessage(
                         document_id=doc.id,
                         knowledge_base_id=doc.knowledge_base_id,
                         filename=doc.name,
-                    ),
-                    "document.chunk",
+                        priority=doc.priority,
+                    )
                 )
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_REEMBED:
-                logger.info(f"Publishing document.embed message for document {doc.id} (REEMBED)")
-                await broker.publish(
+                logger.info(f"Dispatching embed task for document {doc.id} (REEMBED)")
+                kicker = handle_embed.kicker().with_labels(queue_name=doc.priority)
+                await kicker.kiq(
                     EmbedDocumentMessage(
                         document_id=doc.id,
                         knowledge_base_id=doc.knowledge_base_id,
                         filename=doc.name,
-                    ),
-                    "document.embed",
+                        priority=doc.priority,
+                    )
                 )
         except Exception as exc:
             logger.error(f"Failed to publish reprocess/ingest message for document {doc.id}: {exc}")

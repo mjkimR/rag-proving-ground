@@ -7,7 +7,7 @@ from app.features.knowledge.knowledge_base_documents.facade.pipeline import know
 from app.features.knowledge.knowledge_base_documents.schemas import (
     KnowledgeBaseDocumentCreate,
     KnowledgeBaseDocumentStatus,
-    ParseDocumentMessage,
+    TaskPriority,
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
@@ -40,6 +40,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
         knowledge_base_id: UUID,
         file: UploadFile,
         provider: str | None = None,
+        priority: TaskPriority = TaskPriority.LOW,
     ) -> dict:
         """Validate, upload to MinIO, and queue a document ingestion task, tracking state transitions."""
         # 1. Input validation & sanitization
@@ -67,8 +68,6 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
 
         file_hash = file_content_hash(content)
 
-        default_parsing_config = None
-
         # 2. Database record setup (First Transaction: Initialize/Get Document)
         async with AsyncTransaction() as session:
             kb = await self.kb_service.repo.get_by_pk(session, knowledge_base_id)
@@ -77,7 +76,6 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Knowledge base with ID '{knowledge_base_id}' not found.",
                 )
-            default_parsing_config = kb.default_parsing_config
 
             # Check if document already exists
             existing_docs = await self.doc_service.repo.get_all(
@@ -91,6 +89,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
             if existing_docs:
                 doc = existing_docs[0]
                 doc.status = KnowledgeBaseDocumentStatus.QUEUED
+                doc.priority = priority
                 doc.name = filename
                 doc_info = dict(doc.document_info or {})
                 doc_info.update(
@@ -107,6 +106,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                     name=filename,
                     knowledge_base_id=knowledge_base_id,
                     status=KnowledgeBaseDocumentStatus.QUEUED,
+                    priority=priority,
                     file_hash=file_hash,
                     document_info={
                         "filename": filename,
@@ -132,36 +132,14 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                 detail=f"Failed to save document to storage: {exc}",
             ) from exc
 
-        # 4. Enqueue parse message to Redis scheduling queue
-        try:
-            logger.info(f"Queueing document.parse message for document {doc_id}")
-            from rag_core.parsers import resolve_knowledge_parsing_config
-
-            resolved_config = resolve_knowledge_parsing_config(default_parsing_config, provider_override=provider)
-            resolved_provider = resolved_config.get_provider_for_filename(filename)
-
-            msg = ParseDocumentMessage(
-                document_id=doc_id,
-                knowledge_base_id=knowledge_base_id,
-                file_hash=file_hash,
-                filename=filename,
-                content_type=file.content_type,
-                provider=resolved_provider,
-            )
-
-            from app.worker.scheduling import enqueue_parse_document_message
-
-            await enqueue_parse_document_message(knowledge_base_id, msg, resolved_provider)
-        except Exception as exc:
-            logger.warning(f"Failed to enqueue ingest message for doc {doc_id}: {exc}")
-
-        # 5. Return immediate response
+        # 4. Return immediate response (Staging dispatcher will pick it up from DB)
         async with AsyncTransaction() as session:
             final_doc = await self.doc_service.repo.get_by_pk(session, doc_id)
             doc_data = {
                 "id": str(final_doc.id) if final_doc else str(doc_id),
                 "name": final_doc.name if final_doc else filename,
                 "status": final_doc.status if final_doc else KnowledgeBaseDocumentStatus.QUEUED,
+                "priority": final_doc.priority if final_doc else priority,
                 "file_hash": file_hash,
                 "document_info": final_doc.document_info if final_doc else {},
                 "parsing_config": final_doc.parsing_config if final_doc else None,

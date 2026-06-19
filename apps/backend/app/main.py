@@ -158,9 +158,9 @@ def get_lifespan():
 
             # Seed and populate registry caches on boot
             await init_db_and_seed_models_parsers()
-            await broker.connect()
+            await broker.startup()
             yield
-            await broker.stop()
+            await broker.shutdown()
         logger.info("End of app lifespan")
 
     return lifespan

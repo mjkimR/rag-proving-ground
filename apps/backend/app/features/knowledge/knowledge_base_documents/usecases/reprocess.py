@@ -6,12 +6,11 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     EmbedDocumentMessage,
     KnowledgeBaseDocumentReprocessMode,
     KnowledgeBaseDocumentStatus,
-    ParseDocumentMessage,
+    TaskPriority,
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
-from app.worker.broker import broker
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
@@ -59,13 +58,8 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
 
             # Save values to local variables for safe publishing outside transaction
             knowledge_base_id = doc.knowledge_base_id
-            file_hash = doc.file_hash
             filename = doc.name
-            content_type = doc.document_info.get("content_type") if doc.document_info else None
-
-            # Save config for resolving provider outside transaction
-            doc_parsing_config = doc.parsing_config
-            kb_default_parsing_config = kb.default_parsing_config
+            doc_priority = TaskPriority(doc.priority)
 
             # Update status to QUEUED to signify processing is requested
             doc.status = KnowledgeBaseDocumentStatus.QUEUED
@@ -75,42 +69,33 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
         try:
             logger.info(f"Publishing reprocessing message for document {document_id} with mode {reprocess_mode}")
             if reprocess_mode == KnowledgeBaseDocumentReprocessMode.REPARSE:
-                from rag_core.parsers import resolve_knowledge_parsing_config
-
-                resolved_config = resolve_knowledge_parsing_config(
-                    doc_parsing_config if doc_parsing_config is not None else kb_default_parsing_config
+                # DB polling scheduler will automatically pick up the QUEUED document.
+                logger.info(
+                    f"Document {document_id} marked as QUEUED for REPARSE. Will be picked up by DB-polling dispatcher."
                 )
-                resolved_provider = resolved_config.get_provider_for_filename(filename)
-
-                msg = ParseDocumentMessage(
-                    document_id=document_id,
-                    knowledge_base_id=knowledge_base_id,
-                    file_hash=file_hash,
-                    filename=filename,
-                    content_type=content_type,
-                    provider=resolved_provider,
-                )
-
-                from app.worker.scheduling import enqueue_parse_document_message
-
-                await enqueue_parse_document_message(knowledge_base_id, msg, resolved_provider)
             elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.RECHUNK:
-                await broker.publish(
+                from app.worker.handlers.ingest import handle_chunk
+
+                kicker = handle_chunk.kicker().with_labels(queue_name=doc_priority)
+                await kicker.kiq(
                     ChunkDocumentMessage(
                         document_id=document_id,
                         knowledge_base_id=knowledge_base_id,
                         filename=filename,
-                    ),
-                    "document.chunk",
+                        priority=doc_priority,
+                    )
                 )
             elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.REEMBED:
-                await broker.publish(
+                from app.worker.handlers.ingest import handle_embed
+
+                kicker = handle_embed.kicker().with_labels(queue_name=doc_priority)
+                await kicker.kiq(
                     EmbedDocumentMessage(
                         document_id=document_id,
                         knowledge_base_id=knowledge_base_id,
                         filename=filename,
-                    ),
-                    "document.embed",
+                        priority=doc_priority,
+                    )
                 )
         except Exception as exc:
             logger.warning(f"Failed to publish reprocess message for doc {document_id}: {exc}")

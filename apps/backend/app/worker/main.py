@@ -1,7 +1,8 @@
-"""FastStream worker application entry point."""
+"""Taskiq worker application entry point."""
 
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack
 from pathlib import Path
+from typing import cast
 
 # Load .env (same pattern as main.py)
 try:
@@ -19,21 +20,17 @@ except ImportError:
     pass
 
 
-from typing import cast
-
+# Import tasks to ensure they are registered on the broker
+import app.worker.handlers.ingest  # noqa: F401
 from app.worker.broker import broker
-from app.worker.handlers.ingest import (
-    register_dynamic_parser_subscribers,
-)
-from app.worker.handlers.ingest import router as ingest_router
 from app.worker.recovery import recover_stuck_documents
 from app.worker.scheduling import start_dispatchers, stop_dispatchers
 from app_file_storage import lifespan_file_storage
 from app_http_client import lifespan_http_client
 from fastapi import FastAPI
-from faststream import FastStream
 from loguru import logger
 from rag_core.adapters.vector_store import lifespan_vector_store
+from taskiq import TaskiqEvents, TaskiqState
 
 
 class StateDummy:
@@ -50,30 +47,38 @@ class AppWrapper:
 wrapper = AppWrapper()
 
 
-@asynccontextmanager
-async def lifespan():
-    """Worker lifespan: initialize shared resources and run recovery."""
+@broker.on_event(TaskiqEvents.WORKER_STARTUP)
+async def startup(state: TaskiqState) -> None:
+    """Initialize resources, run recovery, and start DB-polling scheduling dispatchers."""
     logger.info("Worker starting up...")
 
-    async with (
-        lifespan_http_client(cast(FastAPI, wrapper)),
-        lifespan_file_storage(cast(FastAPI, wrapper)),
-        lifespan_vector_store(cast(FastAPI, wrapper)),
-    ):
-        # Recovery: stuck documents in QUEUED status
-        await recover_stuck_documents(broker)
-        # Start scheduling dispatchers for fair queueing
-        await start_dispatchers(broker)
-        yield
-        # Stop scheduling dispatchers gracefully
-        await stop_dispatchers()
+    stack = AsyncExitStack()
+    state.exit_stack = stack
 
+    # Enter client lifespans
+    await stack.enter_async_context(lifespan_http_client(cast(FastAPI, wrapper)))
+    await stack.enter_async_context(lifespan_file_storage(cast(FastAPI, wrapper)))
+    await stack.enter_async_context(lifespan_vector_store(cast(FastAPI, wrapper)))
+
+    # Recovery: stuck documents
+    await recover_stuck_documents(broker)
+
+    # Start scheduling dispatchers
+    await start_dispatchers(broker)
+
+    logger.info("Worker startup complete.")
+
+
+@broker.on_event(TaskiqEvents.WORKER_SHUTDOWN)
+async def shutdown(state: TaskiqState) -> None:
+    """Gracefully stop scheduling dispatchers and close resources."""
     logger.info("Worker shutting down...")
 
+    # Stop scheduling dispatchers
+    await stop_dispatchers()
 
-# Dynamically register subscribers for active parser providers before router include
-register_dynamic_parser_subscribers()
+    # Close client lifespans
+    if hasattr(state, "exit_stack"):
+        await state.exit_stack.aclose()
 
-broker.include_router(ingest_router)
-
-app = FastStream(broker, lifespan=lifespan)
+    logger.info("Worker shutdown complete.")
