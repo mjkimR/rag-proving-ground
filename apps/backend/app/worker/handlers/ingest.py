@@ -142,7 +142,9 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
 
         # 4. Chain: Dispatch to handle_chunk
         logger.info(f"Worker completed parse stage. Dispatching chunk task for {msg.document_id}")
-        kicker = handle_chunk.kicker().with_labels(queue_name=msg.priority)
+        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+
+        kicker = handle_chunk.kicker().with_labels(queue_name=get_queue_name(msg.priority))
         await kicker.kiq(
             ChunkDocumentMessage(
                 document_id=msg.document_id,
@@ -236,7 +238,9 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
 
         # 4. Chain: Dispatch to handle_embed
         logger.info(f"Worker completed chunk stage. Dispatching embed task for {msg.document_id}")
-        kicker = handle_embed.kicker().with_labels(queue_name=msg.priority)
+        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+
+        kicker = handle_embed.kicker().with_labels(queue_name=get_queue_name(msg.priority))
         await kicker.kiq(
             EmbedDocumentMessage(
                 document_id=msg.document_id,

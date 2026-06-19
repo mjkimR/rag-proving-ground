@@ -338,7 +338,9 @@ async def _trigger_documents_reprocessing(
                 logger.info(f"Document {doc.id} marked as PENDING_REPARSE. Will be picked up by DB-polling dispatcher.")
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_RECHUNK:
                 logger.info(f"Dispatching chunk task for document {doc.id} (RECHUNK)")
-                kicker = handle_chunk.kicker().with_labels(queue_name=doc.priority)
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+
+                kicker = handle_chunk.kicker().with_labels(queue_name=get_queue_name(doc.priority))
                 await kicker.kiq(
                     ChunkDocumentMessage(
                         document_id=doc.id,
@@ -349,7 +351,9 @@ async def _trigger_documents_reprocessing(
                 )
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_REEMBED:
                 logger.info(f"Dispatching embed task for document {doc.id} (REEMBED)")
-                kicker = handle_embed.kicker().with_labels(queue_name=doc.priority)
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+
+                kicker = handle_embed.kicker().with_labels(queue_name=get_queue_name(doc.priority))
                 await kicker.kiq(
                     EmbedDocumentMessage(
                         document_id=doc.id,

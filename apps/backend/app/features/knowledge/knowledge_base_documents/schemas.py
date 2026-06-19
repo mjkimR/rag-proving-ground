@@ -120,3 +120,9 @@ class ReprocessDocumentMessage(BaseModel):
 
     document_id: UUID
     mode: KnowledgeBaseDocumentReprocessMode = KnowledgeBaseDocumentReprocessMode.AUTO
+
+
+def get_queue_name(priority: str | TaskPriority) -> str:
+    """Prepend 'kb_ingest:' prefix to avoid Redis queue namespace collisions."""
+    p_val = priority.value if isinstance(priority, TaskPriority) else priority
+    return f"kb_ingest:{p_val}"

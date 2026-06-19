@@ -74,9 +74,10 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
                     f"Document {document_id} marked as QUEUED for REPARSE. Will be picked up by DB-polling dispatcher."
                 )
             elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.RECHUNK:
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
                 from app.worker.handlers.ingest import handle_chunk
 
-                kicker = handle_chunk.kicker().with_labels(queue_name=doc_priority)
+                kicker = handle_chunk.kicker().with_labels(queue_name=get_queue_name(doc_priority))
                 await kicker.kiq(
                     ChunkDocumentMessage(
                         document_id=document_id,
@@ -86,9 +87,10 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
                     )
                 )
             elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.REEMBED:
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
                 from app.worker.handlers.ingest import handle_embed
 
-                kicker = handle_embed.kicker().with_labels(queue_name=doc_priority)
+                kicker = handle_embed.kicker().with_labels(queue_name=get_queue_name(doc_priority))
                 await kicker.kiq(
                     EmbedDocumentMessage(
                         document_id=document_id,

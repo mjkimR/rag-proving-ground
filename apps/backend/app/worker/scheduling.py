@@ -51,6 +51,7 @@ async def dispatcher_loop(
     """
     logger.info(f"Starting DB-polling scheduling dispatcher loop (ID: {dispatcher_id})...")
     from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
+    from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
     from app.features.knowledge.knowledge_bases.models import KnowledgeBase
     from app.worker.handlers.ingest import handle_parse
     from app_layer_base.core.database.transaction import AsyncTransaction
@@ -89,7 +90,8 @@ async def dispatcher_loop(
             # 2. Check the total number of waiting tasks in Redis priority queues
             total_waiting = 0
             for queue in ["critical", "high", "medium", "low", "lowest"]:
-                total_waiting += await cast(Any, redis_client.llen(queue))
+                physical_queue = get_queue_name(queue)
+                total_waiting += await cast(Any, redis_client.llen(physical_queue))
 
             if total_waiting > DISPATCH_TRIGGER_LIMIT:
                 # Taskiq queues have enough buffer tasks, wait and check again using progressive backoff
@@ -190,7 +192,7 @@ async def dispatcher_loop(
                     logger.info(
                         f"Dispatching parse task for document {d['document_id']} (priority: {d['priority']}, provider: {d['provider']})"
                     )
-                    kicker = handle_parse.kicker().with_labels(queue_name=d["priority"])
+                    kicker = handle_parse.kicker().with_labels(queue_name=get_queue_name(d["priority"]))
                     await kicker.kiq(msg)
                     dispatched_ids.append(d["document_id"])
             except Exception as exc:

@@ -105,9 +105,9 @@ async def test_dispatcher_loop_schedules_round_robin(session, mocker):
     # Verify that kicker was called with the priority label
     with_labels_calls = mock_kicker.with_labels.call_args_list
     labels_passed = [c.kwargs.get("queue_name") for c in with_labels_calls]
-    assert "high" in labels_passed
-    assert "medium" in labels_passed
-    assert "low" not in labels_passed
+    assert "kb_ingest:high" in labels_passed
+    assert "kb_ingest:medium" in labels_passed
+    assert "kb_ingest:low" not in labels_passed
 
     # Verify that kiq was called with correct message payloads
     kiq_calls = mock_kicker.kiq.call_args_list
