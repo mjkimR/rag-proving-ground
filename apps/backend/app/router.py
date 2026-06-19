@@ -1,12 +1,13 @@
-from app.features.doc_parse.api.v1 import router as v1_doc_parse_router
 from app.features.history.job_process_histories.api.v1 import router as v1_job_process_histories_router
 from app.features.knowledge.knowledge_base_documents.api.v1 import router as v1_knowledge_base_documents_router
 from app.features.knowledge.knowledge_base_pages.api.v1 import router as v1_knowledge_base_pages_router
 from app.features.knowledge.knowledge_bases.api.v1 import router as v1_knowledge_bases_router
 from app.features.knowledge.synonyms.api.v1 import router as v1_synonyms_router
+from app.features.playground.doc_parse.api.v1 import router as v1_doc_parse_router
 from app.features.providers.ai_models.api.v1 import router as v1_ai_models_router
 from app.features.providers.document_parsers.api.v1 import router as v1_document_parsers_router
 from app.features.providers.routes.api.v1 import router as v1_providers_router
+from app.features.storage.file_attachments.api.v1 import router as v1_file_attachments_router
 from fastapi import APIRouter, status
 from rag_core.adapters.vector_store import check_vector_store_health
 
@@ -33,4 +34,5 @@ v1_router.include_router(v1_knowledge_base_pages_router)
 v1_router.include_router(v1_document_parsers_router)
 v1_router.include_router(v1_ai_models_router)
 v1_router.include_router(v1_synonyms_router)
+v1_router.include_router(v1_file_attachments_router)
 router.include_router(v1_router)

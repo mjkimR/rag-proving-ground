@@ -285,6 +285,16 @@ export type BodyDocumentParseApiV1DocParseParsePost = {
 };
 
 /**
+ * Body_upload_file_attachment_api_v1_file_attachments_upload_post
+ */
+export type BodyUploadFileAttachmentApiV1FileAttachmentsUploadPost = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * Body_upload_knowledge_base_document_api_v1_knowledge_bases__knowledge_base_id__upload_post
  */
 export type BodyUploadKnowledgeBaseDocumentApiV1KnowledgeBasesKnowledgeBaseIdUploadPost = {
@@ -609,6 +619,156 @@ export type ElementType = 'heading' | 'paragraph' | 'list' | 'list_item' | 'tabl
  * Supported vector distance metrics for knowledge embeddings.
  */
 export type EmbeddingDistanceMetric = 'cosine' | 'dot' | 'euclid';
+
+/**
+ * FileAttachmentCreate
+ */
+export type FileAttachmentCreate = {
+    /**
+     * Sha256
+     *
+     * The SHA-256 hash of the file content.
+     */
+    sha256: string;
+    /**
+     * Filename
+     *
+     * The original filename of the uploaded file.
+     */
+    filename: string;
+    /**
+     * Mime Type
+     *
+     * The MIME type of the file.
+     */
+    mime_type: string;
+    /**
+     * Size Bytes
+     *
+     * The size of the file in bytes.
+     */
+    size_bytes: number;
+    /**
+     * Storage Path
+     *
+     * The storage path of the raw file.
+     */
+    storage_path: string;
+};
+
+/**
+ * FileAttachmentPatch
+ */
+export type FileAttachmentPatch = {
+    /**
+     * Filename
+     *
+     * The original filename of the uploaded file.
+     */
+    filename?: string | null;
+    /**
+     * Mime Type
+     *
+     * The MIME type of the file.
+     */
+    mime_type?: string | null;
+    /**
+     * Size Bytes
+     *
+     * The size of the file in bytes.
+     */
+    size_bytes?: number | null;
+    /**
+     * Storage Path
+     *
+     * The storage path of the raw file.
+     */
+    storage_path?: string | null;
+};
+
+/**
+ * FileAttachmentPut
+ */
+export type FileAttachmentPut = {
+    /**
+     * Sha256
+     *
+     * The SHA-256 hash of the file content.
+     */
+    sha256: string;
+    /**
+     * Filename
+     *
+     * The original filename of the uploaded file.
+     */
+    filename: string;
+    /**
+     * Mime Type
+     *
+     * The MIME type of the file.
+     */
+    mime_type: string;
+    /**
+     * Size Bytes
+     *
+     * The size of the file in bytes.
+     */
+    size_bytes: number;
+    /**
+     * Storage Path
+     *
+     * The storage path of the raw file.
+     */
+    storage_path: string;
+};
+
+/**
+ * FileAttachmentRead
+ */
+export type FileAttachmentRead = {
+    /**
+     * Sha256
+     *
+     * The SHA-256 hash of the file content.
+     */
+    sha256: string;
+    /**
+     * Filename
+     *
+     * The original filename of the uploaded file.
+     */
+    filename: string;
+    /**
+     * Mime Type
+     *
+     * The MIME type of the file.
+     */
+    mime_type: string;
+    /**
+     * Size Bytes
+     *
+     * The size of the file in bytes.
+     */
+    size_bytes: number;
+    /**
+     * Storage Path
+     *
+     * The storage path of the raw file.
+     */
+    storage_path: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
 
 /**
  * HTTPValidationError
@@ -1478,6 +1638,38 @@ export type PaginatedListDocumentParserRead = {
 };
 
 /**
+ * PaginatedList[FileAttachmentRead]
+ */
+export type PaginatedListFileAttachmentRead = {
+    /**
+     * Items
+     */
+    items: Array<FileAttachmentRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
  * PaginatedList[JobProcessHistoryRead]
  */
 export type PaginatedListJobProcessHistoryRead = {
@@ -1581,6 +1773,38 @@ export type PaginatedListKnowledgeBaseRead = {
      * Items
      */
     items: Array<KnowledgeBaseRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+    /**
+     * Last
+     *
+     * Check if the current page is the last page
+     */
+    readonly last: boolean | null;
+    /**
+     * First
+     */
+    readonly first: boolean;
+};
+
+/**
+ * PaginatedList[SessionFileAttachmentRead]
+ */
+export type PaginatedListSessionFileAttachmentRead = {
+    /**
+     * Items
+     */
+    items: Array<SessionFileAttachmentRead>;
     /**
      * Total Count
      */
@@ -1911,6 +2135,200 @@ export type RerankerConfig = {
 export type RetrievalMode = 'dense' | 'sparse' | 'hybrid';
 
 /**
+ * SessionFileAttachmentCreate
+ */
+export type SessionFileAttachmentCreate = {
+    /**
+     * Thread Id
+     *
+     * The Aegra (LangGraph) session or thread ID.
+     */
+    thread_id: string;
+    /**
+     * File Attachment Id
+     *
+     * The associated FileAttachment ID.
+     */
+    file_attachment_id: string;
+    /**
+     * Purpose
+     *
+     * The purpose of the attachment (e.g. temp_kb, vision, audio).
+     */
+    purpose: string;
+    /**
+     * Status
+     *
+     * The processing status of the attachment.
+     */
+    status?: string;
+    /**
+     * Task Id
+     *
+     * The task ID associated with processing.
+     */
+    task_id?: string | null;
+    /**
+     * Error Message
+     *
+     * Detailed error log if task failed.
+     */
+    error_message?: string | null;
+    /**
+     * Processed Metadata
+     *
+     * Structured processing result metadata.
+     */
+    processed_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * SessionFileAttachmentPatch
+ */
+export type SessionFileAttachmentPatch = {
+    /**
+     * Status
+     *
+     * The processing status of the attachment.
+     */
+    status?: string | null;
+    /**
+     * Task Id
+     *
+     * The task ID associated with processing.
+     */
+    task_id?: string | null;
+    /**
+     * Error Message
+     *
+     * Detailed error log if task failed.
+     */
+    error_message?: string | null;
+    /**
+     * Processed Metadata
+     *
+     * Structured processing result metadata.
+     */
+    processed_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * SessionFileAttachmentPut
+ */
+export type SessionFileAttachmentPut = {
+    /**
+     * Thread Id
+     *
+     * The Aegra (LangGraph) session or thread ID.
+     */
+    thread_id: string;
+    /**
+     * File Attachment Id
+     *
+     * The associated FileAttachment ID.
+     */
+    file_attachment_id: string;
+    /**
+     * Purpose
+     *
+     * The purpose of the attachment (e.g. temp_kb, vision, audio).
+     */
+    purpose: string;
+    /**
+     * Status
+     *
+     * The processing status of the attachment.
+     */
+    status?: string;
+    /**
+     * Task Id
+     *
+     * The task ID associated with processing.
+     */
+    task_id?: string | null;
+    /**
+     * Error Message
+     *
+     * Detailed error log if task failed.
+     */
+    error_message?: string | null;
+    /**
+     * Processed Metadata
+     *
+     * Structured processing result metadata.
+     */
+    processed_metadata?: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * SessionFileAttachmentRead
+ */
+export type SessionFileAttachmentRead = {
+    /**
+     * Thread Id
+     *
+     * The Aegra (LangGraph) session or thread ID.
+     */
+    thread_id: string;
+    /**
+     * File Attachment Id
+     *
+     * The associated FileAttachment ID.
+     */
+    file_attachment_id: string;
+    /**
+     * Purpose
+     *
+     * The purpose of the attachment (e.g. temp_kb, vision, audio).
+     */
+    purpose: string;
+    /**
+     * Status
+     *
+     * The processing status of the attachment.
+     */
+    status?: string;
+    /**
+     * Task Id
+     *
+     * The task ID associated with processing.
+     */
+    task_id?: string | null;
+    /**
+     * Error Message
+     *
+     * Detailed error log if task failed.
+     */
+    error_message?: string | null;
+    /**
+     * Processed Metadata
+     *
+     * Structured processing result metadata.
+     */
+    processed_metadata?: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Id
+     */
+    id: string;
+};
+
+/**
  * SynonymMapCreate
  */
 export type SynonymMapCreate = {
@@ -2144,6 +2562,28 @@ export type PaginatedListDocumentParserReadWritable = {
 };
 
 /**
+ * PaginatedList[FileAttachmentRead]
+ */
+export type PaginatedListFileAttachmentReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<FileAttachmentRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
  * PaginatedList[JobProcessHistoryRead]
  */
 export type PaginatedListJobProcessHistoryReadWritable = {
@@ -2217,6 +2657,28 @@ export type PaginatedListKnowledgeBaseReadWritable = {
      * Items
      */
     items: Array<KnowledgeBaseRead>;
+    /**
+     * Total Count
+     */
+    total_count?: number | null;
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number | null;
+};
+
+/**
+ * PaginatedList[SessionFileAttachmentRead]
+ */
+export type PaginatedListSessionFileAttachmentReadWritable = {
+    /**
+     * Items
+     */
+    items: Array<SessionFileAttachmentRead>;
     /**
      * Total Count
      */
@@ -3971,3 +4433,424 @@ export type PutSynonymMapApiV1SynonymsSynonymIdPutResponses = {
 };
 
 export type PutSynonymMapApiV1SynonymsSynonymIdPutResponse = PutSynonymMapApiV1SynonymsSynonymIdPutResponses[keyof PutSynonymMapApiV1SynonymsSynonymIdPutResponses];
+
+export type UploadFileAttachmentApiV1FileAttachmentsUploadPostData = {
+    body: BodyUploadFileAttachmentApiV1FileAttachmentsUploadPost;
+    path?: never;
+    query?: never;
+    url: '/api/v1/file_attachments/upload';
+};
+
+export type UploadFileAttachmentApiV1FileAttachmentsUploadPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UploadFileAttachmentApiV1FileAttachmentsUploadPostError = UploadFileAttachmentApiV1FileAttachmentsUploadPostErrors[keyof UploadFileAttachmentApiV1FileAttachmentsUploadPostErrors];
+
+export type UploadFileAttachmentApiV1FileAttachmentsUploadPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: FileAttachmentRead;
+};
+
+export type UploadFileAttachmentApiV1FileAttachmentsUploadPostResponse = UploadFileAttachmentApiV1FileAttachmentsUploadPostResponses[keyof UploadFileAttachmentApiV1FileAttachmentsUploadPostResponses];
+
+export type BindFileToSessionApiV1SessionsThreadIdFilesPostData = {
+    body: SessionFileAttachmentCreate;
+    path: {
+        /**
+         * Thread Id
+         */
+        thread_id: string;
+    };
+    query?: never;
+    url: '/api/v1/sessions/{thread_id}/files';
+};
+
+export type BindFileToSessionApiV1SessionsThreadIdFilesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BindFileToSessionApiV1SessionsThreadIdFilesPostError = BindFileToSessionApiV1SessionsThreadIdFilesPostErrors[keyof BindFileToSessionApiV1SessionsThreadIdFilesPostErrors];
+
+export type BindFileToSessionApiV1SessionsThreadIdFilesPostResponses = {
+    /**
+     * Successful Response
+     */
+    202: SessionFileAttachmentRead;
+};
+
+export type BindFileToSessionApiV1SessionsThreadIdFilesPostResponse = BindFileToSessionApiV1SessionsThreadIdFilesPostResponses[keyof BindFileToSessionApiV1SessionsThreadIdFilesPostResponses];
+
+export type GetFileAttachmentsApiV1FileAttachmentsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/file_attachments';
+};
+
+export type GetFileAttachmentsApiV1FileAttachmentsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetFileAttachmentsApiV1FileAttachmentsGetError = GetFileAttachmentsApiV1FileAttachmentsGetErrors[keyof GetFileAttachmentsApiV1FileAttachmentsGetErrors];
+
+export type GetFileAttachmentsApiV1FileAttachmentsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListFileAttachmentRead;
+};
+
+export type GetFileAttachmentsApiV1FileAttachmentsGetResponse = GetFileAttachmentsApiV1FileAttachmentsGetResponses[keyof GetFileAttachmentsApiV1FileAttachmentsGetResponses];
+
+export type CreateFileAttachmentApiV1FileAttachmentsPostData = {
+    body: FileAttachmentCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/file_attachments';
+};
+
+export type CreateFileAttachmentApiV1FileAttachmentsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateFileAttachmentApiV1FileAttachmentsPostError = CreateFileAttachmentApiV1FileAttachmentsPostErrors[keyof CreateFileAttachmentApiV1FileAttachmentsPostErrors];
+
+export type CreateFileAttachmentApiV1FileAttachmentsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: FileAttachmentRead;
+};
+
+export type CreateFileAttachmentApiV1FileAttachmentsPostResponse = CreateFileAttachmentApiV1FileAttachmentsPostResponses[keyof CreateFileAttachmentApiV1FileAttachmentsPostResponses];
+
+export type DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * File Attachment Id
+         */
+        file_attachment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/file_attachments/{file_attachment_id}';
+};
+
+export type DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteError = DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteErrors[keyof DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteErrors];
+
+export type DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteResponse = DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteResponses[keyof DeleteFileAttachmentApiV1FileAttachmentsFileAttachmentIdDeleteResponses];
+
+export type GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * File Attachment Id
+         */
+        file_attachment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/file_attachments/{file_attachment_id}';
+};
+
+export type GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetError = GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetErrors[keyof GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetErrors];
+
+export type GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: FileAttachmentRead;
+};
+
+export type GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetResponse = GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetResponses[keyof GetFileAttachmentApiV1FileAttachmentsFileAttachmentIdGetResponses];
+
+export type PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchData = {
+    body: FileAttachmentPatch;
+    path: {
+        /**
+         * File Attachment Id
+         */
+        file_attachment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/file_attachments/{file_attachment_id}';
+};
+
+export type PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchError = PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchErrors[keyof PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchErrors];
+
+export type PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: FileAttachmentRead;
+};
+
+export type PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchResponse = PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchResponses[keyof PatchFileAttachmentApiV1FileAttachmentsFileAttachmentIdPatchResponses];
+
+export type PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutData = {
+    body: FileAttachmentPut;
+    path: {
+        /**
+         * File Attachment Id
+         */
+        file_attachment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/file_attachments/{file_attachment_id}';
+};
+
+export type PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutError = PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutErrors[keyof PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutErrors];
+
+export type PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: FileAttachmentRead;
+};
+
+export type PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutResponse = PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutResponses[keyof PutFileAttachmentApiV1FileAttachmentsFileAttachmentIdPutResponses];
+
+export type GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Offset
+         *
+         * offset for pagination
+         */
+        offset?: number;
+        /**
+         * Limit
+         *
+         * limit for pagination
+         */
+        limit?: number;
+    };
+    url: '/api/v1/session_file_attachments';
+};
+
+export type GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetError = GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetErrors[keyof GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetErrors];
+
+export type GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PaginatedListSessionFileAttachmentRead;
+};
+
+export type GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetResponse = GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetResponses[keyof GetSessionFileAttachmentsApiV1SessionFileAttachmentsGetResponses];
+
+export type CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostData = {
+    body: SessionFileAttachmentCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/session_file_attachments';
+};
+
+export type CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostError = CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostErrors[keyof CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostErrors];
+
+export type CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: SessionFileAttachmentRead;
+};
+
+export type CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostResponse = CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostResponses[keyof CreateSessionFileAttachmentApiV1SessionFileAttachmentsPostResponses];
+
+export type DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Session File Attachment Id
+         */
+        session_file_attachment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/session_file_attachments/{session_file_attachment_id}';
+};
+
+export type DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteError = DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteErrors[keyof DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteErrors];
+
+export type DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: DeleteResponse;
+};
+
+export type DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteResponse = DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteResponses[keyof DeleteSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdDeleteResponses];
+
+export type GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Session File Attachment Id
+         */
+        session_file_attachment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/session_file_attachments/{session_file_attachment_id}';
+};
+
+export type GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetError = GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetErrors[keyof GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetErrors];
+
+export type GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SessionFileAttachmentRead;
+};
+
+export type GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetResponse = GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetResponses[keyof GetSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdGetResponses];
+
+export type PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchData = {
+    body: SessionFileAttachmentPatch;
+    path: {
+        /**
+         * Session File Attachment Id
+         */
+        session_file_attachment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/session_file_attachments/{session_file_attachment_id}';
+};
+
+export type PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchError = PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchErrors[keyof PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchErrors];
+
+export type PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: SessionFileAttachmentRead;
+};
+
+export type PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchResponse = PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchResponses[keyof PatchSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPatchResponses];
+
+export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutData = {
+    body: SessionFileAttachmentPut;
+    path: {
+        /**
+         * Session File Attachment Id
+         */
+        session_file_attachment_id: string;
+    };
+    query?: never;
+    url: '/api/v1/session_file_attachments/{session_file_attachment_id}';
+};
+
+export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutError = PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutErrors[keyof PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutErrors];
+
+export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: SessionFileAttachmentRead;
+};
+
+export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponse = PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponses[keyof PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponses];

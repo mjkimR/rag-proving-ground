@@ -1,7 +1,7 @@
 import os
 from typing import Annotated
 
-from app.features.doc_parse.services import DocumentParseService
+from app.features.playground.doc_parse.services import DocumentParseService
 from app_layer_base.base.usecases.base import BaseUseCase
 from fastapi import Depends, HTTPException, UploadFile, status
 from loguru import logger

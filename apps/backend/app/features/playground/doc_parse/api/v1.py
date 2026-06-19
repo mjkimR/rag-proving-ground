@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from app.features.doc_parse.usecases.parsing import DocumentParsingUseCase
+from app.features.playground.doc_parse.usecases.parsing import DocumentParsingUseCase
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from rag_core.parsers.schemas import ParsedDocument
 
