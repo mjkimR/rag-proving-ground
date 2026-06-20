@@ -121,21 +121,22 @@ def test_tree_summarizer_model_name_resolution_default() -> None:
 
 
 def test_tree_summarizer_fallback_token_counter() -> None:
-    summarizer = TreeSummarizer(llm=cast(Any, MockLLM([])), model_name="custom-unknown-model")
-    # Force tokenizer to None to trigger fallback path
-    summarizer.tokenizer = None
+    from rag_core.tokenizers import FallbackWrapperTokenizer, TiktokenTokenizer
 
-    # Text containing only English: 8 chars -> 2 tokens
-    english_text = "abcdefgh"
-    assert summarizer._count_tokens(english_text) == 2
+    # Test English fallback
+    summarizer_en = TreeSummarizer(llm=cast(Any, MockLLM([])), model_name="custom-unknown-model", language="en")
+    assert isinstance(summarizer_en.tokenizer, FallbackWrapperTokenizer)
+    assert isinstance(summarizer_en.tokenizer.primary, TiktokenTokenizer)
+    summarizer_en.tokenizer.primary.encoding = None  # Force fallback
+    assert summarizer_en._count_tokens("abcdefgh") == 2
 
-    # Text containing only Korean: 10 Hangul characters -> 15 tokens
-    korean_text = "안녕하세요반갑습니다"
-    assert summarizer._count_tokens(korean_text) == 15
-
-    # Mixed text: 4 English (1 token) + 2 Hangul (3 tokens) -> 4 tokens
-    mixed_text = "abcd안녕"
-    assert summarizer._count_tokens(mixed_text) == 4
+    # Test Korean fallback
+    summarizer_ko = TreeSummarizer(llm=cast(Any, MockLLM([])), model_name="custom-unknown-model", language="ko")
+    assert isinstance(summarizer_ko.tokenizer, FallbackWrapperTokenizer)
+    assert isinstance(summarizer_ko.tokenizer.primary, TiktokenTokenizer)
+    summarizer_ko.tokenizer.primary.encoding = None  # Force fallback
+    assert summarizer_ko._count_tokens("안녕하세요반갑습니다") == 15
+    assert summarizer_ko._count_tokens("abcd안녕") == 4
 
 
 @pytest.mark.asyncio

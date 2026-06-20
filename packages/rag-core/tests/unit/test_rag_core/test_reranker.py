@@ -2,19 +2,31 @@ import litellm
 import pytest
 from langchain_core.documents import Document
 from pydantic import SecretStr
-from rag_core.ai.reranker import LiteLLMRerankCompressor, _truncate_text_to_tokens
+from rag_core.ai.reranker import LiteLLMRerankCompressor
 
 
 def test_truncate_text_to_tokens() -> None:
+    compressor = LiteLLMRerankCompressor(
+        model="test-reranker",
+        api_base="http://localhost:1234",
+        api_key=SecretStr("test-key"),
+        max_tokens_per_doc=10,
+    )
+
     # A short text should stay intact
-    assert _truncate_text_to_tokens("hello world", 10) == "hello world"
+    assert compressor._truncate_doc_text("hello world") == "hello world"
 
     # Empty string should stay empty
-    assert _truncate_text_to_tokens("", 10) == ""
+    assert compressor._truncate_doc_text("") == ""
 
     # A long text exceeding max_tokens (e.g. 2 tokens) should be truncated.
-    # "one two three four five" has at least 5 tokens.
-    truncated = _truncate_text_to_tokens("one two three four five", 2)
+    compressor_short = LiteLLMRerankCompressor(
+        model="test-reranker",
+        api_base="http://localhost:1234",
+        api_key=SecretStr("test-key"),
+        max_tokens_per_doc=2,
+    )
+    truncated = compressor_short._truncate_doc_text("one two three four five")
     # The output should be shorter
     assert len(truncated.split()) <= 2
 

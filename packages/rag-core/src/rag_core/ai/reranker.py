@@ -4,25 +4,11 @@ from collections.abc import Sequence
 from typing import Any, cast
 
 import litellm
-import tiktoken
 from langchain_core.callbacks import Callbacks
 from langchain_core.documents import BaseDocumentCompressor, Document
-from loguru import logger
 from pydantic import ConfigDict, Field, SecretStr
 
-
-def _truncate_text_to_tokens(text: str, max_tokens: int) -> str:
-    if not text:
-        return text
-    try:
-        encoding = tiktoken.get_encoding("cl100k_base")
-        tokens = encoding.encode(text)
-        if len(tokens) <= max_tokens:
-            return text
-        return encoding.decode(tokens[:max_tokens])
-    except Exception as e:
-        logger.warning(f"Failed to encode tokens via tiktoken, falling back to character slicing: {e}")
-        return text[: int(max_tokens * 1.5)]
+from rag_core.tokenizers import BaseTokenizer, get_tokenizer
 
 
 class LiteLLMRerankCompressor(BaseDocumentCompressor):
@@ -48,9 +34,19 @@ class LiteLLMRerankCompressor(BaseDocumentCompressor):
     request_timeout: float | None = None
     max_retries: int | None = None
     max_tokens_per_doc: int = 400
+    language: str = "en"
     rerank_kwargs: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def get_tokenizer(self) -> BaseTokenizer:
+        return get_tokenizer(language=self.language, model_name_or_encoding=self.model)
+
+    def _truncate_doc_text(self, text: str, tokenizer: BaseTokenizer | None = None) -> str:
+        if not text:
+            return text
+        tok = tokenizer or self.get_tokenizer()
+        return tok.truncate(text, self.max_tokens_per_doc)
 
     def compress_documents(
         self,
@@ -71,7 +67,8 @@ class LiteLLMRerankCompressor(BaseDocumentCompressor):
         if not documents:
             return []
 
-        truncated_docs = [_truncate_text_to_tokens(doc.page_content, self.max_tokens_per_doc) for doc in documents]
+        tokenizer = self.get_tokenizer()
+        truncated_docs = [self._truncate_doc_text(doc.page_content, tokenizer) for doc in documents]
 
         rerank = cast(Any, litellm.rerank)
         response = rerank(
@@ -108,7 +105,8 @@ class LiteLLMRerankCompressor(BaseDocumentCompressor):
         if not documents:
             return []
 
-        truncated_docs = [_truncate_text_to_tokens(doc.page_content, self.max_tokens_per_doc) for doc in documents]
+        tokenizer = self.get_tokenizer()
+        truncated_docs = [self._truncate_doc_text(doc.page_content, tokenizer) for doc in documents]
 
         arerank = cast(Any, litellm.arerank)
         response = await arerank(

@@ -1,16 +1,12 @@
 import asyncio
-import re
 
-import tiktoken
 from langchain_core.runnables import Runnable
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
 from rag_core.ai.models import get_llm_model, get_model_metadata
 from rag_core.config import get_litellm_settings
-
-# Pre-compile Hangul character regex to avoid compilation overhead on repeated token counts
-_HANGUL_PATTERN = re.compile(r"[\uac00-\ud7a3]")
+from rag_core.tokenizers import get_tokenizer
 
 
 class TreeSummarizer:
@@ -33,6 +29,7 @@ class TreeSummarizer:
         max_concurrency: int = 10,
         custom_prompt_template: str | None = None,
         context_window: int | None = None,
+        language: str = "en",
     ) -> None:
         """Initializes the TreeSummarizer.
 
@@ -72,16 +69,8 @@ class TreeSummarizer:
             "Summary:"
         )
 
-        # Initialize tiktoken encoding
-        # Try specific model encoding first, fallback to cl100k_base
-        try:
-            self.tokenizer = tiktoken.encoding_for_model(self.model_name)
-        except Exception:
-            try:
-                self.tokenizer = tiktoken.get_encoding("cl100k_base")
-            except Exception as e:
-                logger.warning(f"Failed to load tiktoken tokenizer: {e}. Falling back to heuristic estimation.")
-                self.tokenizer = None
+        # Initialize tokenizer strategy
+        self.tokenizer = get_tokenizer(language=language, model_name_or_encoding=self.model_name)
 
         self.context_window = context_window or self._get_context_window()
         logger.info(
@@ -104,19 +93,8 @@ class TreeSummarizer:
         return 128000
 
     def _count_tokens(self, text: str) -> int:
-        """Counts the tokens in the given text using the local tokenizer."""
-        if self.tokenizer is not None:
-            try:
-                return len(self.tokenizer.encode(text))
-            except Exception:
-                pass
-
-        # Fallback to Hangul-aware conservative token counting
-        # 1 Hangul character is estimated as 1.5 tokens
-        # Other (ASCII/English) characters are estimated as 0.25 tokens (4 chars per token)
-        hangul_chars = len(_HANGUL_PATTERN.findall(text))
-        other_chars = len(text) - hangul_chars
-        return int(hangul_chars * 1.5 + other_chars * 0.25)
+        """Counts the tokens in the given text using the tokenizer strategy."""
+        return self.tokenizer.count_tokens(text)
 
     def _get_available_chunk_size(self, query: str) -> int:
         """Calculates available token budget for each packed chunk."""
