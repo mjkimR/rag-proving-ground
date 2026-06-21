@@ -24,6 +24,7 @@ Monorepo for building, evaluating, and serving Retrieval-Augmented Generation (R
 - `infra/app`: Docker orchestration placeholder.
 - `experiments`, `datasets`: AutoRAG evaluations, baselines, notebooks, cached data.
 - `scripts`: Helper scripts called by `justfile`.
+- `dev-agents`: Development-time agent harness instructions, hooks, and skills.
 
 ---
 

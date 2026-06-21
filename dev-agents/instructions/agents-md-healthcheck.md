@@ -7,7 +7,7 @@ Instruction for verifying that the root `AGENTS.md` is accurate, concise, and we
 Mention this file in a conversation to trigger the check:
 
 ```
-@docs/agents/instructions/agents-md-healthcheck.md Run AGENTS.md health check
+@dev-agents/instructions/agents-md-healthcheck.md Run AGENTS.md health check
 ```
 
 ---
@@ -82,7 +82,7 @@ Perform all 6 checks **in order**. Verdict each as `✅ OK` or `⚠️ Action ne
    - Expected file paths for new AGENTS.md files
 
 > [!IMPORTANT]
-> If split is recommended, **this instruction file itself** (`docs/agents/instructions/agents-md-healthcheck.md`) must also be rewritten to account for multiple AGENTS.md files (adjusted scan targets, per-file size thresholds, cross-file consistency checks, etc.). Include this as a required follow-up action in the report.
+> If split is recommended, **this instruction file itself** (`dev-agents/instructions/agents-md-healthcheck.md`) must also be rewritten to account for multiple AGENTS.md files (adjusted scan targets, per-file size thresholds, cross-file consistency checks, etc.). Include this as a required follow-up action in the report.
 
 ---
 

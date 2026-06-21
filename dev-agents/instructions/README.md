@@ -10,12 +10,12 @@ Use an instruction file here when:
 - The instruction is **long or detailed** enough that embedding it in a skill description would waste tokens on irrelevant turns.
 - You want **precise, manual control** over when the assistant reads it.
 
-If a workflow is generic enough to trigger automatically based on context, consider registering it as a [dev-skill](../dev-skills/) instead.
+If a workflow is generic enough to trigger automatically based on context, consider registering it as a [skills](../skills/) instead.
 
 ## Usage
 
 Mention any file in this directory to attach it to your conversation:
 
 ```
-@docs/agents/instructions/<filename>.md
+@dev-agents/instructions/<filename>.md
 ```
