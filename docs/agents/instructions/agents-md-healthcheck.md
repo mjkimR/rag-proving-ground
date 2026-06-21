@@ -14,7 +14,7 @@ Mention this file in a conversation to trigger the check:
 
 ## Checks
 
-Perform all 5 checks **in order**. Verdict each as `✅ OK` or `⚠️ Action needed`. Include concrete fix proposals for any `⚠️`.
+Perform all 6 checks **in order**. Verdict each as `✅ OK` or `⚠️ Action needed`. Include concrete fix proposals for any `⚠️`.
 
 ---
 
@@ -124,6 +124,24 @@ Perform all 5 checks **in order**. Verdict each as `✅ OK` or `⚠️ Action ne
 
 ---
 
+### 6. Clarity & Positioning
+
+**Goal**: Avoid instruction decay due to vague language and positional bias ("Lost in the Middle").
+
+**Steps**:
+
+1. **Positioning Check (Lost in the Middle)**:
+   - Identify critical rules (e.g., `Critical Constraints`, security rules, DB boundary constraints).
+   - Verify if they are located near the top of `AGENTS.md` (e.g., in the upper 20% of the file, or explicitly grouped under a high-priority section).
+   - Flag critical rules that are buried in the middle of long prose sections.
+2. **Clarity Check (Vague Conditionals)**:
+   - Scan the text for weak or ambiguous words that introduce logical gaps (e.g., `should`, `if needed`, `sometimes`, `as much as possible`, `roughly`, `often`, `try to`).
+   - Scan for naked pronouns like `this`, `that`, `these` where the referred symbol or context is not explicitly clear.
+
+**Fix criteria**: Propose moving critical constraints to the top/priority sections. Propose rewriting vague guidelines into deterministic instructions (using `MUST`, `NEVER`, `ALWAYS`).
+
+---
+
 ## Report Format
 
 Output results as an artifact in this format:
@@ -143,6 +161,7 @@ Output results as an artifact in this format:
 | 3 | Split Readiness | ✅ / ⚠️ |
 | 4 | Skill Extraction Candidates | ✅ / ⚠️ |
 | 5 | Sub-project AGENTS.md Scan | ✅ / ⚠️ |
+| 6 | Clarity & Positioning | ✅ / ⚠️ |
 
 ## Detailed Results
 
