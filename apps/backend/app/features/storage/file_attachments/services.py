@@ -1,14 +1,11 @@
 from typing import Annotated
 
-from app.features.storage.file_attachments.models import FileAttachment, SessionFileAttachment
-from app.features.storage.file_attachments.repos import FileAttachmentRepository, SessionFileAttachmentRepository
+from app.features.storage.file_attachments.models import FileAttachment
+from app.features.storage.file_attachments.repos import FileAttachmentRepository
 from app.features.storage.file_attachments.schemas import (
     FileAttachmentCreate,
     FileAttachmentPatch,
     FileAttachmentPut,
-    SessionFileAttachmentCreate,
-    SessionFileAttachmentPatch,
-    SessionFileAttachmentPut,
 )
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
@@ -44,39 +41,3 @@ class FileAttachmentService(
     @property
     def context_model(self):
         return FileAttachmentContextKwargs
-
-
-class SessionFileAttachmentContextKwargs(BaseContextKwargs):
-    pass
-
-
-class SessionFileAttachmentService(
-    BaseCreateServiceMixin[
-        SessionFileAttachmentRepository,
-        SessionFileAttachment,
-        SessionFileAttachmentCreate,
-        SessionFileAttachmentContextKwargs,
-    ],
-    BaseGetMultiServiceMixin[
-        SessionFileAttachmentRepository, SessionFileAttachment, SessionFileAttachmentContextKwargs
-    ],
-    BaseGetServiceMixin[SessionFileAttachmentRepository, SessionFileAttachment, SessionFileAttachmentContextKwargs],
-    BaseUpdateServiceMixin[
-        SessionFileAttachmentRepository,
-        SessionFileAttachment,
-        SessionFileAttachmentPut,
-        SessionFileAttachmentPatch,
-        SessionFileAttachmentContextKwargs,
-    ],
-    BaseDeleteServiceMixin[SessionFileAttachmentRepository, SessionFileAttachment, SessionFileAttachmentContextKwargs],
-):
-    def __init__(self, repo: Annotated[SessionFileAttachmentRepository, Depends()]):
-        self._repo = repo
-
-    @property
-    def repo(self) -> SessionFileAttachmentRepository:
-        return self._repo
-
-    @property
-    def context_model(self):
-        return SessionFileAttachmentContextKwargs

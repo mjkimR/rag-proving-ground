@@ -63,6 +63,7 @@ interface KnowledgeBaseHubProps {
 
 export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [showParserOverrides, setShowParserOverrides] = useState(false);
@@ -70,8 +71,14 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
 
   // 1. Fetch Knowledge Bases
   const { data: kbList, isLoading: kbLoading, refetch: refetchKbs } = useQuery({
-    queryKey: ['kbList'],
-    queryFn: () => getKnowledgeBasesApiV1KnowledgeBasesGet({ throwOnError: true }),
+    queryKey: ['kbList', appliedSearchTerm],
+    queryFn: () =>
+      getKnowledgeBasesApiV1KnowledgeBasesGet({
+        query: {
+          name: appliedSearchTerm || undefined,
+        },
+        throwOnError: true,
+      }),
   });
 
   // Fetch dynamic configuration options
@@ -84,11 +91,6 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
   const parserProviders = configOptions?.data?.parser_providers || [];
 
   const items = kbList?.data?.items || [];
-
-  // Filter KBs
-  const filteredItems = items.filter((kb) =>
-    kb.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   // Stats calculation
   const totalCount = items.length;
@@ -302,22 +304,32 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
       <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <Text strong style={{ fontSize: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            Available Databases <Badge count={filteredItems.length} showZero color="var(--colorPrimary)" style={{ fontWeight: 700 }} />
+            Available Databases <Badge count={items.length} showZero color="var(--colorPrimary)" style={{ fontWeight: 700 }} />
           </Text>
           
           {/* Search bar */}
-          <Input
-            placeholder="Search by knowledge base name..."
-            prefix={<Search size={16} color="var(--text-secondary)" style={{ marginRight: '6px' }} />}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '320px', borderRadius: '10px' }}
-            allowClear
-          />
+          <Space.Compact style={{ width: '380px' }}>
+            <Input
+              placeholder="Search by knowledge base name..."
+              prefix={<Search size={16} color="var(--text-secondary)" style={{ marginRight: '6px' }} />}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onPressEnter={() => setAppliedSearchTerm(searchTerm)}
+              style={{ borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px' }}
+              allowClear
+            />
+            <Button
+              type="primary"
+              onClick={() => setAppliedSearchTerm(searchTerm)}
+              style={{ borderTopRightRadius: '10px', borderBottomRightRadius: '10px' }}
+            >
+              Search
+            </Button>
+          </Space.Compact>
         </div>
 
         <Table
-          dataSource={filteredItems}
+          dataSource={items}
           loading={kbLoading}
           rowKey="id"
           className={styles.customTable}

@@ -2,7 +2,11 @@ from typing import Annotated, Any
 
 from app.features.knowledge.knowledge_bases.models import KnowledgeBase
 from app.features.knowledge.knowledge_bases.repos import KnowledgeBaseRepository
-from app.features.knowledge.knowledge_bases.schemas import KnowledgeBaseCreate, KnowledgeBasePatch, KnowledgeBasePut
+from app.features.knowledge.knowledge_bases.schemas import (
+    KnowledgeBaseCreate,
+    KnowledgeBasePatch,
+    KnowledgeBasePut,
+)
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,

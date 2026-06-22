@@ -148,11 +148,17 @@ def get_lifespan():
             from rag_core.query_rewrite.synonym_expander import register_synonym_loader
 
             async def db_synonym_loader() -> dict[str, list[str]]:
+                synonyms: dict[str, list[str]] = {}
+                repo = SynonymMapRepository()
+
                 async with AsyncTransaction() as session:
-                    repo = SynonymMapRepository()
-                    query_options = ListQueryOptions(limit=10000)
+                    query_options = ListQueryOptions(limit=None)
                     res = await repo.get_multi(session, query_options=query_options)
-                    return {item.keyword: item.synonyms for item in res.items}
+                    for item in res.items:
+                        synonyms[item.keyword] = item.synonyms
+
+                logger.debug(f"Loaded {len(synonyms)} synonym mappings from database.")
+                return synonyms
 
             register_synonym_loader(db_synonym_loader)
 

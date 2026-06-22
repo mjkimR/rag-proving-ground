@@ -21,6 +21,7 @@ except ImportError:
 
 
 # Import tasks to ensure they are registered on the broker
+import app.worker.handlers.attachment
 import app.worker.handlers.ingest  # noqa: F401
 from app.worker.broker import broker
 from app.worker.recovery import recover_stuck_documents

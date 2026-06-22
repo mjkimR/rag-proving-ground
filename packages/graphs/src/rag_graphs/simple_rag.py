@@ -1,5 +1,6 @@
 """Aegra-served LangGraph entrypoint for basic knowledge-base RAG."""
 
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -146,18 +147,9 @@ async def _retrieve_context_chunks(
     if query is None or not knowledge_base_ids:
         return []
 
-    # 1. Apply Synonym Expansion (Dictionary-based)
     queries = [query]
-    from rag_core.query_rewrite.synonym_expander import SynonymExpander
 
-    try:
-        expander = SynonymExpander()
-        query = await expander.expand_query(query)
-        queries = [query]
-    except Exception as exc:
-        logger.warning(f"Synonym expansion failed: {exc}")
-
-    # 2. Apply LLM Query Rewrite / Expansion based on runtime configuration
+    # 1. Apply LLM Query Rewrite / Expansion based on runtime configuration.
     rewrite_mode = runtime_config.rewrite_mode
     if rewrite_mode in ("rewrite", "expand", "hybrid"):
         from rag_core.query_rewrite.rewriter import QueryRewriter
@@ -178,6 +170,22 @@ async def _retrieve_context_chunks(
 
         except Exception as exc:
             logger.error(f"Query rewrite/expansion failed: {exc}. Using raw query.")
+
+    # 2. Apply dictionary-based synonym expansion to the final search queries.
+    from rag_core.query_rewrite.synonym_expander import SynonymExpander
+
+    try:
+        expander = SynonymExpander()
+        results = await asyncio.gather(
+            *(expander.expand_query(rewritten_query) for rewritten_query in queries),
+            return_exceptions=True,
+        )
+        queries = [res if isinstance(res, str) else orig for orig, res in zip(queries, results, strict=True)]
+        for res in results:
+            if isinstance(res, Exception):
+                logger.warning(f"Synonym expansion task failed: {res}")
+    except Exception as exc:
+        logger.warning(f"Synonym expansion failed: {exc}")
 
     return await search_multi_knowledge_bases(
         queries=queries,

@@ -1,6 +1,7 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
+from app.common.utils.time_util import get_current_time
 from app.features.knowledge.knowledge_base_documents.repos import KnowledgeBaseDocumentRepository
 from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 from app_layer_base.core.database.transaction import AsyncTransaction
@@ -18,7 +19,7 @@ async def recover_stuck_documents(broker: Any) -> None:
 
     for too long, and reset them to QUEUED status so the DB-polling scheduler can retry them.
     """
-    now = datetime.now(UTC)
+    now = get_current_time()
     queued_threshold = now - timedelta(minutes=STUCK_QUEUED_THRESHOLD_MINUTES)
     processing_threshold = now - timedelta(minutes=STUCK_PROCESSING_THRESHOLD_MINUTES)
 

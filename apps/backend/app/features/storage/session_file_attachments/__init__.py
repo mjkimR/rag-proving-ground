@@ -1,0 +1,1 @@
+# SessionFileAttachment feature package

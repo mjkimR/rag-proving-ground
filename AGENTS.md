@@ -34,7 +34,7 @@ Monorepo for building, evaluating, and serving Retrieval-Augmented Generation (R
 
 - **Tooling**: `uv` only (never `pip`, `poetry`, `conda`). Python `>=3.13`.
 - **Types & Settings**: Strict type hints required for public functions and class attributes. Use `pydantic-settings` `BaseSettings` with `validation_alias` for env var names. Expose cached settings via `@lru_cache` factories.
-- **Logging & DB**: Use `loguru` (no `print` in app code). DB migrations: Alembic via `just` (`apps/backend/migrations/versions/`).
+- **Logging & DB**: Use `loguru` (no `print` in app code). DB migrations: Alembic via `just` (`apps/backend/migrations/versions/`). All database `datetime` columns must be timezone-aware (e.g., using `DateTime(timezone=True)`), and Python code should use `get_current_time()` from `app.common.utils.time_util` rather than naive UTC datetime objects.
 - **Config**: `.env` and `models.yaml` are gitignored. Never copy/leak their content into docs, logs, commits, fixtures, or responses. Use `.env.example`/`models.example.yaml` for docs.
 - **Adapters**: Parser/vector-store use adapter pattern: `interface.py`, `registry.py`, `factory.py`, `instance.py`, `providers/`. Tests: `packages/rag-core/tests/unit/test_adapters/`.
 - **LangGraph**: Defined in `packages/graphs/src/rag_graphs/`.
@@ -63,6 +63,9 @@ Monorepo for building, evaluating, and serving Retrieval-Augmented Generation (R
 
 - Run `just test` (Python tests) or `just test-file <path>` (focused pytest). Pytest roots and async settings live in `pyproject.toml`.
 - Add focused tests for new adapters, chunkers, graph nodes, backend use cases, and API behavior.
+
+> [!NOTE]
+> Since `asyncio_mode = "auto"` is configured globally in `pyproject.toml`, you do **not** need to add `@pytest.mark.asyncio` to async test functions.
 
 ---
 

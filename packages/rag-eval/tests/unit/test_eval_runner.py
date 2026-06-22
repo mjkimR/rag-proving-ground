@@ -1,4 +1,3 @@
-import pytest
 from rag_eval.base import BaseEvaluator
 from rag_eval.runner import EvaluationRunner
 from rag_eval.schemas import EvalCase, EvalDataset, MetricScore
@@ -11,7 +10,6 @@ class DummyEvaluator(BaseEvaluator):
         return [MetricScore(name="dummy_metric", score=0.85, reason="Looks good")]
 
 
-@pytest.mark.asyncio
 async def test_eval_case_creation():
     case = EvalCase(question="What is Python?", ground_truth="A programming language")
     assert case.question == "What is Python?"
@@ -20,7 +18,6 @@ async def test_eval_case_creation():
     assert case.contexts is None
 
 
-@pytest.mark.asyncio
 async def test_evaluation_runner_success():
     # Arrange
     dataset = EvalDataset(
@@ -49,7 +46,6 @@ async def test_evaluation_runner_success():
     assert result.total_latency_sec > 0
 
 
-@pytest.mark.asyncio
 async def test_evaluation_runner_pipeline_error():
     # Arrange
     dataset = EvalDataset(name="test_dataset_error", cases=[EvalCase(question="Q1", ground_truth="GT1")])

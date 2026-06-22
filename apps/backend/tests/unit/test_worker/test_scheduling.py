@@ -1,10 +1,11 @@
 import asyncio
 from uuid import uuid4
 
+import app.worker.scheduling as scheduling_module
 import pytest
 from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
 from app.features.knowledge.knowledge_bases.models import KnowledgeBase
-from app.worker.scheduling import dispatcher_loop
+from app.worker.scheduling import dispatcher_loop, stop_dispatchers
 
 
 @pytest.mark.asyncio
@@ -15,7 +16,6 @@ async def test_dispatcher_loop_schedules_round_robin(session, mocker):
     update their status to PARSING, and call the Taskiq task kicker on the
     appropriate priority queue.
     """
-    # 1. Seed two Knowledge Bases
     kb1_id = uuid4()
     kb2_id = uuid4()
 
@@ -34,8 +34,6 @@ async def test_dispatcher_loop_schedules_round_robin(session, mocker):
     session.add_all([kb1, kb2])
     await session.commit()
 
-    # 2. Seed 3 Documents in QUEUED status
-    # KB1 has 2 documents, KB2 has 1 document
     doc1_1_id = uuid4()
     doc1_2_id = uuid4()
     doc2_1_id = uuid4()
@@ -71,20 +69,17 @@ async def test_dispatcher_loop_schedules_round_robin(session, mocker):
     session.add_all([doc1_1, doc1_2, doc2_1])
     await session.commit()
 
-    # 3. Mock the handle_parse task's kicker
     mock_kicker = mocker.MagicMock()
     mock_kicker.with_labels.return_value = mock_kicker
     mock_kicker.kiq = mocker.AsyncMock()
     mocker.patch("app.worker.handlers.ingest.handle_parse.kicker", return_value=mock_kicker)
 
-    # Mock redis client and get_redis_client helper
     mock_redis = mocker.MagicMock()
     mock_redis.get = mocker.AsyncMock(return_value=None)
     mock_redis.set = mocker.AsyncMock(return_value=True)
     mock_redis.llen = mocker.AsyncMock(return_value=0)
     mocker.patch("app.worker.scheduling.get_redis_client", mocker.AsyncMock(return_value=mock_redis))
 
-    # 4. Mock asyncio.sleep to stop the loop after one run
     stop_event = asyncio.Event()
 
     async def mock_sleep(seconds):
@@ -92,33 +87,23 @@ async def test_dispatcher_loop_schedules_round_robin(session, mocker):
 
     mocker.patch("asyncio.sleep", side_effect=mock_sleep)
 
-    # 5. Run the dispatcher loop
     mock_broker = mocker.MagicMock()
     await dispatcher_loop(mock_broker, stop_event, "test-dispatcher-id")
 
-    # 6. Verify assertions
-    # KB1 should get doc1_1 (since it is the first/oldest document of KB1)
-    # KB2 should get doc2_1 (since it is the only document of KB2)
-    # doc1_2 should NOT be dispatched in this cycle (since it's ranked 2 for KB1, and the limit is N=1 per KB)
     assert mock_kicker.kiq.call_count == 2
 
-    # Verify that kicker was called with the priority label
     with_labels_calls = mock_kicker.with_labels.call_args_list
     labels_passed = [c.kwargs.get("queue_name") for c in with_labels_calls]
     assert "kb_ingest:high" in labels_passed
     assert "kb_ingest:medium" in labels_passed
     assert "kb_ingest:low" not in labels_passed
 
-    # Verify that kiq was called with correct message payloads
     kiq_calls = mock_kicker.kiq.call_args_list
     dispatched_ids = [call[0][0].document_id for call in kiq_calls]
     assert doc1_1_id in dispatched_ids
     assert doc2_1_id in dispatched_ids
     assert doc1_2_id not in dispatched_ids
 
-    # Check status updates in DB:
-    # doc1_1 and doc2_1 status should be PARSING
-    # doc1_2 status should remain QUEUED
     await session.refresh(doc1_1)
     await session.refresh(doc1_2)
     await session.refresh(doc2_1)
@@ -126,3 +111,21 @@ async def test_dispatcher_loop_schedules_round_robin(session, mocker):
     assert doc1_1.status == "PARSING"
     assert doc2_1.status == "PARSING"
     assert doc1_2.status == "QUEUED"
+
+
+@pytest.mark.asyncio
+async def test_stop_dispatchers_closes_redis(mocker):
+    """Verify that stop_dispatchers() closes the Redis client on shutdown."""
+    mock_close = mocker.patch(
+        "app.worker.scheduling.close_redis_client",
+        new_callable=mocker.AsyncMock,
+    )
+
+    stop_event = asyncio.Event()
+    stop_event.set()
+    mocker.patch.object(scheduling_module, "_stop_event", stop_event)
+    mocker.patch.object(scheduling_module, "_dispatcher_task", None)
+
+    await stop_dispatchers()
+
+    mock_close.assert_called_once()

@@ -16,6 +16,7 @@ export const Synonyms: React.FC = () => {
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState('');
+  const [appliedSearchText, setAppliedSearchText] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SynonymMapRead | null>(null);
 
@@ -25,12 +26,13 @@ export const Synonyms: React.FC = () => {
 
   // 1. Fetch Synonym Maps with React Query
   const { data: synonymData, isLoading } = useQuery({
-    queryKey: ['synonymMaps', currentPage, pageSize],
+    queryKey: ['synonymMaps', currentPage, pageSize, appliedSearchText],
     queryFn: () =>
       getSynonymMapsApiV1SynonymsGet({
         query: {
           offset: (currentPage - 1) * pageSize,
           limit: pageSize,
+          search: appliedSearchText || undefined,
         },
         throwOnError: true,
       }),
@@ -171,14 +173,6 @@ export const Synonyms: React.FC = () => {
   const items = synonymData?.data?.items || [];
   const totalItems = synonymData?.data?.total_count || 0;
 
-  // Local Search Filter
-  const filteredItems = items.filter(
-    (item) =>
-      item.keyword.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.synonyms.some((syn) => syn.toLowerCase().includes(searchText.toLowerCase()))
-  );
-
   return (
     <div style={{ padding: '8px 0 24px 0' }}>
       <Card
@@ -228,17 +222,38 @@ export const Synonyms: React.FC = () => {
           </div>
 
           <Space size="middle">
-            <Input
-              placeholder="Search synonyms..."
-              prefix={<Search size={16} color="#94a3b8" />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{
-                width: 260,
-                borderRadius: '10px',
-                padding: '6px 12px',
-              }}
-            />
+            <Space.Compact style={{ width: 320 }}>
+              <Input
+                placeholder="Search synonyms..."
+                prefix={<Search size={16} color="#94a3b8" />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onPressEnter={() => {
+                  setAppliedSearchText(searchText);
+                  setCurrentPage(1);
+                }}
+                style={{
+                  borderTopLeftRadius: '10px',
+                  borderBottomLeftRadius: '10px',
+                  padding: '6px 12px',
+                }}
+                allowClear
+              />
+              <Button
+                type="primary"
+                onClick={() => {
+                  setAppliedSearchText(searchText);
+                  setCurrentPage(1);
+                }}
+                style={{
+                  borderTopRightRadius: '10px',
+                  borderBottomRightRadius: '10px',
+                  height: '38px',
+                }}
+              >
+                Search
+              </Button>
+            </Space.Compact>
             <Button
               type="primary"
               icon={<Plus size={16} />}
@@ -262,7 +277,7 @@ export const Synonyms: React.FC = () => {
         {/* Synonym Table Component */}
         <SynonymTable
           loading={isLoading}
-          dataSource={filteredItems}
+          dataSource={items}
           currentPage={currentPage}
           pageSize={pageSize}
           total={totalItems}

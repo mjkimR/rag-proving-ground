@@ -16,11 +16,11 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def _invalidate_cache() -> None:
+async def _invalidate_cache() -> None:
     try:
-        from rag_core.query_rewrite.synonym_expander import clear_synonyms_cache
+        from rag_core.query_rewrite.synonym_expander import invalidate_synonyms_cache
 
-        clear_synonyms_cache()
+        await invalidate_synonyms_cache()
     except ImportError:
         pass
 
@@ -46,7 +46,7 @@ class CreateSynonymMapUseCase(BaseCreateUseCase[SynonymMapService, SynonymMap, S
         context: SynonymContextKwargs | None,
     ) -> SynonymMap:
         created = await super()._execute(session, obj_data, context)
-        _invalidate_cache()
+        await _invalidate_cache()
         return created
 
 
@@ -64,7 +64,7 @@ class PatchSynonymMapUseCase(
         context: SynonymContextKwargs | None,
     ) -> SynonymMap | None:
         updated = await super()._execute(session, obj_pk, obj_data, context)
-        _invalidate_cache()
+        await _invalidate_cache()
         return updated
 
 
@@ -82,7 +82,7 @@ class PutSynonymMapUseCase(
         context: SynonymContextKwargs | None,
     ) -> SynonymMap | None:
         updated = await super()._execute(session, obj_pk, obj_data, context)
-        _invalidate_cache()
+        await _invalidate_cache()
         return updated
 
 
@@ -97,5 +97,5 @@ class DeleteSynonymMapUseCase(BaseDeleteUseCase[SynonymMapService, SynonymMap, S
         context: SynonymContextKwargs | None,
     ) -> Any:
         deleted = await super()._execute(session, obj_pk, context)
-        _invalidate_cache()
+        await _invalidate_cache()
         return deleted

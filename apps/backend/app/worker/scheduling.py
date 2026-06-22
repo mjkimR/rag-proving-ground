@@ -5,14 +5,17 @@ from typing import Any, cast
 from uuid import uuid4
 
 import redis.asyncio as aioredis
+from app.common.utils.time_util import get_current_time
 from app.features.knowledge.knowledge_base_documents.schemas import ParseDocumentMessage
 from loguru import logger
 from rag_core.config import get_redis_settings
 
 _redis_client: aioredis.Redis | None = None
 _dispatcher_task: asyncio.Task | None = None
+_cleanup_task: asyncio.Task | None = None
 _stop_event: asyncio.Event | None = None
 _dispatcher_id: str | None = None
+
 
 DISPATCH_TRIGGER_LIMIT = 2
 SLEEP_INTERVALS = [0.2, 0.5, 1.0, 2.0, 3.0]
@@ -227,28 +230,203 @@ async def dispatcher_loop(
     logger.info("Stopped DB-polling scheduling dispatcher loop.")
 
 
+async def cleanup_loop(stop_event: asyncio.Event, dispatcher_id: str) -> None:
+    """Background loop that periodically (every 30 seconds check, but actual execution every 30 minutes)
+
+    cleans up expired temporary knowledge bases and orphaned raw file attachments.
+    """
+    logger.info(f"Starting background resource cleanup loop (ID: {dispatcher_id})...")
+    from datetime import timedelta
+
+    import sqlalchemy as sa
+    from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
+    from app.features.knowledge.knowledge_base_documents.usecases.crud import (
+        KnowledgeDocumentCleanupTarget,
+        cleanup_knowledge_document_assets,
+    )
+    from app.features.knowledge.knowledge_base_pages.models import KnowledgeBasePage
+    from app.features.knowledge.knowledge_bases.models import KnowledgeBase
+    from app.features.knowledge.session_knowledge_bases.models import SessionKnowledgeBase
+    from app.features.storage.file_attachments.models import FileAttachment
+    from app.features.storage.session_file_attachments.models import SessionFileAttachment
+    from app_file_storage import get_storage_client
+    from app_layer_base.core.database.transaction import AsyncTransaction
+    from sqlalchemy import select
+
+    while not stop_event.is_set():
+        try:
+            redis_client = await get_redis_client()
+            lock_key = "lock:cleanup"
+
+            # 1. Leader election / Lock check
+            current_holder_bytes = await redis_client.get(lock_key)
+            current_holder = (
+                current_holder_bytes.decode("utf-8")
+                if isinstance(current_holder_bytes, bytes)
+                else current_holder_bytes
+            )
+
+            if current_holder is None:
+                acquired = await redis_client.set(lock_key, dispatcher_id, ex=15, nx=True)
+                if not acquired:
+                    await asyncio.sleep(10.0)
+                    continue
+            elif current_holder != dispatcher_id:
+                await asyncio.sleep(10.0)
+                continue
+            else:
+                await redis_client.expire(lock_key, 15)
+
+            # 2. Check if we should run the cleanup now
+            run_lock_key = "lock:cleanup_last_run"
+            already_run = await redis_client.get(run_lock_key)
+            if already_run is not None:
+                await asyncio.sleep(10.0)
+                continue
+
+            # Acquire the run lock for 30 minutes (1800 seconds)
+            await redis_client.set(run_lock_key, "1", ex=1800)
+            logger.info("Leader running periodic cleanup check...")
+
+            # 3. Clean up expired temporary KnowledgeBases
+            now = get_current_time()
+            async with AsyncTransaction() as session:
+                stmt = select(KnowledgeBase).where(
+                    KnowledgeBase.is_temp,
+                    KnowledgeBase.expires_at <= now,
+                )
+                result = await session.execute(stmt)
+                expired_kbs = result.scalars().all()
+
+                for kb in expired_kbs:
+                    logger.info(f"Purging expired temporary KnowledgeBase: {kb.id} (name: {kb.name})")
+
+                    # Get thread_id
+                    skb_stmt = select(SessionKnowledgeBase).where(SessionKnowledgeBase.knowledge_base_id == kb.id)
+                    skb_res = await session.execute(skb_stmt)
+                    skb = skb_res.scalars().first()
+                    thread_id = skb.thread_id if skb else None
+
+                    # Get all documents in this KB
+                    docs_stmt = select(KnowledgeBaseDocument).where(KnowledgeBaseDocument.knowledge_base_id == kb.id)
+                    docs_res = await session.execute(docs_stmt)
+                    docs = docs_res.scalars().all()
+
+                    # Purge each document's assets (MinIO, Qdrant vectors) and database records
+                    for doc in docs:
+                        logger.info(f"Purging assets for document {doc.id}")
+                        target = KnowledgeDocumentCleanupTarget(
+                            document_id=doc.id,
+                            file_hash=doc.file_hash,
+                            knowledge_base_name=kb.name,
+                            embed_config_hash=kb.embed_config_hash,
+                        )
+                        # Delete storage files & Qdrant vectors
+                        await cleanup_knowledge_document_assets(target)
+
+                        # Delete pages
+                        await session.execute(
+                            sa.delete(KnowledgeBasePage).where(KnowledgeBasePage.document_id == doc.id)
+                        )
+                        await session.delete(doc)
+
+                    # Delete session mapping
+                    await session.execute(
+                        sa.delete(SessionKnowledgeBase).where(SessionKnowledgeBase.knowledge_base_id == kb.id)
+                    )
+
+                    # Delete SessionFileAttachments for the thread
+                    if thread_id:
+                        logger.info(f"Deleting session attachments for thread: {thread_id}")
+                        await session.execute(
+                            sa.delete(SessionFileAttachment).where(SessionFileAttachment.thread_id == thread_id)
+                        )
+
+                    # Finally delete the KB itself
+                    await session.delete(kb)
+                    logger.info(f"Purged temporary KnowledgeBase {kb.id}")
+
+            # 4. Clean up orphaned raw file attachments older than 24 hours
+            cutoff = get_current_time() - timedelta(hours=24)
+            async with AsyncTransaction() as session:
+                attachments_stmt = select(FileAttachment).where(FileAttachment.created_at <= cutoff)
+                attachments_res = await session.execute(attachments_stmt)
+                attachments = attachments_res.scalars().all()
+
+                for fa in attachments:
+                    # Check if bound to any session
+                    sfa_check = await session.execute(
+                        select(SessionFileAttachment).where(SessionFileAttachment.file_attachment_id == fa.id)
+                    )
+                    if sfa_check.scalars().first():
+                        continue
+
+                    # Check if referenced by any document
+                    kbd_check = await session.execute(
+                        select(KnowledgeBaseDocument).where(KnowledgeBaseDocument.file_hash == fa.sha256)
+                    )
+                    if kbd_check.scalars().first():
+                        continue
+
+                    logger.info(f"Purging orphaned raw file attachment: {fa.id} (sha256: {fa.sha256})")
+
+                    # Delete from MinIO
+                    try:
+                        storage_client = get_storage_client()
+                        await storage_client.delete_file(fa.storage_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete orphaned file {fa.storage_path} from MinIO: {e}")
+
+                    # Delete from DB
+                    await session.delete(fa)
+
+            await asyncio.sleep(10.0)
+
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            logger.error(f"Error in cleanup scheduler loop: {exc}")
+            await asyncio.sleep(10.0)
+
+    logger.info("Stopped background resource resource cleanup loop.")
+
+
 async def start_dispatchers(broker: Any) -> None:
-    """Start scheduling dispatchers."""
-    global _dispatcher_task, _stop_event, _dispatcher_id
+    """Start scheduling dispatchers and cleanup loops."""
+    global _dispatcher_task, _cleanup_task, _stop_event, _dispatcher_id
     _stop_event = asyncio.Event()
     _dispatcher_id = str(uuid4())  # Unique ID for this process's dispatcher
     _dispatcher_task = asyncio.create_task(
         dispatcher_loop(broker, _stop_event, _dispatcher_id),
         name="dispatcher_loop",
     )
+    _cleanup_task = asyncio.create_task(
+        cleanup_loop(_stop_event, _dispatcher_id),
+        name="cleanup_loop",
+    )
 
 
 async def stop_dispatchers() -> None:
-    """Stop all running scheduling dispatcher tasks gracefully."""
-    global _dispatcher_task, _stop_event
+    """Stop all running scheduling dispatcher and cleanup tasks gracefully."""
+    global _dispatcher_task, _cleanup_task, _stop_event
     if _stop_event:
         _stop_event.set()
+
+    tasks_to_cancel = []
     if _dispatcher_task:
         logger.info("Stopping scheduling dispatcher loop...")
         _dispatcher_task.cancel()
-        await asyncio.gather(_dispatcher_task, return_exceptions=True)
+        tasks_to_cancel.append(_dispatcher_task)
+    if _cleanup_task:
+        logger.info("Stopping cleanup loop...")
+        _cleanup_task.cancel()
+        tasks_to_cancel.append(_cleanup_task)
+
+    if tasks_to_cancel:
+        await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
         _dispatcher_task = None
-        logger.info("All scheduling dispatcher loops stopped.")
+        _cleanup_task = None
+        logger.info("All scheduling dispatcher and cleanup loops stopped.")
 
     # Close connection pool
     await close_redis_client()

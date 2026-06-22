@@ -1,3 +1,4 @@
+import asyncio
 from typing import cast
 from uuid import UUID
 
@@ -116,6 +117,83 @@ async def test_simple_rag_passes_reranker_config_for_multi_kb(mocker):
     assert search_kwargs["reranker_config"].top_n == 4
 
 
+async def test_simple_rag_rewrites_before_synonym_expansion(mocker, monkeypatch):
+    mocker.patch("rag_graphs.simple_rag.get_model_options").return_value = {
+        "llm_models": ["allowed-model"],
+        "embedding_models": [],
+        "reranker_models": [],
+    }
+    mock_search = mocker.patch("rag_graphs.simple_rag.search_multi_knowledge_bases")
+    mock_search.return_value = []
+    mock_llm = mocker.MagicMock()
+    mock_llm.ainvoke = mocker.AsyncMock(return_value=AIMessage(content="No context"))
+    mocker.patch("rag_graphs.simple_rag.get_llm_model").return_value = mock_llm
+
+    rewrite_inputs: list[str] = []
+    expand_inputs: list[str] = []
+    synonym_inputs: list[str] = []
+    active_synonym_expansions = 0
+    max_active_synonym_expansions = 0
+
+    class FakeQueryRewriter:
+        def __init__(self, model_name: str | None) -> None:
+            assert model_name == "allowed-model"
+
+        async def rewrite(self, query: str, history: list[object]) -> str:
+            rewrite_inputs.append(query)
+            return "rewritten m-rag query"
+
+        async def expand(self, query: str, num_queries: int) -> list[str]:
+            expand_inputs.append(query)
+            assert num_queries == 3
+            return [query, "alternate m-rag query"]
+
+    class FakeSynonymExpander:
+        async def expand_query(self, query: str) -> str:
+            nonlocal active_synonym_expansions, max_active_synonym_expansions
+            synonym_inputs.append(query)
+            active_synonym_expansions += 1
+            max_active_synonym_expansions = max(max_active_synonym_expansions, active_synonym_expansions)
+            await asyncio.sleep(0)
+            active_synonym_expansions -= 1
+            return f"{query} (modular rag)"
+
+    monkeypatch.setattr("rag_core.query_rewrite.rewriter.QueryRewriter", FakeQueryRewriter)
+    monkeypatch.setattr("rag_core.query_rewrite.synonym_expander.SynonymExpander", FakeSynonymExpander)
+
+    config = cast(
+        RunnableConfig,
+        {
+            "configurable": {
+                "model_name": "allowed-model",
+                "knowledge_base_ids": [str(KB_ID)],
+                "rewrite_mode": "hybrid",
+            }
+        },
+    )
+    state = cast(
+        MessagesState,
+        {
+            "messages": [
+                HumanMessage(content="Tell me about retrieval."),
+                AIMessage(content="Retrieval is about finding relevant context."),
+                HumanMessage(content="What about m-rag?"),
+            ]
+        },
+    )
+
+    await graph.ainvoke(state, config=config)
+
+    assert rewrite_inputs == ["What about m-rag?"]
+    assert expand_inputs == ["rewritten m-rag query"]
+    assert synonym_inputs == ["rewritten m-rag query", "alternate m-rag query"]
+    assert max_active_synonym_expansions == 2
+    assert mock_search.await_args.kwargs["queries"] == [
+        "rewritten m-rag query (modular rag)",
+        "alternate m-rag query (modular rag)",
+    ]
+
+
 async def test_simple_rag_requires_reranker_for_multi_kb():
     config = cast(
         RunnableConfig,
@@ -197,4 +275,66 @@ async def test_search_multi_knowledge_bases_calls_backend_search_api(mocker):
             rerank_score=0.88,
             metadata={"source": "rag.md"},
         )
+    ]
+
+
+async def test_simple_rag_resilient_synonym_expansion(mocker, monkeypatch):
+    mocker.patch("rag_graphs.simple_rag.get_model_options").return_value = {
+        "llm_models": ["allowed-model"],
+        "embedding_models": [],
+        "reranker_models": [],
+    }
+    mock_search = mocker.patch("rag_graphs.simple_rag.search_multi_knowledge_bases")
+    mock_search.return_value = []
+    mock_llm = mocker.MagicMock()
+    mock_llm.ainvoke = mocker.AsyncMock(return_value=AIMessage(content="No context"))
+    mocker.patch("rag_graphs.simple_rag.get_llm_model").return_value = mock_llm
+
+    synonym_inputs: list[str] = []
+
+    class FakeSynonymExpander:
+        async def expand_query(self, query: str) -> str:
+            synonym_inputs.append(query)
+            if "fail" in query:
+                raise RuntimeError("simulated expansion failure")
+            return f"{query} (expanded)"
+
+    monkeypatch.setattr("rag_core.query_rewrite.synonym_expander.SynonymExpander", FakeSynonymExpander)
+
+    class FakeQueryRewriter:
+        def __init__(self, model_name: str | None) -> None:
+            pass
+
+        async def expand(self, query: str, num_queries: int) -> list[str]:
+            return ["success-query", "fail-query"]
+
+    monkeypatch.setattr("rag_core.query_rewrite.rewriter.QueryRewriter", FakeQueryRewriter)
+
+    config = cast(
+        RunnableConfig,
+        {
+            "configurable": {
+                "model_name": "allowed-model",
+                "knowledge_base_ids": [str(KB_ID)],
+                "rewrite_mode": "expand",
+            }
+        },
+    )
+    state = cast(
+        MessagesState,
+        {
+            "messages": [
+                HumanMessage(content="Test query"),
+            ]
+        },
+    )
+
+    await graph.ainvoke(state, config=config)
+
+    assert set(synonym_inputs) == {"success-query", "fail-query"}
+    # The failed query should remain unchanged ("fail-query")
+    # The successful query should be expanded ("success-query (expanded)")
+    assert mock_search.await_args.kwargs["queries"] == [
+        "success-query (expanded)",
+        "fail-query",
     ]

@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 import pytest
@@ -15,7 +16,35 @@ from rag_core.query_rewrite.synonym_expander import (
 # =============================================================================
 
 
-@pytest.mark.asyncio
+class FakeVersionCache:
+    def __init__(self, *, version: str | None = None) -> None:
+        self.version = version
+        self.get_calls: list[str] = []
+        self.set_calls: list[str] = []
+        self.set_values: dict[str, str] = {}
+
+    async def get(self, key: str) -> str | None:
+        self.get_calls.append(key)
+        if key == "synonyms:version":
+            return self.version
+        raise AssertionError(f"unexpected key: {key}")
+
+    async def set(self, key: str, value: str, ttl: int | None = None) -> None:
+        self.set_calls.append(key)
+        self.set_values[key] = value
+
+    async def delete(self, key: str) -> None:
+        raise AssertionError("version-only cache should not delete a synonym map")
+
+
+class FailingVersionCache:
+    async def get(self, key: str) -> None:
+        raise RuntimeError("redis unavailable")
+
+    async def set(self, key: str, value: str, ttl: int | None = None) -> None:
+        raise RuntimeError("redis unavailable")
+
+
 async def test_synonym_expander_loading_and_matching() -> None:
     # 1. Setup mock synonyms loader
     mock_data = {
@@ -60,6 +89,168 @@ async def test_synonym_expander_loading_and_matching() -> None:
     assert "llm (large language model, 거대언어모델)" in res_5
 
 
+async def test_invalidate_synonyms_cache_bumps_distributed_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    from rag_core.query_rewrite import synonym_expander
+
+    fake_cache = FakeVersionCache()
+    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: fake_cache)
+
+    synonym_expander._CACHED_SYNONYMS = {"llm": ["old value"]}
+    synonym_expander._IS_LOADED = True
+    synonym_expander._CACHED_VERSION = "old-version"
+
+    await synonym_expander.invalidate_synonyms_cache()
+
+    assert synonym_expander._CACHED_SYNONYMS == {}
+    assert synonym_expander._IS_LOADED is False
+    assert synonym_expander._CACHED_VERSION is None
+    assert set(fake_cache.set_values) == {"synonyms:version"}
+    assert isinstance(fake_cache.set_values["synonyms:version"], str)
+    assert fake_cache.set_values["synonyms:version"] != "old-version"
+
+
+def test_redis_cache_client_uses_string_serializer(monkeypatch: pytest.MonkeyPatch) -> None:
+    from aiocache.serializers import StringSerializer
+    from rag_core.query_rewrite import synonym_expander
+
+    class RedisSettings:
+        url = "redis://:secret@localhost:6380/2"
+
+    class CacheSettings:
+        enabled = True
+        namespace = "test-synonyms"
+
+    monkeypatch.setattr(synonym_expander, "get_redis_settings", lambda: RedisSettings())
+    monkeypatch.setattr(synonym_expander, "get_synonym_cache_settings", lambda: CacheSettings())
+    monkeypatch.setattr(synonym_expander, "_REDIS_CACHE_CLIENT", None)
+    monkeypatch.setattr(synonym_expander, "_REDIS_CACHE_IMPORT_FAILED", False)
+    monkeypatch.setattr(synonym_expander, "_REDIS_CACHE_CONNECT_FAILED", False)
+
+    redis_client = synonym_expander._get_redis_cache_client()
+
+    assert redis_client is not None
+    assert isinstance(redis_client.serializer, StringSerializer)
+
+
+async def test_synonyms_use_local_cache_when_distributed_version_is_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from rag_core.query_rewrite import synonym_expander
+
+    load_calls = 0
+
+    async def loader() -> dict[str, list[str]]:
+        nonlocal load_calls
+        load_calls += 1
+        return {"llm": ["large language model"]}
+
+    fake_cache = FakeVersionCache(version="version-1")
+    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: fake_cache)
+    register_synonym_loader(loader)
+    synonym_expander.clear_synonyms_cache()
+
+    first = await synonym_expander.get_synonyms()
+    second = await synonym_expander.get_synonyms()
+
+    assert first == {"llm": ["large language model"]}
+    assert second == {"llm": ["large language model"]}
+    assert fake_cache.get_calls == ["synonyms:version"]
+    assert fake_cache.set_calls == []
+    assert load_calls == 1
+
+
+async def test_synonyms_recheck_version_without_downloading_map_after_local_ttl(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from rag_core.query_rewrite import synonym_expander
+
+    load_calls = 0
+
+    async def loader() -> dict[str, list[str]]:
+        nonlocal load_calls
+        load_calls += 1
+        return {"llm": ["large language model"]}
+
+    fake_cache = FakeVersionCache(version="version-1")
+    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: fake_cache)
+    register_synonym_loader(loader)
+    synonym_expander.clear_synonyms_cache()
+
+    first = await synonym_expander.get_synonyms()
+    synonym_expander._VERSION_CHECK_EXPIRES_AT = 0.0
+    second = await synonym_expander.get_synonyms()
+
+    assert first == {"llm": ["large language model"]}
+    assert second == {"llm": ["large language model"]}
+    assert fake_cache.get_calls == ["synonyms:version", "synonyms:version"]
+    assert load_calls == 1
+
+
+async def test_synonyms_reload_from_loader_when_redis_version_read_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from rag_core.query_rewrite import synonym_expander
+
+    load_calls = 0
+
+    async def fresh_loader() -> dict[str, list[str]]:
+        nonlocal load_calls
+        load_calls += 1
+        return {"llm": ["fresh db value"]}
+
+    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: FailingVersionCache())
+    register_synonym_loader(fresh_loader)
+
+    synonym_expander._CACHED_SYNONYMS = {"llm": ["stale local value"]}
+    synonym_expander._CACHED_VERSION = "old-version"
+    synonym_expander._IS_LOADED = True
+    synonym_expander._VERSION_CHECK_EXPIRES_AT = 0.0
+    synonym_expander._LOCAL_CACHE_EXPIRES_AT = 0.0
+
+    synonyms = await synonym_expander.get_synonyms()
+
+    assert synonyms == {"llm": ["fresh db value"]}
+    assert synonym_expander._CACHED_SYNONYMS == {"llm": ["fresh db value"]}
+    assert load_calls == 1
+
+    synonyms = await synonym_expander.get_synonyms()
+
+    assert synonyms == {"llm": ["fresh db value"]}
+    assert load_calls == 1
+
+
+async def test_synonyms_redis_outage_fallback_coalesces_concurrent_loads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from rag_core.query_rewrite import synonym_expander
+
+    load_calls = 0
+    release_loader = asyncio.Event()
+
+    async def slow_loader() -> dict[str, list[str]]:
+        nonlocal load_calls
+        load_calls += 1
+        await release_loader.wait()
+        return {"llm": ["fresh db value"]}
+
+    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: FailingVersionCache())
+    register_synonym_loader(slow_loader)
+    clear_synonyms_cache()
+
+    first_task = asyncio.create_task(synonym_expander.get_synonyms())
+    second_task = asyncio.create_task(synonym_expander.get_synonyms())
+    await asyncio.sleep(0)
+
+    assert load_calls == 1
+
+    release_loader.set()
+    first, second = await asyncio.gather(first_task, second_task)
+
+    assert first == {"llm": ["fresh db value"]}
+    assert second == {"llm": ["fresh db value"]}
+    assert load_calls == 1
+
+
 # =============================================================================
 # QueryRewriter Mocking & Tests
 # =============================================================================
@@ -93,7 +284,6 @@ class MockLLM(Runnable):
         return MockStructuredChain(self.response_content)
 
 
-@pytest.mark.asyncio
 async def test_query_rewriter_rewrite(monkeypatch: pytest.MonkeyPatch) -> None:
     # Mock get_llm_model to return MockLLM
     mock_response = "What is the capital of France?"
@@ -117,7 +307,6 @@ async def test_query_rewriter_rewrite(monkeypatch: pytest.MonkeyPatch) -> None:
     assert res_with_history == mock_response
 
 
-@pytest.mark.asyncio
 async def test_query_rewriter_expand_structured(monkeypatch: pytest.MonkeyPatch) -> None:
     # 1. Test structured output path
     mock_structured_response = ExpandedQueries(
@@ -136,7 +325,6 @@ async def test_query_rewriter_expand_structured(monkeypatch: pytest.MonkeyPatch)
     assert "RAG definition" in expanded
 
 
-@pytest.mark.asyncio
 async def test_query_rewriter_expand_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     # 2. Test fallback text output path
     mock_text_response = (

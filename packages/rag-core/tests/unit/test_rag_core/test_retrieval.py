@@ -479,3 +479,43 @@ async def test_retrieve_multi_knowledge_chunks_with_multiple_queries(monkeypatch
     # The result should be deduplicated (only 1 retrieved chunk in results)
     assert len(results) == 1
     assert results[0].chunk_id == "chunk_123"
+
+
+async def test_retrieve_knowledge_chunks_with_multiple_queries(monkeypatch: pytest.MonkeyPatch) -> None:
+    kb_id = uuid4()
+    embedding_config = KnowledgeEmbeddingConfig(model="test-embedding-model", distance=EmbeddingDistanceMetric.COSINE)
+    seen_queries: list[str] = []
+
+    class FakeVectorStore:
+        async def asimilarity_search_with_score(
+            self, query: str, k: int, filter: qmodels.Filter
+        ) -> list[tuple[Document, float]]:
+            seen_queries.append(query)
+            return [
+                (
+                    Document(
+                        page_content=f"content for {query}",
+                        metadata={
+                            "chunk_id": f"chunk_{len(seen_queries)}",
+                            "doc_id": "doc_123",
+                            "knowledge_id": str(kb_id),
+                        },
+                    ),
+                    0.9,
+                )
+            ]
+
+    async def fake_get_knowledge_vector_store(config):
+        return FakeVectorStore(), "collection_name", "hash_val"
+
+    monkeypatch.setattr(search, "get_knowledge_vector_store", fake_get_knowledge_vector_store)
+
+    results = await retrieve_knowledge_chunks(
+        query=["query variation 1", "query variation 2"],
+        knowledge_base_id=kb_id,
+        embedding_config=embedding_config,
+        limit=5,
+    )
+
+    assert seen_queries == ["query variation 1", "query variation 2"]
+    assert [result.content for result in results] == ["content for query variation 1", "content for query variation 2"]

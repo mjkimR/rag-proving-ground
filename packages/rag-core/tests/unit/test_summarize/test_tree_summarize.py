@@ -20,7 +20,6 @@ class MockLLM:
         return MockResponse()
 
 
-@pytest.mark.asyncio
 async def test_tree_summarizer_empty_input() -> None:
     llm = MockLLM([])
     summarizer = TreeSummarizer(llm=cast(Any, llm), model_name="gpt-4o-mini")
@@ -29,7 +28,6 @@ async def test_tree_summarizer_empty_input() -> None:
     assert len(llm.calls) == 0
 
 
-@pytest.mark.asyncio
 async def test_tree_summarizer_single_chunk_no_recursion() -> None:
     # A single chunk that fits in context window should only invoke the LLM once.
     llm = MockLLM(["Final merged summary"])
@@ -42,7 +40,6 @@ async def test_tree_summarizer_single_chunk_no_recursion() -> None:
     assert "Summary target" in llm.calls[0]
 
 
-@pytest.mark.asyncio
 async def test_tree_summarizer_repacking_chunks() -> None:
     # Set a small context window of 200 tokens
     llm = MockLLM(["Summary 1", "Summary 2", "Final response"])
@@ -62,7 +59,6 @@ async def test_tree_summarizer_repacking_chunks() -> None:
     assert len(packed) > 0
 
 
-@pytest.mark.asyncio
 async def test_tree_summarizer_oversized_chunk_split() -> None:
     # Set a tiny context window so that a long chunk must be split.
     llm = MockLLM(["Summary part 1", "Summary part 2", "Final response"])
@@ -85,7 +81,6 @@ async def test_tree_summarizer_oversized_chunk_split() -> None:
     assert len(packed) > 1
 
 
-@pytest.mark.asyncio
 async def test_tree_summarizer_hierarchical_recursion() -> None:
     # We want exactly 2 blocks in Level 1, then 1 block in Level 2.
     responses = ["Summary Block A", "Summary Block B", "Final Hierarchical Response"]
@@ -139,7 +134,6 @@ def test_tree_summarizer_fallback_token_counter() -> None:
     assert summarizer_ko._count_tokens("abcd안녕") == 4
 
 
-@pytest.mark.asyncio
 async def test_tree_summarizer_fail_fast_compression_check() -> None:
     # If the LLM summaries are longer than or equal to the input block lengths,
     # the fail-fast check must trigger immediately and raise a ValueError.

@@ -6,23 +6,29 @@ from app.features.storage.file_attachments.schemas import (
     FileAttachmentPatch,
     FileAttachmentPut,
     FileAttachmentRead,
+)
+from app.features.storage.file_attachments.usecases.bind import BindFileToSessionUseCase
+from app.features.storage.file_attachments.usecases.crud import (
+    CreateFileAttachmentUseCase,
+    DeleteFileAttachmentUseCase,
+    GetFileAttachmentUseCase,
+    GetMultiFileAttachmentUseCase,
+    PatchFileAttachmentUseCase,
+    PutFileAttachmentUseCase,
+)
+from app.features.storage.file_attachments.usecases.upload import UploadFileAttachmentUseCase
+from app.features.storage.session_file_attachments.schemas import (
     SessionFileAttachmentCreate,
     SessionFileAttachmentPatch,
     SessionFileAttachmentPut,
     SessionFileAttachmentRead,
 )
-from app.features.storage.file_attachments.usecases.crud import (
-    CreateFileAttachmentUseCase,
+from app.features.storage.session_file_attachments.usecases.crud import (
     CreateSessionFileAttachmentUseCase,
-    DeleteFileAttachmentUseCase,
     DeleteSessionFileAttachmentUseCase,
-    GetFileAttachmentUseCase,
-    GetMultiFileAttachmentUseCase,
     GetMultiSessionFileAttachmentUseCase,
     GetSessionFileAttachmentUseCase,
-    PatchFileAttachmentUseCase,
     PatchSessionFileAttachmentUseCase,
-    PutFileAttachmentUseCase,
     PutSessionFileAttachmentUseCase,
 )
 from app_layer_base.base.deps.params.page import PaginationParam
@@ -42,11 +48,11 @@ router = APIRouter(tags=["FileAttachment"], dependencies=[])
     response_model=FileAttachmentRead,
 )
 async def upload_file_attachment(
+    use_case: Annotated[UploadFileAttachmentUseCase, Depends()],
     file: UploadFile = File(...),  # noqa: B008
 ):
     """Phase 1: Upload raw file, check for deduplication, and return metadata."""
-    # Placeholder implementation
-    raise NotImplementedError("Phase 1 upload is not implemented yet.")
+    return await use_case.execute(file)
 
 
 # Phase 2: Bind to session
@@ -58,10 +64,10 @@ async def upload_file_attachment(
 async def bind_file_to_session(
     thread_id: str,
     binding_in: SessionFileAttachmentCreate,
+    use_case: Annotated[BindFileToSessionUseCase, Depends()],
 ):
     """Phase 2: Bind file to session and trigger async pipeline processing."""
-    # Placeholder implementation
-    raise NotImplementedError("Phase 2 binding is not implemented yet.")
+    return await use_case.execute(thread_id, binding_in)
 
 
 # FileAttachment CRUD

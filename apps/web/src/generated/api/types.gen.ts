@@ -918,6 +918,10 @@ export type KnowledgeBaseDocumentCreate = {
      */
     status?: KnowledgeBaseDocumentStatus;
     /**
+     * The processing priority/queue of the document.
+     */
+    priority?: TaskPriority;
+    /**
      * File Hash
      *
      * The SHA-256 hash of the file content.
@@ -986,6 +990,10 @@ export type KnowledgeBaseDocumentPut = {
      */
     status?: KnowledgeBaseDocumentStatus;
     /**
+     * The processing priority/queue of the document.
+     */
+    priority?: TaskPriority;
+    /**
      * File Hash
      *
      * The SHA-256 hash of the file content.
@@ -1029,6 +1037,10 @@ export type KnowledgeBaseDocumentRead = {
      * The status of document processing.
      */
     status?: KnowledgeBaseDocumentStatus;
+    /**
+     * The processing priority/queue of the document.
+     */
+    priority?: TaskPriority;
     /**
      * File Hash
      *
@@ -2155,7 +2167,7 @@ export type SessionFileAttachmentCreate = {
      *
      * The purpose of the attachment (e.g. temp_kb, vision, audio).
      */
-    purpose: string;
+    purpose?: string | null;
     /**
      * Status
      *
@@ -2237,7 +2249,7 @@ export type SessionFileAttachmentPut = {
      *
      * The purpose of the attachment (e.g. temp_kb, vision, audio).
      */
-    purpose: string;
+    purpose?: string | null;
     /**
      * Status
      *
@@ -2287,7 +2299,7 @@ export type SessionFileAttachmentRead = {
      *
      * The purpose of the attachment (e.g. temp_kb, vision, audio).
      */
-    purpose: string;
+    purpose?: string | null;
     /**
      * Status
      *
@@ -2488,6 +2500,11 @@ export type TableGridData = {
      */
     cells: Array<TableCellData>;
 };
+
+/**
+ * TaskPriority
+ */
+export type TaskPriority = 'critical' | 'high' | 'medium' | 'low' | 'lowest';
 
 /**
  * ValidationError
@@ -4267,6 +4284,27 @@ export type GetSynonymMapsApiV1SynonymsGetData = {
          * limit for pagination
          */
         limit?: number;
+        /**
+         * Search
+         *
+         * Filter by keyword, description, or synonyms containing the search string (case-insensitive)
+         */
+        search?: string | null;
+        /**
+         * Order By
+         *
+         * **Order by options:**
+         *
+         * * `created_at`: Sort by creation time
+         * * `updated_at`: Sort by update time
+         * * `keyword_order`: Sort by keyword
+         *
+         * **Usage:**
+         * * Prefix with `-` for descending order (e.g., `-title`).
+         * * Multiple fields can be separated by commas (e.g., `-created_at,title`).
+         * * **Default:** `-created_at`
+         */
+        order_by?: string | null;
     };
     url: '/api/v1/synonyms';
 };

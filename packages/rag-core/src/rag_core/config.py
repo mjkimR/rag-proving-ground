@@ -106,6 +106,30 @@ def get_redis_settings() -> RedisSettings:
     return RedisSettings()
 
 
+class SynonymCacheSettings(BaseSettings):
+    """Settings for shared synonym expansion cache."""
+
+    enabled: bool = Field(default=True, validation_alias="SYNONYM_CACHE_ENABLED")
+    local_fallback_ttl_seconds: int = Field(
+        default=10,
+        ge=1,
+        validation_alias="SYNONYM_CACHE_LOCAL_FALLBACK_TTL_SECONDS",
+    )
+    version_check_ttl_seconds: int = Field(
+        default=5,
+        ge=1,
+        validation_alias="SYNONYM_CACHE_VERSION_CHECK_TTL_SECONDS",
+    )
+    namespace: str = Field(default="rag_core", validation_alias="SYNONYM_CACHE_NAMESPACE")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_synonym_cache_settings() -> SynonymCacheSettings:
+    return SynonymCacheSettings()
+
+
 class ColPaliSettings(BaseSettings):
     """Settings for ColPali serving engine (Infinity)."""
 
