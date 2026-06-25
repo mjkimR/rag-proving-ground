@@ -6,7 +6,7 @@
 
 ## 1. 핵심 설계 원칙 (Core Principles)
 
-- **비동기식 파이프라인 (Asynchronous Ingestion)**: 문서 파싱 및 임베딩 등 부하가 큰 인제스션 과정은 API 프로세스와 분리하고 Redis/FastStream Worker를 통해 비동기로 처리한다.
+- **비동기식 파이프라인 (Asynchronous Ingestion)**: 문서 파싱 및 임베딩 등 부하가 큰 인제스션 과정은 API 프로세스와 분리하고 Redis/Taskiq Worker를 통해 비동기로 처리한다.
 - **모듈화 및 확장성 (Modularity & Extensibility)**: Parsing, Chunking, Embedding, Retrieval, Reranking, Generation의 각 단계를 느슨하게 결합하여 어댑터 패턴으로 손쉽게 교체 가능하도록 설계한다.
 - **점진적 고도화 (Incremental Complexity)**: 안정적인 텍스트 기반 Dense Baseline을 먼저 구축한 뒤, 하이브리드 검색, ColPali 사이드카, 이미지/테이블 처리, 평가(Evaluation) 파이프라인 순서로 확장한다.
 
@@ -26,7 +26,7 @@
 
 ### 2.2 디렉토리 레이아웃
 실제 프로젝트는 `uv` 워크스페이스 기반 모노레포 구조로 관리된다:
-- `apps/backend/`: FastAPI 애플리케이션 및 FastStream 워커
+- `apps/backend/`: FastAPI 애플리케이션 및 Taskiq 워커
 - `apps/web/`: React 19 + Vite + TypeScript 프론트엔드
 - `packages/rag-core/`: 공유 라이브러리 (파서 어댑터, 청킹 전략, 임베딩, 벡터스토어 클라이언트 등)
 - `packages/graphs/`: LangGraph 기반 RAG 파이프라인 정의
@@ -39,82 +39,69 @@
 
 ### 3.1 문서 파싱 (Parsing)
 * **기본 설계**: `Docling`을 기본 Baseline 파서로 삼되, 다양한 문서 포맷(PDF, Web, 마크다운)과 복잡한 레이아웃 대응을 위해 확장 가능한 플러그인 어댑터 구조를 확보한다.
-* **현재 상태 및 한계**:
-  * 파서 인터페이스 레이어가 Docling에 다소 종속되어 설계되어 있어 중립성 확보 필요.
-
+* **현재 상태 및 완료 사항**:
+  * **파서 인터페이스 레이어 중립화 완료**: `rag_core/adapters/parser` 아래에 어댑터 패턴 및 레지스트리 구조를 확립하였으며, `Docling`, `PyMuPDF4LLM`, `PDFOxide`, `Native Text` 등 다양한 파서를 동적으로 생성 및 스위칭하여 호출할 수 있도록 개선 완료.
+  * **중첩 구조(Nested Elements) 및 다중 바운딩 박스(Multi-BBox) 지원**: 파서가 추출한 DOM 구조 및 bounding box, `provenance` 정보들을 유실 없이 묶어서 관리할 수 있도록 `ParsedDocument` IR 및 데이터 스키마 수정 완료.
 * **구체적 실행 태스크 (Next Actions)**:
-  * **파서 인터페이스 레이어 중립화**: Docling 종속적인 부분을 분리하고, 추후 상용 파서(예: 업스테이지 Document AI 등)를 플러그인 형태로 붙일 수 있도록 어댑터 패턴 고도화.
-  * **중첩 구조(Nested Elements) 지원**: Element 하위에 Element가 속하는 계층 구조를 보존할 수 있도록 `ParsedDocument` IR 및 데이터 스키마 수정.
-  * **다중 바운딩 박스(Multi-BBox) 처리**: 하나의 논리적 요소(예: 두 페이지에 걸쳐 있는 표/텍스트)가 여러 영역에 걸쳐 있을 때, 해당 `provenance` 정보들을 유실 없이 묶어서 처리할 수 있도록 보완.
-  * **pymupdf4llm 기반 경량 고속 파서 개발 (제외)**: 해당 기능은 별도 Repository로 격리하여 컨테이너 서비스 형태로 연동할 예정이므로 본 mono-repo 작업에서는 제외함.
-  * **웹 및 특수 파서 추가**: 웹 페이지 및 동적 콘텐츠 파싱을 위한 `Firecrawl` 어댑터 구현 및 테이블/이단 배치 문서 고도화를 위한 `LlamaParse`, `Marker-PDF` 검토 및 통합.
+  * **웹 및 특수 파서 추가**: 웹 페이지 및 동적 콘텐츠 파싱을 위한 `Firecrawl` 어댑터 구현 및 테이블/이단 배치 문서 고도화를 위한 `LlamaParse` 검토 및 통합.
 
 ### 3.2 청킹 (Chunking)
 * **기본 설계**: 단순 글자 수 기반 분할을 지양하고, 파서의 구조 분석 결과를 최대한 활용하는 **Semantic-First** 청킹을 수행한다.
-* **현재 상태 및 한계**:
-  * Heading 구조를 활용한 상위 문맥 전달(Breadcrumb)이 구현되었으나 토큰 낭비가 존재함.
-  * 테이블과 이미지 요소에 대한 복잡도 판별 및 필터링 기능이 미비함.
+* **현재 상태 및 완료 사항**:
+  * Heading 구조를 활용한 상위 문맥 전달(Breadcrumb) 주입 완료.
+  * 글머리 기호 및 각주 등 잘게 쪼개지기 쉬운 조각을 하나로 묶는 Sibling Merging 구현 완료.
+  * 임베딩 모델의 한계 토큰을 초과하지 않도록 단락/문서 단위로 방어적으로 분할하는 `RAGFallbackTextSplitter` 구현 완료.
 * **구체적 실행 태스크 (Next Actions)**:
-  * **Breadcrumb 노이즈 제거**: `제1장`, `1.`, `제2조` 등 불필요한 번호성 prefix를 정규식 등으로 압축/정리하여 검색 노이즈와 토큰 낭비를 줄임.
+  * **Breadcrumb 노이즈 제거**: 번호성 prefix(`제1장`, `1.`, `제2조` 등)를 정규식 등으로 압축 정리하여 토큰 낭비 방지.
   * **테이블/이미지 복잡도 판별기(Classifier) 도입**:
-    * 단순한 표는 파싱 텍스트(HTML/Markdown) 또는 YAML/JSON 형태의 구조 데이터로 변환해 처리 (`FT-RAG` 접근법 적용).
-    * 복잡한 표/차트는 텍스트 파싱 대신 이미지 캡처/Vision 사이드카로 전달할 수 있는 분류 로직 설계.
-    * 작은 아이콘, 장식용 그래픽 등 무의미한 이미지를 필터링하여 제외시키는 판단 로직 구현.
-  * **테이블/이미지 캡션 추출 및 바인딩**: 표/이미지 주변의 텍스트 맥락을 캡션 정보로 추출하여 해당 요소의 메타데이터 혹은 청크 텍스트에 포함시키는 결합 구조 설계.
-  * **Advanced Chunking 연구**: 기본 Semantic Chunking 외에 장기적으로 `Agentic Chunking`(LLM 기반 적응형 분할) 및 `Proposition-based Chunking`(명제 단위 분할) 도입 검토.
+    * 단순한 표는 파싱 텍스트(HTML/Markdown/JSON) 형태로 변환해 처리(`FT-RAG` 접근법).
+    * 복잡한 표/차트는 비전 렌더링 이미지 검색으로 라우팅할 수 있는 복잡도 분류 판별 로직 및 작은 아이콘/데코용 이미지 필터링 로직 구현.
+  * **테이블/이미지 캡션 추출 및 바인딩**: 표/이미지 주변의 문맥을 캡션 정보로 추출해 해당 요소의 메타데이터에 포함시키는 결합 구조 설계.
+  * **Advanced Chunking 연구**: Agentic Chunking(LLM 기반 적응형 분할) 및 Proposition-based Chunking(명제 단위 분할) 도입 검토.
 
 ### 3.3 임베딩 및 검색 (Embedding & Retrieval)
 * **기본 설계**: `Dense + Lexical Sparse (BM25)` 하이브리드 검색을 기본으로 삼고, 검색 품질 조율을 위해 Reranker 단계를 결합한다. 인제스션 시 다중 메타데이터를 강제 태깅하여 정교한 하이브리드 검색 필터링을 지원한다.
-* **현재 상태 및 한계**:
-  * Dense Baseline 위주로 안정화되어 있으며, Sparse/Hybrid 구성은 스키마 단계 수준에 머물러 있음.
-  * Neural Sparse Model(예: SPLADE 등) 검토가 있었으나, **구축 및 서버 서빙 비용 대비 성능 향상 폭이 미미하여 최종 배제 결정**.
+* **현재 상태 및 완료 사항**:
+  * **Kiwipiepy 형태소 분석기 기반 한국어 BM25 연동 완료**: 한국어 고유 명사와 조사를 정밀하게 발라내기 위해 Kiwi 형태소 분석기를 내장한 `ko-kiwi-bm25` sparse embedding 모듈을 구현하여 Qdrant의 sparse vector 인덱스와 성공적으로 연동 완료.
+  * **하이브리드 검색(Hybrid Search) & Reranker 통합 완료**: Dense 검색과 Sparse 검색 결과를 결합하고, LiteLLM Reranker(또는 외부 Reranker)를 통과시켜 검색 점수를 재계산하는 하이브리드 검색 파이프라인 완성.
 * **구체적 실행 태스크 (Next Actions)**:
-  * **BM25 및 한국어 형태소 분석기 연동**:
-    * 영어 및 일반 텍스트용 기본 BM25 모듈 개발.
-    * 한국어 고유 명사 및 조사 분리를 위해 경량 형태소 분석기(Kiwipiepy 등)를 내장한 BM25 Retrieval 모듈 개발 및 Qdrant 연동.
-  * **언어별 처리 전략 패턴화 (Language Strategy Pattern)**: `synonym_expander`의 정규식 바운더리 체크, `tree_summarize`의 한글 토큰 수 계산 및 형태소 분석기 연동 등, 코드베이스 전반에 산재해 있는 한글(한국어) 분기 처리 및 언어별 별도 로직을 전략 패턴(Strategy Pattern)으로 구조화하여 다국어 확장성 확보.
-  * **Hybrid Search & Reranker 검증**: Dense와 BM25 검색 결과를 결합하는 하이브리드 쿼리 아키텍처를 구현하고, 다중 검색 점수 표준화를 위해 LiteLLM Reranker 모듈을 필수 결합하여 품질 측정.
-  * **다중 표현 인덱싱 (Summary + Raw Text)**: LLM으로 요약한 문서/페이지/섹션 요약본 벡터로 검색을 수행하고, 실제 LLM 컨텍스트에는 원문(Raw Text)을 매핑하여 입력하는 Parent-Child 다중 벡터 매핑 구조 도입.
-  * **메타데이터 강제 태깅 (Tagging) 체계 구축**: 인제스션 시 생성일(`timestamp`), 문서 버전, 카테고리 등 메타데이터를 필수 태깅하도록 강제하여 최신성 가중치 부여 및 필터링 쿼리에 활용.
+  * **언어별 처리 전략 패턴화 (Language Strategy Pattern)**: `synonym_expander`의 정규식 바운더리 체크, 한글 토큰 수 계산 및 형태소 분석기 연동 등, 코드베이스 전반에 산재해 있는 한국어 분기 처리 및 언어별 별도 로직을 전략 패턴(Strategy Pattern)으로 구조화하여 다국어 확장성 확보.
+  * **다중 표현 인덱싱 (Summary + Raw Text)**: 전체 문서/섹션 요약본 벡터로 1차 검색을 수행하고, 생성 모델 입력에는 캡슐화된 원문(Raw Text)을 전달하는 다중 표현(Parent-Child) 매핑 구조 구현.
+  * **메타데이터 필터링 최적화**: 인제스션 시 생성일(`timestamp`), 문서 버전, 카테고리 등 메타데이터를 필수 태깅하도록 보완하고 필터링 쿼리에 적극 활용.
 
 ### 3.4 검색 보조 및 다중 모달리티 (Retrieval Support & Vision)
 * **기본 설계**: ColPali(Vision RAG) 모델을 메인 검색으로 전체 적용하면 서빙 비용과 LLM 컨텍스트 비용이 폭증하므로, 특정 조건에서만 켜는 **사이드카(Sidecar) 검색 보조** 방식으로 사용한다.
-* **현재 상태 및 한계**:
-  * ColPali를 활용하는 실험적인 기초 코드는 있으나, 기존 전통 텍스트 RAG 파이프라인과의 정교한 결합 모델이 정의되지 않음.
+* **현재 상태 및 완료 사항**:
+  * ColPali를 활용하여 Qdrant에 인덱싱 및 로드하는 `colpali_qdrant.py` 어댑터가 구현되어 있어 실증 가능.
 * **구체적 실행 태스크 (Next Actions)**:
   * **ColPali 사이드카 하이브리드 쿼리 설계**:
-    1. ColPali를 사용해 질의와 매칭되는 가장 연관된 페이지(Page Image) 후보군을 먼저 검색함.
-    2. 생성용 LLM 입력 시에는 이미지 전체를 밀어 넣는 대신, 해당 페이지에 대응하는 **정규화된 파서 텍스트(Parsed Text/Page Content)**를 전달하여 토큰 비용 최소화 및 성능 안정성 확보.
+    1. ColPali를 사용해 질의와 매칭되는 가장 연관된 페이지(Page Image) 후보군을 우선 검색.
+    2. 생성용 LLM 입력 시에는 이미지 전체 대신 해당 페이지에 대응하는 정규화된 파서 텍스트(Parsed Text/Page Content)를 전달해 토큰 비용 최소화.
     3. 필요할 경우 이미지/표 스크린샷 링크를 레퍼런스 메타데이터 형태로만 추가 제공.
 
 ### 3.5 쿼리 재작성 (Query Rewrite)
 * **기본 설계**: BM25의 동의어/약어 검색 한계를 극복하기 위해 Query Rewrite 단계를 도입한다.
-* **현재 상태 및 한계**:
-  * 현재 `rag_core/query_rewrite` 폴더가 placeholder 상태로 비어 있어 구체적인 구현체 부재.
+* **현재 상태 및 완료 사항**:
+  * **Query Rewrite 모듈화 완료**: `rag_core/query_rewrite/rewriter.py`에 LiteLLM을 활용한 질의 재작성 및 확장(Conversational Rewrite / Query Expansion) 기능을 모듈화하고, 동의어/약어 사전 관리를 수행하는 `SynonymExpander` 모듈을 구현하여 `simple_rag.py` 등 실제 검색 전처리 흐름에 연동 완료.
 * **구체적 실행 태스크 (Next Actions)**:
-  * **Query Rewrite 모듈화**:
-    * LLM 기반의 질의 재작성 및 확장(Query Expansion) 기능을 LangGraph 노드 또는 Backend Retrieval 전처리 파이프라인으로 모듈화.
-    * 사전 기반의 동의어/약어 확장 및 전문 용어(Domain Term) 확장 메커니즘 연동 검토.
+  * **동의어 사전 데이터베이스 고도화**: 대형 사전 파일 또는 동적으로 편집 가능한 데이터베이스 연동 및 도메인 전문 용어(Domain Term) 확장 메커니즘 고도화.
 
 ### 3.6 요약 및 컨텍스트 보강 (Contextual Retrieval & Summarize)
 * **기본 설계**: 각 청크마다 전체 문서의 맥락을 LLM으로 생성해 덧붙이는 전통적인 Contextual Retrieval은 비용이 너무 크므로, **비용 효율적인 요약본 연동 변형 전략**을 취한다.
-* **현재 상태 및 한계**:
-  * `summarize/tree_summarize.py` 등의 LlamaIndex 트리 요약 기법이 현재 미구현 주석 상태로 존재함.
+* **현재 상태 및 완료 사항**:
+  * **트리 요약 및 타겟 요약 모듈 구현 완료**: `rag_core/summarize` 아래에 LlamaIndex 기법을 활용하여 긴 문서를 점진적으로 축약해 가며 전체 요약본을 생성하는 `TreeSummarizer`와 질문 및 청크를 조합하여 특정 요약을 수행하는 `TargetedSummarizer` 구현 완료. `summarize_agent.py`에서 실시간 서빙 중.
 * **구체적 실행 태스크 (Next Actions)**:
   * **저비용 Contextual Retrieval 파이프라인 구현**:
-    1. 인제스션 시점에 문서 전체 요약(Document Summary)을 1회 생성하여 캐싱.
-    2. 필요한 경우 페이지/섹션 단위의 부분 요약(Page Summary) 생성.
-    3. 색인 시 각 청크 텍스트에 전체 문서 요약(및 페이지 요약) 내용을 결합한 `enrichment` 텍스트 필드를 생성하여 함께 벡터 DB에 등록하거나 메타데이터로 보관.
-  * **Hierarchical Summary 생성 로직**: LlamaIndex `tree_summarize` 기법을 참고하여, 긴 문서를 점진적으로 축약하는 자체 트리 요약 알고리즘 또는 외부 래퍼 구현.
+    1. 인제스션 시점에 문서 전체 요약을 1회 생성하여 캐싱.
+    2. 색인 시 각 청크 텍스트에 전체 문서 요약(및 페이지 요약) 내용을 결합한 `enrichment` 텍스트 필드를 생성하여 함께 벡터 DB에 등록하거나 메타데이터로 보관하여 검색 정확도 상향.
 
 ### 3.7 프롬프트, 인용 및 가드레일 (Prompt, Citation, Guardrails)
 * **기본 설계**: 프롬프트 관리 및 인용(Citation) 기능은 일차적으로 LangGraph 내부의 프롬프트 엔지니어링으로 처리하며, 가드레일(Guardrails)은 실험 단계에서는 복잡도를 낮추기 위해 제외한다.
-* **현재 상태 및 한계**:
-  * `simple_rag.py` 등 그래프 파일 내부에 프롬프트 템플릿과 `[cite:n]` 지시문이 하드코딩되어 있음.
-  * 유전 알고리즘 기반의 프롬프트 자동 개선 구조에 대한 관심이 있으나 구체적인 관리 체계는 없음.
+* **현재 상태 및 완료 사항**:
+  * **인용 후처리 검증 완료**: LLM이 답변에서 사용한 `[cite:n]` 인용 번호가 실제 전달된 Reference 문서 범위 내에 정확히 매칭 및 존재하는지 후처리 검증하는 `CitationValidator` 모듈 구현 완료.
+  * **실행 안정을 위한 Safety Gate 구현 완료**: 비동기 문서 인제스션이 끝나지 않은 상황(`PENDING`/`PROCESSING` 상태)에서 그래프 실행을 시도할 경우, 이를 감지하고 안전하게 실행을 일시 블로킹하는 `safety_gate` 노드 구현 완료.
 * **구체적 실행 태스크 (Next Actions)**:
   * **Prompt Registry 구축**: Graph 내부에 흩어진 프롬프트 템플릿을 통합 관리 및 버전 관리(Versioning)할 수 있는 Registry 모듈 분리.
-  * **Citation Validation 모듈 구현**: LLM이 답변에서 사용한 `[cite:n]` 인용 번호가 실제 전달된 Reference 문서 범위 내에 존재하는지, 올바르게 매핑되었는지 후처리 검증하는 로직 추가.
   * **프롬프트 최적화 실험**: 평가 체계가 완비된 후, 유전 알고리즘 또는 프롬프트 자동 튜닝 기법을 적용할 수 있는 구조 실험(장기 과제).
 
 ---
@@ -122,14 +109,11 @@
 ## 4. 평가 및 실험 전략 (Evaluation)
 
 * **기본 방향**: 거대하고 무거운 AutoRAG 프레임워크는 프로덕션 런타임/서빙 파이프라인에서 배제하고, **Ragas**와 **경량 자체 평가 러너(Evaluation Runner)**의 조합으로 빠른 피드백 루프를 구축한다. 단, AutoRAG는 `experiments/` 내의 오프라인 모듈 벤치마크 및 탐색 목적으로만 한정하여 활용한다.
-* **현재 상태 및 한계**:
-  * `rag_core/evaluation` 폴더가 placeholder 상태로 비어 있음.
+* **현재 상태 및 완료 사항**:
+  * **Ragas 및 DeepEval 통합 평가 프레임워크 구축 완료**: `packages/rag-eval` 패키지 하위에 `deepeval_evaluator.py`, `ragas_evaluator.py`, `runner.py`를 구현하여 RAGAS 및 DeepEval의 성능 메트릭(Context Recall, Precision, Faithfulness, Answer Relevance 등)을 일괄적으로 기록 및 벤치마크할 수 있는 평가 런타임 수립.
 * **구체적 실행 태스크 (Next Actions)**:
-  * **자체 경량 평가 파이프라인 개발**:
-    * `평가 데이터셋(질문, 기대 답변, 레퍼런스 문서)` -> `Retrieval 실행` -> `Generation 실행` -> `Ragas/LLM Judge 평가` -> `Metric 및 비용/지연 시간 기록` 루프 구현.
-  * **평가 프레임워크 이중화 검토**: `Ragas` 기반 평가 외에, 검증 신뢰도 확보를 위해 `DeepEval`을 추가 검증 도구(Metric Validation)로 연동할 수 있도록 설계.
-  * **자체 테스트셋 구축**:
-    * 단순 공개 데이터셋 대신 프로젝트에서 실제 타겟으로 삼는 문서 유형(PDF, HTML, 정형 보고서, 표/이미지가 많은 문서 등)으로 50~100개 내외의 한국어/영어 자체 평가 데이터셋 구성.
+  * **자체 테스트셋 구성 고도화**:
+    * 단순 공개 데이터셋 대신 프로젝트에서 실제 타겟으로 삼는 문서 유형(PDF, HTML, 정형 보고서, 표/이미지가 많은 문서 등)으로 50~100개 내외의 한국어/영어 자체 평가 데이터셋 구성 및 정기 자동 평가 파이프라인 연동.
 
 ---
 
@@ -139,30 +123,27 @@
 
 ```mermaid
 graph TD
-    Ingestion[문서 파싱 & 인제스션 레이어] --> Hybrid[하이브리드 검색 & Reranker]
-    Hybrid --> Query[Query Rewrite & Contextual Retrieval]
-    Query --> ColPali[ColPali 사이드카 비전 검색]
+    Ingestion[문서 파싱 & 인제스션 레이어 - 완료] --> Hybrid[하이브리드 검색 & Reranker - 완료]
+    Hybrid --> Query[Query Rewrite & Contextual Retrieval - 진행중]
+    Query --> ColPali[ColPali 사이드카 비전 검색 - 대기]
     
-    Ingestion --> Eval[경량 평가 파이프라인 Ragas]
+    Ingestion --> Eval[경량 평가 파이프라인 rag-eval - 완료]
     Hybrid --> Eval
     Query --> Eval
 ```
 
 ### 5.1 문서 파싱 및 청킹 (Parsing & Chunking)
 - **테이블/이미지 전처리 및 복잡도 판별 (FT-RAG)**: 표는 YAML/JSON 구조 데이터로 변환(`FT-RAG`)하고, 무의미한 이미지는 필터링하며 복잡한 구조는 비전 모델이나 사이드카로 라우팅하는 판별 로직 구현.
-- **웹 및 특수 파서 어댑터 확장**: 웹 크롤링/동적 컨텐츠를 위한 `Firecrawl` 및 복잡한 구조 문서 파싱을 위한 `LlamaParse`/`Marker-PDF` 어댑터 플러그인 구현.
+- **웹 및 특수 파서 어댑터 확장**: 웹 크롤링/동적 컨텐츠를 위한 `Firecrawl` 및 복잡한 구조 문서 파싱을 위한 `LlamaParse` 어댑터 플러그인 구현.
 
 ### 5.2 임베딩 및 검색 (Embedding & Hybrid Search)
 - **언어별 처리 전략 패턴화 (Language Strategy Pattern)**: `synonym_expander`의 정규식 바운더리 체크, `tree_summarize`의 한글 토큰 수 계산 및 분석기 연동 등, 코드베이스 전반에 산재한 한국어 분기 처리 및 언어별 별도 로직을 전략 패턴(Strategy Pattern)으로 구조화하여 다국어 지원이 용이하도록 고도화.
-- **메타데이터 강제 태깅 체계 구축**: 인제스션 시 생성일(`timestamp`), 문서 버전, 카테고리 등의 메타데이터 필드를 강제 부여하고, 검색 쿼리에서 최신 문서 가중치 부여 및 필터링 필드로 활용.
 - **다중 표현 인덱싱 (Summary + Raw Text)**: 전체 문서/섹션 요약본 벡터로 검색을 수행하고, 실제 생성 모델 입력에는 캡슐화된 원문(Raw Text)을 전달하는 다중 표현(Parent-Child) 매핑 구조 구현.
-- **LLM 기반 쿼리 재작성 (Query Rewrite/Expansion)**: 검색 쿼리의 모호성 및 동의어 매칭 한계를 극복하기 위해 LLM을 활용한 질문 재작성 및 동의어 확장 엔진 구축.
+- **메타데이터 강제 태깅 체계 구축**: 인제스션 시 생성일(`timestamp`), 문서 버전, 카테고리 등의 메타데이터 필드를 강제 부여하고, 검색 쿼리에서 최신 문서 가중치 부여 및 필터링 필드로 활용.
 
 ### 5.3 생성, 요약 및 프롬프트 (Generation, Summarization & Prompt)
 - **저비용 Contextual Retrieval**: 문서 전체 요약을 인제스션 시점에 1회 생성하여 캐싱해 두고, 개별 청크에 메타데이터 혹은 `enrichment` 필드로 붙여 검색 매칭율을 높이는 저비용 컨텍스트 보강 기법.
-- **트리 요약 (Tree Summarize)**: LlamaIndex `tree_summarize` 기법을 참고하여 긴 문서를 점진적으로 축약해 가며 최종 문맥을 확보하는 자체 트리 요약 알고리즘 또는 외부 래퍼 구현.
 - **Prompt Registry**: 분산된 프롬프트 템플릿을 통합 관리하고 버전 관리를 용이하게 하기 위한 프롬프트 레지스트리 모듈 분리.
-- **인용 검증 (Citation Validation)**: LLM이 답변에서 생성한 `[cite:n]` 인용 기호가 실제 참고한 원문 범위 내에 존재하는지, 왜곡은 없는지 유효성을 후처리 검증하는 모듈 구현.
 
 ### 5.4 에이전틱 흐름 및 가드레일 (Agentic RAG & Guardrails - 확장 연구)
 - **유전 알고리즘 기반 프롬프트 진화 (Prompt Evolution)**: Ragas 점수가 가장 높게 나오는 최적의 프롬프트 지시문 조합을 유전 알고리즘(선택, 교차, 변이)을 통해 LLM이 스스로 찾아내는 프롬프트 튜닝 기법.
@@ -188,7 +169,6 @@ graph TD
   * 새로운 마일스톤이 도달하거나 설계가 업데이트될 때마다 이 문서의 텍스트와 5번 섹션의 백로그 상태를 갱신한다.
 * **아키텍처 결정 기록 (ADR: Architecture Decision Record)**:
   * 프로젝트 진행 중 특정 아키텍처 결정이나 설계 변경, 그리고 그에 따른 **고민의 과정 및 선택 근거**는 이 문서에 계속 이어 쓰지 않고 별도의 기록으로 격리하여 저장한다.
-  * `docs/references/adr/` 폴더 내에 마크다운 문서 형식으로 아카이빙한다.
-  * **ADR 문서 명명 규칙**: `docs/references/adr/{NUM}-{slug}.md` (예: `docs/references/adr/0001-neural-sparse-exclusion.md`, `docs/references/adr/0002-colpali-sidecar-hybrid.md`)
+  * `docs/adr/` 폴더 내에 마크다운 문서 형식으로 아카이빙한다.
+  * **ADR 문서 명명 규칙**: `docs/adr/{NUM}-{slug}.md` (예: `docs/adr/0001-neural-sparse-exclusion.md`, `docs/adr/0002-colpali-sidecar-hybrid.md`)
   * 이를 통해 종합 문서는 항상 정돈된 '최신 설계서' 지위를 유지하고, 히스토리는 ADR을 통해 추적성을 보장한다.
-

@@ -36,7 +36,7 @@
 ### 2.2 이력 관리 및 비동기 작업 테이블 (ReadOnly / 비동기 큐 레이어)
 
 * **이력 로그 (Read-Only)**: `KnowledgeParsingHistory`, `KnowledgeChunkingHistory`, `KnowledgeEmbeddingHistory` (모니터링 및 비용 추적용 감사 로그)
-* **비동기 Job (TODO)**: `KnowledgeParsingJob`, `KnowledgeChunkingJob`, `KnowledgeEmbeddingJob` (태스크 큐 백엔드 연동용 심볼)
+* **비동기 Job**: `KnowledgeParsingJob`, `KnowledgeChunkingJob`, `KnowledgeEmbeddingJob` (태스크 큐 백엔드 연동용 심볼. 실제 비동기 처리는 Taskiq의 Redis backend를 활용하여 분산 처리)
 
 ---
 
@@ -67,7 +67,7 @@
 | 설정 변경 유형 | 예상 부하 및 대응 전략 |
 | --- | --- |
 | **청킹 설정만 수정**<br><br>(예: Chunk Size 변경) | **Low Load**<br><br>비동기 작업 큐 시스템 없이도 즉각적인 일괄 재처리 허용 가능 |
-| **파싱 설정 수정**<br><br>(예: OCR 엔진 변경) | **High Load**<br><br>동기 처리 시 타임아웃 위험. 비동기 Job 시스템 완비 후 개방 권장 |
+| **파싱 설정 수정**<br><br>(예: OCR 엔진 변경) | **High Load**<br><br>동기 처리 시 타임아웃 위험. 비동기 Taskiq Job 시스템 완비 후 개방 권장 |
 
 ### 4.2 사용자 선택 옵션
 

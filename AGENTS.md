@@ -14,7 +14,7 @@ Monorepo for building, evaluating, and serving Retrieval-Augmented Generation (R
 
 ## Workspace Map
 
-- `apps/backend`: FastAPI & FastStream worker. Feature code: `app/features`, worker orchestration: `app/worker`.
+- `apps/backend`: FastAPI & Taskiq worker. Feature code: `app/features`, worker orchestration: `app/worker`.
 - `apps/web`: React 19, Vite, TypeScript, CopilotKit UI. Use client under `src/generated/api`.
 - `packages/rag-core`: Shared RAG primitives (parsing, chunking, retrieval, embedding, generation, guardrails, adapters, config).
 - `packages/graphs`: LangGraph RAG pipelines (within the Aegra server). Depends on `rag-core` (do not duplicate parsing, embedding, or vector-store logic).
@@ -46,7 +46,7 @@ Monorepo for building, evaluating, and serving Retrieval-Augmented Generation (R
 
 - **Structure**: API routes: `app/features/**/api/`. Business flow: `usecases/`. Persistence: `repos.py`. Transport schemas: `schemas.py`. DB models: `models.py`.
 - **Worker**: Entry points: `app/worker/`. Run with `just worker` or `just dev backend`.
-- **CPU/GPU Decoupling**: Run heavy CPU/GPU work outside FastAPI/FastStream. Workers orchestrate; parser engines belong under [infra/services](file:///home/mj/projects/rag-proving-ground/infra/services/docker-compose.yml), model runtimes under [infra/models](file:///home/mj/projects/rag-proving-ground/infra/models/docker-compose.yml), and backend code calls them over network APIs. Never import heavy model/parser frameworks directly in API/worker. `tiktoken` is allowed.
+- **CPU/GPU Decoupling**: Run heavy CPU/GPU work outside FastAPI/Taskiq. Workers orchestrate; parser engines belong under [infra/services](file:///home/mj/projects/rag-proving-ground/infra/services/docker-compose.yml), model runtimes under [infra/models](file:///home/mj/projects/rag-proving-ground/infra/models/docker-compose.yml), and backend code calls them over network APIs. Never import heavy model/parser frameworks directly in API/worker. `tiktoken` is allowed.
 - **API Changes**: Run `just gen-ui-api` and commit generated client changes after backend schema edits.
 
 ### Frontend (`apps/web`)
