@@ -6,6 +6,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import aiofiles
+import aiofiles.os
+
 from rag_eval.base import BaseEvaluator
 from rag_eval.schemas import EvalCase, EvalCaseResult, EvalDataset, EvalRunResult
 
@@ -137,9 +140,9 @@ class EvaluationRunner:
         # 4. Save output to file if specified
         if output_path:
             out_p = Path(output_path)
-            out_p.parent.mkdir(parents=True, exist_ok=True)
-            with open(out_p, "w", encoding="utf-8") as f:
-                f.write(run_result.model_dump_json(indent=2))
+            await aiofiles.os.makedirs(out_p.parent, exist_ok=True)
+            async with aiofiles.open(out_p, "w", encoding="utf-8") as f:
+                await f.write(run_result.model_dump_json(indent=2))
             logger.info(f"Evaluation results successfully saved to {output_path}")
 
         return run_result

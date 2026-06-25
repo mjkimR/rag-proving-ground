@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import type { ParsedElement, BoundingBox, AssetRef, TableGridData, TableCellData } from "@/generated/api/types.gen";
 import { ChevronRight, ChevronDown, Folder, FileText, Table, Image, Code } from "lucide-react";
+import { sanitizeHtml } from "../lib/sanitize";
 
 export type { ParsedElement, BoundingBox, AssetRef, TableGridData, TableCellData };
 
@@ -252,7 +253,7 @@ export function ElementDetails({ element, onCellHover }: ElementDetailsProps) {
       {element.format === "html" && element.content && (
         <div className="html-element-render-container" style={{ marginTop: "12px", marginBottom: "12px" }}>
           <strong>HTML Preview:</strong>
-          <div className="html-element-render" dangerouslySetInnerHTML={{ __html: element.content }} />
+          <div className="html-element-render" dangerouslySetInnerHTML={{ __html: sanitizeHtml(element.content) }} />
         </div>
       )}
       {element.type === "image" && element.asset && (

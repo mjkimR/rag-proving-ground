@@ -5,6 +5,8 @@
   ],
   "graphs": {
     "simple_chat": "../../packages/graphs/src/rag_graphs/simple_chat.py:graph",
-    "simple_rag": "../../packages/graphs/src/rag_graphs/simple_rag.py:graph"
+    "simple_rag": "../../packages/graphs/src/rag_graphs/simple_rag.py:graph",
+    "summarize_agent": "../../packages/graphs/src/rag_graphs/summarize_agent.py:graph"
   }
 }
+

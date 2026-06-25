@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from app.features.providers.document_parsers.models import DocumentParser
+from app.features.providers.document_parsers.schemas import DocumentParserCreate
 from app.features.providers.document_parsers.services import DocumentParserService
 from app.features.providers.routes.cache import refresh_document_parsers_cache
 from app_layer_base.base.usecases.base import BaseUseCase
@@ -24,17 +25,22 @@ class SyncDocumentParsersUseCase(BaseUseCase):
             res = await session.execute(stmt)
             existing_parsers = {p.name: p for p in res.scalars().all()}
 
+            new_parsers = []
             for name in parsers_list:
                 if name not in existing_parsers:
-                    # New parser discovered, create record
-                    new_parser = DocumentParser(
-                        name=name,
-                        is_active=True,
-                        is_default=False,
-                        connection_info={},
-                        extra_metadata={},
+                    # New parser discovered, create record schema
+                    new_parsers.append(
+                        DocumentParserCreate(
+                            name=name,
+                            is_active=True,
+                            is_default=False,
+                            connection_info={},
+                            extra_metadata={},
+                        )
                     )
-                    session.add(new_parser)
+
+            if new_parsers:
+                await self.service.create_multi(session, new_parsers)
 
             await session.flush()
             # Reload registry cache

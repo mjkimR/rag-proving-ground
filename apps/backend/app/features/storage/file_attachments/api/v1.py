@@ -16,6 +16,7 @@ from app.features.storage.file_attachments.usecases.crud import (
     PatchFileAttachmentUseCase,
     PutFileAttachmentUseCase,
 )
+from app.features.storage.file_attachments.usecases.session_attachments import GetSessionAttachmentsUseCase
 from app.features.storage.file_attachments.usecases.upload import UploadFileAttachmentUseCase
 from app.features.storage.session_file_attachments.schemas import (
     SessionFileAttachmentCreate,
@@ -68,6 +69,19 @@ async def bind_file_to_session(
 ):
     """Phase 2: Bind file to session and trigger async pipeline processing."""
     return await use_case.execute(thread_id, binding_in)
+
+
+@router.get(
+    "/sessions/{thread_id}/attachments",
+    status_code=status.HTTP_200_OK,
+    response_model=list[SessionFileAttachmentRead],
+)
+async def get_session_attachments(
+    thread_id: str,
+    use_case: Annotated[GetSessionAttachmentsUseCase, Depends()],
+):
+    """Get all file attachments associated with a thread/session."""
+    return await use_case.execute(thread_id)
 
 
 # FileAttachment CRUD

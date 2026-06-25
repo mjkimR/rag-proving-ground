@@ -435,6 +435,24 @@ export type DeleteResponse = {
 };
 
 /**
+ * DocumentChunksRead
+ */
+export type DocumentChunksRead = {
+    /**
+     * Doc Id
+     */
+    doc_id: string;
+    /**
+     * Total Chunks
+     */
+    total_chunks: number;
+    /**
+     * Chunks
+     */
+    chunks: Array<string>;
+};
+
+/**
  * DocumentParserCreate
  */
 export type DocumentParserCreate = {
@@ -3459,6 +3477,36 @@ export type GetParsedDocumentApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdP
     200: unknown;
 };
 
+export type GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetData = {
+    body?: never;
+    path: {
+        /**
+         * Knowledge Base Document Id
+         */
+        knowledge_base_document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge_base_documents/{knowledge_base_document_id}/chunks';
+};
+
+export type GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetError = GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetErrors[keyof GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetErrors];
+
+export type GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentChunksRead;
+};
+
+export type GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetResponse = GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetResponses[keyof GetDocumentChunksApiV1KnowledgeBaseDocumentsKnowledgeBaseDocumentIdChunksGetResponses];
+
 export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetData = {
     body?: never;
     path?: never;
@@ -4526,6 +4574,38 @@ export type BindFileToSessionApiV1SessionsThreadIdFilesPostResponses = {
 };
 
 export type BindFileToSessionApiV1SessionsThreadIdFilesPostResponse = BindFileToSessionApiV1SessionsThreadIdFilesPostResponses[keyof BindFileToSessionApiV1SessionsThreadIdFilesPostResponses];
+
+export type GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetData = {
+    body?: never;
+    path: {
+        /**
+         * Thread Id
+         */
+        thread_id: string;
+    };
+    query?: never;
+    url: '/api/v1/sessions/{thread_id}/attachments';
+};
+
+export type GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetError = GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetErrors[keyof GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetErrors];
+
+export type GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetResponses = {
+    /**
+     * Response Get Session Attachments Api V1 Sessions  Thread Id  Attachments Get
+     *
+     * Successful Response
+     */
+    200: Array<SessionFileAttachmentRead>;
+};
+
+export type GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetResponse = GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetResponses[keyof GetSessionAttachmentsApiV1SessionsThreadIdAttachmentsGetResponses];
 
 export type GetFileAttachmentsApiV1FileAttachmentsGetData = {
     body?: never;

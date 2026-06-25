@@ -38,9 +38,6 @@ def test_korean_morpheme_bm25_embeddings_calculates_tf_saturation() -> None:
     # frequency of "token" = 10
     vector = embeddings.embed_documents([" ".join(["token"] * 10)])[0]
 
-    # Formula: tf_weight = (10 * 2.5) / (10 + 1.5 * (1 - 0.75 + 0.75 * (10 / 100)))
-    # denominator_norm = 0.25 + 0.75 * 0.1 = 0.325
-    # tf_weight = 25 / (10 + 1.5 * 0.325) = 25 / 10.4875 ≈ 2.38379
     assert len(vector.indices) == 1
     assert vector.indices[0] == 1
     assert math.isclose(vector.values[0], 2.38379, rel_tol=1e-4)

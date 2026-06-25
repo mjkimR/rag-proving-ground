@@ -126,3 +126,9 @@ def get_queue_name(priority: str | TaskPriority) -> str:
     """Prepend 'kb_ingest:' prefix to avoid Redis queue namespace collisions."""
     p_val = priority.value if isinstance(priority, TaskPriority) else priority
     return f"kb_ingest:{p_val}"
+
+
+class DocumentChunksRead(BaseModel):
+    doc_id: UUID
+    total_chunks: int
+    chunks: list[str]

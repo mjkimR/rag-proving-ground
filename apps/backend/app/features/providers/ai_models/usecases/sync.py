@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from app.features.providers.ai_models.models import AIModel
+from app.features.providers.ai_models.schemas import AIModelCreate
 from app.features.providers.ai_models.services import AIModelService
 from app.features.providers.routes.cache import refresh_ai_models_cache
 from app_layer_base.base.usecases.base import BaseUseCase
@@ -30,6 +31,7 @@ class SyncAIModelsUseCase(BaseUseCase):
             res = await session.execute(stmt)
             existing_models = {m.name: m for m in res.scalars().all()}
 
+            new_models = []
             for entry in model_list:
                 name = entry.get("model_name")
                 if not name:
@@ -71,17 +73,21 @@ class SyncAIModelsUseCase(BaseUseCase):
                 model_params = metadata.get("model_params") or {}
 
                 if name not in existing_models:
-                    # New model discovered, create record
-                    new_model = AIModel(
-                        name=name,
-                        provider=provider,
-                        model_type=role,
-                        is_active=True,
-                        is_default=False,
-                        connection_info=connection_info,
-                        extra_metadata={"model_params": model_params},
+                    # New model discovered, create record schema
+                    new_models.append(
+                        AIModelCreate(
+                            name=name,
+                            provider=provider,
+                            model_type=role,
+                            is_active=True,
+                            is_default=False,
+                            connection_info=connection_info,
+                            extra_metadata={"model_params": model_params},
+                        )
                     )
-                    session.add(new_model)
+
+            if new_models:
+                await self.service.create_multi(session, new_models)
 
             await session.flush()
             # Reload registry cache

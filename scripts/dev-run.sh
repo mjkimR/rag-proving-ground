@@ -43,7 +43,7 @@ if should_run "$target" "backend"; then
     PID_BACKEND=$!
 
     echo "Starting document processing worker ($path)..."
-    uv run --directory "$path" faststream run app.worker.main:app --workers 1 &
+    bash ./scripts/worker-run.sh &
     PID_WORKER=$!
 
     echo "Starting Aegra server..."

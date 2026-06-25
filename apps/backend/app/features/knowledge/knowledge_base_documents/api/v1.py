@@ -3,6 +3,7 @@ from uuid import UUID
 
 from app.features.knowledge.knowledge_base_documents.query_options import get_knowledge_base_documents_query_options
 from app.features.knowledge.knowledge_base_documents.schemas import (
+    DocumentChunksRead,
     KnowledgeBaseDocumentCreate,
     KnowledgeBaseDocumentPatch,
     KnowledgeBaseDocumentPut,
@@ -11,6 +12,7 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
 )
 from app.features.knowledge.knowledge_base_documents.usecases.assets import (
     DownloadKnowledgeBaseDocumentUseCase,
+    GetKnowledgeBaseDocumentChunksUseCase,
     GetParsedKnowledgeBaseDocumentUseCase,
 )
 from app.features.knowledge.knowledge_base_documents.usecases.crud import (
@@ -119,4 +121,17 @@ async def get_parsed_document(
     use_case: Annotated[GetParsedKnowledgeBaseDocumentUseCase, Depends()],
 ):
     """Get the parsed elements document structure (parsed_data.json) for a document."""
+    return await use_case.execute(knowledge_base_document_id)
+
+
+@router.get(
+    "/{knowledge_base_document_id}/chunks",
+    status_code=status.HTTP_200_OK,
+    response_model=DocumentChunksRead,
+)
+async def get_document_chunks(
+    knowledge_base_document_id: UUID,
+    use_case: Annotated[GetKnowledgeBaseDocumentChunksUseCase, Depends()],
+):
+    """Get the raw text chunks list of a document."""
     return await use_case.execute(knowledge_base_document_id)

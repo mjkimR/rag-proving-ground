@@ -117,3 +117,51 @@ def _response_error_detail(response: httpx.Response) -> str:
 
     detail = payload.get("detail") if isinstance(payload, dict) else payload
     return str(detail)
+
+
+async def get_session_attachments(
+    thread_id: str,
+    settings: GraphBackendSettings | None = None,
+) -> list[dict[str, Any]]:
+    """Fetch all file attachments associated with a thread/session from the backend API."""
+    backend_settings = settings or get_graph_backend_settings()
+    url = f"{backend_settings.base_url.rstrip('/')}/api/v1/sessions/{thread_id}/attachments"
+
+    try:
+        response = await get_http_client().get(
+            url,
+            timeout=backend_settings.timeout,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        detail = _response_error_detail(e.response)
+        raise BackendAPIException(e.response.status_code, detail) from e
+    except httpx.HTTPError as e:
+        raise RuntimeError(f"Could not reach backend at {backend_settings.base_url!r}.") from e
+
+    data = response.json()
+    return list(data) if isinstance(data, list) else []
+
+
+async def get_document_chunks(
+    doc_id: UUID,
+    settings: GraphBackendSettings | None = None,
+) -> dict[str, Any]:
+    """Fetch the raw text chunks list of a document from the backend API."""
+    backend_settings = settings or get_graph_backend_settings()
+    url = f"{backend_settings.base_url.rstrip('/')}/api/v1/knowledge_base_documents/{doc_id}/chunks"
+
+    try:
+        response = await get_http_client().get(
+            url,
+            timeout=backend_settings.timeout,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        detail = _response_error_detail(e.response)
+        raise BackendAPIException(e.response.status_code, detail) from e
+    except httpx.HTTPError as e:
+        raise RuntimeError(f"Could not reach backend at {backend_settings.base_url!r}.") from e
+
+    data = response.json()
+    return dict(data) if isinstance(data, dict) else {}
