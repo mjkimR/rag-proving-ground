@@ -3,6 +3,8 @@ from typing import ClassVar
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from rag_core.tokenizers import BaseTokenizer
+
 
 class RAGFallbackTextSplitter(RecursiveCharacterTextSplitter):
     """Fallback splitter for oversized parser elements.
@@ -29,12 +31,16 @@ class RAGFallbackTextSplitter(RecursiveCharacterTextSplitter):
         chunk_size: int = 450,
         chunk_overlap: int = 50,
         separators: list[str] | None = None,
+        tokenizer: BaseTokenizer | None = None,
         **kwargs,
     ) -> None:
+        self.tokenizer = tokenizer
+        length_function = tokenizer.count_tokens if tokenizer else len
         super().__init__(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             separators=separators or self.DEFAULT_SEPARATORS,
+            length_function=length_function,
             **kwargs,
         )
 

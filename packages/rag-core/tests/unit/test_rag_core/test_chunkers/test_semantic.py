@@ -8,6 +8,7 @@ from rag_core.parsers import (
     ParsedElement,
     ParsedPage,
 )
+from rag_core.tokenizers import BaseTokenizer
 
 
 def test_chunk_document_enriches_content_with_heading_breadcrumb() -> None:
@@ -226,3 +227,74 @@ def test_chunked_document_converts_to_langchain_document() -> None:
         "source_element_ids": ["p1"],
         "page_ids": ["page-1"],
     }
+
+
+class MockTokenizer(BaseTokenizer):
+    def count_tokens(self, text: str) -> int:
+        return max(1, len(text) // 5)
+
+    def encode(self, text: str) -> list[int]:
+        return [ord(c) for c in text]
+
+    def decode(self, tokens: list[int]) -> str:
+        return "".join(chr(t) for t in tokens)
+
+    def truncate(self, text: str, max_tokens: int) -> str:
+        return text[: max_tokens * 5]
+
+
+def test_chunk_document_with_tokenizer_splits_by_tokens() -> None:
+    tokenizer = MockTokenizer()
+    document = ParsedDocument(
+        doc_id="doc",
+        parser="unit",
+        elements=[
+            ParsedElement(
+                element_id="p1",
+                type=ElementType.PARAGRAPH,
+                format=ContentFormat.TEXT,
+                content="A" * 60,
+                page_id="page-1",
+                order=1,
+            )
+        ],
+    )
+
+    # chunk_size is 10 tokens (50 chars). A*60 is 12 tokens, which exceeds 10, so it should split.
+    chunks = chunk_document(document, ChunkingConfig(chunk_size=10, chunk_overlap=2), tokenizer=tokenizer)
+    assert len(chunks) > 1
+
+    # chunk_size is 15 tokens (75 chars). A*60 is 12 tokens, which is under 15, so it should NOT split.
+    chunks_no_split = chunk_document(document, ChunkingConfig(chunk_size=15, chunk_overlap=2), tokenizer=tokenizer)
+    assert len(chunks_no_split) == 1
+    assert chunks_no_split[0].page_content == "A" * 60
+
+
+def test_chunk_document_truncates_summary_by_tokens() -> None:
+    tokenizer = MockTokenizer()
+    document = ParsedDocument(
+        doc_id="doc",
+        parser="unit",
+        elements=[
+            ParsedElement(
+                element_id="p1",
+                type=ElementType.PARAGRAPH,
+                format=ContentFormat.TEXT,
+                content="Short text",
+                page_id="page-1",
+                order=1,
+            )
+        ],
+    )
+    # chunk_size = 20 tokens. max_summary_tokens is 20 * 0.5 = 10 tokens.
+    # summary "B" * 80 is 16 tokens, which gets truncated to (10 - 1) = 9 tokens (45 characters) + "...".
+    summary = "B" * 80
+    chunks = chunk_document(
+        document,
+        ChunkingConfig(chunk_size=20, chunk_overlap=0),
+        summary=summary,
+        tokenizer=tokenizer,
+    )
+    assert len(chunks) == 1
+    expected_summary = "B" * 45 + "..."
+    assert chunks[0].page_content.startswith(f"[Document Summary: {expected_summary}]")
