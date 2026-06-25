@@ -126,15 +126,17 @@ class RAGSemanticChunker:
 
         if summary:
             # We want to ensure at least some meaningful chunk size for actual content.
-            # If summary is too long, we might need to truncate it to fit within a reasonable ratio (e.g. 50% of chunk size).
-            max_summary_len = int(self.config.chunk_size * 0.5)
-            if len(summary) > max_summary_len:
-                summary = summary[:max_summary_len] + "..."
+            # Note: All chunk sizes and text splitting lengths in this chunker are measured in characters,
+            # since our fallback splitter inherits from RecursiveCharacterTextSplitter without a custom tokenizer.
+            # If the summary is too long, we truncate it to fit within a reasonable ratio (e.g. 50% of chunk_size in characters).
+            max_summary_chars = int(self.config.chunk_size * 0.5)
+            if len(summary) > max_summary_chars:
+                summary = summary[:max_summary_chars] + "..."
 
             prepend_text = f"[Document Summary: {summary}]\n\n"
             prepend_len = len(prepend_text)
 
-            # Calculate reduced chunk size allowing room for prepend_text
+            # Calculate reduced chunk size allowing room for prepend_text (in characters)
             available_chunk_size = max(100, self.config.chunk_size - prepend_len)
 
             # Re-initialize the fallback splitter with the reduced chunk size
