@@ -902,6 +902,10 @@ export type KnowledgeBaseCreate = {
      */
     name: string;
     /**
+     * The language of the knowledge base.
+     */
+    language?: KnowledgeLanguage;
+    /**
      * The embedding config.
      */
     embedding_config?: KnowledgeEmbeddingConfig | null;
@@ -1284,6 +1288,10 @@ export type KnowledgeBasePatch = {
      */
     status?: KnowledgeBaseStatus | null;
     /**
+     * The language of the knowledge base.
+     */
+    language?: KnowledgeLanguage | null;
+    /**
      * The embedding config.
      */
     embedding_config?: KnowledgeEmbeddingConfig | null;
@@ -1312,6 +1320,10 @@ export type KnowledgeBasePut = {
      */
     name: string;
     /**
+     * The language of the knowledge base.
+     */
+    language?: KnowledgeLanguage;
+    /**
      * The embedding config.
      */
     embedding_config?: KnowledgeEmbeddingConfig | null;
@@ -1335,6 +1347,10 @@ export type KnowledgeBaseRead = {
      * The name of the knowledge_base.
      */
     name: string;
+    /**
+     * The language of the knowledge base.
+     */
+    language?: KnowledgeLanguage;
     /**
      * The embedding config.
      */
@@ -1529,6 +1545,13 @@ export type KnowledgeEmbeddingConfig = {
      */
     sparse_model?: string | null;
 };
+
+/**
+ * KnowledgeLanguage
+ *
+ * Supported languages for knowledge base processing.
+ */
+export type KnowledgeLanguage = 'en' | 'ko';
 
 /**
  * KnowledgeParsingConfig

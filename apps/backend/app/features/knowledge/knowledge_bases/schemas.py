@@ -5,7 +5,7 @@ from uuid import UUID
 from app_layer_base.base.schemas.mixin import TimestampSchemaMixin, UUIDSchemaMixin
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from rag_core.chunkers import ChunkingConfig
-from rag_core.embeddings import KnowledgeEmbeddingConfig, RetrievalMode
+from rag_core.embeddings import KnowledgeEmbeddingConfig, KnowledgeLanguage, RetrievalMode
 from rag_core.parsers import KnowledgeParsingConfig
 from rag_core.retrieval import RerankerConfig
 
@@ -26,7 +26,7 @@ class KnowledgeBaseStatus(StrEnum):
 
 class KnowledgeBaseBase(BaseModel):
     name: str = Field(description="The name of the knowledge_base.")
-    language: str = Field(default="en", description="The language of the knowledge base.")
+    language: KnowledgeLanguage = Field(default=KnowledgeLanguage.EN, description="The language of the knowledge base.")
     embedding_config: KnowledgeEmbeddingConfig | None = Field(default=None, description="The embedding config.")
     default_chunking_config: ChunkingConfig | None = Field(default=None, description="The default chunking config.")
     default_parsing_config: KnowledgeParsingConfig | None = Field(
@@ -45,6 +45,7 @@ class KnowledgeBasePut(KnowledgeBaseBase):
 class KnowledgeBasePatch(BaseModel):
     name: str | None = Field(default=None, description="The name of the knowledge_base.")
     status: KnowledgeBaseStatus | None = Field(default=None, description="The status of the knowledge_base.")
+    language: KnowledgeLanguage | None = Field(default=None, description="The language of the knowledge base.")
     embedding_config: KnowledgeEmbeddingConfig | None = Field(default=None, description="The embedding config.")
     default_chunking_config: ChunkingConfig | None = Field(default=None, description="The default chunking config.")
     default_parsing_config: KnowledgeParsingConfig | None = Field(

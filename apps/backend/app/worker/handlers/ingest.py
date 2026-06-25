@@ -43,6 +43,7 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
                 return
             default_parsing_config = kb.default_parsing_config
             embedding_config_raw = kb.embedding_config
+            kb_language = kb.language if kb else "en"
 
         # Retrieve document and mark status inside a short locked transaction
         async with AsyncTransaction() as session:
@@ -64,7 +65,7 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
             await session.flush()
 
             resolved_parsing_config = doc.parsing_config if doc.parsing_config is not None else default_parsing_config
-            embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+            embedding_config = resolve_knowledge_embedding_config(embedding_config_raw, language=kb_language)
 
         # 2. Download raw file from MinIO
         storage_client = get_storage_client()
@@ -203,7 +204,7 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
                 return
             default_chunking_config = kb.default_chunking_config
             embedding_config_raw = kb.embedding_config
-            kb_language = kb.language
+            kb_language = kb.language if kb else "en"
 
         parsed_data_path = document_info.get("parsed_data_path")
         if not parsed_data_path:
@@ -296,7 +297,7 @@ async def handle_embed(msg: EmbedDocumentMessage) -> None:
                 return
             embedding_config_raw = kb.embedding_config
             previous_embed_config_hash = kb.embed_config_hash
-            kb_language = kb.language
+            kb_language = kb.language if kb else "en"
 
         chunked_data_path = document_info.get("chunked_data_path")
         if not chunked_data_path:
