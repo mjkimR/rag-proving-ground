@@ -58,6 +58,8 @@ class KnowledgeBaseDocumentBase(BaseModel):
         default=None, description="Document-level parsing override config."
     )
     chunking_config: ChunkingConfig | None = Field(default=None, description="Document-level chunking override config.")
+    summary: str | None = Field(default=None, description="The summary of the document content.")
+    summary_model: str | None = Field(default=None, description="The model used to generate the summary.")
 
 
 class KnowledgeBaseDocumentCreate(KnowledgeBaseDocumentBase):
@@ -75,6 +77,8 @@ class KnowledgeBaseDocumentPatch(BaseModel):
         default=None, description="Document-level parsing override config."
     )
     chunking_config: ChunkingConfig | None = Field(default=None, description="Document-level chunking override config.")
+    summary: str | None = Field(default=None, description="The summary of the document content.")
+    summary_model: str | None = Field(default=None, description="The model used to generate the summary.")
 
 
 class KnowledgeBaseDocumentRead(UUIDSchemaMixin, TimestampSchemaMixin, KnowledgeBaseDocumentBase):

@@ -101,7 +101,7 @@ class RAGSemanticChunker:
             chunk_overlap=self.config.chunk_overlap,
         )
 
-    def chunk_document(self, document: ParsedDocument) -> list[ChunkedDocument]:
+    def chunk_document(self, document: ParsedDocument, summary: str | None = None) -> list[ChunkedDocument]:
         """Creates embedding chunks from a normalized parsed document.
 
         The method enriches parsed elements with heading breadcrumbs, merges small
@@ -109,6 +109,7 @@ class RAGSemanticChunker:
 
         Args:
             document: The input ParsedDocument object to split.
+            summary: Optional summary to prepend to each chunk for contextual retrieval.
 
         Returns:
             list[ChunkedDocument]: A list of chunked document instances with metadata.
@@ -118,14 +119,38 @@ class RAGSemanticChunker:
         merged_blocks = self._merge_micro_chunks(blocks)
 
         chunks: list[ChunkedDocument] = []
+
+        prepend_text = ""
+        available_chunk_size = self.config.chunk_size
+        fallback_splitter = self.fallback_splitter
+
+        if summary:
+            # We want to ensure at least some meaningful chunk size for actual content.
+            # If summary is too long, we might need to truncate it to fit within a reasonable ratio (e.g. 50% of chunk size).
+            max_summary_len = int(self.config.chunk_size * 0.5)
+            if len(summary) > max_summary_len:
+                summary = summary[:max_summary_len] + "..."
+
+            prepend_text = f"[Document Summary: {summary}]\n\n"
+            prepend_len = len(prepend_text)
+
+            # Calculate reduced chunk size allowing room for prepend_text
+            available_chunk_size = max(100, self.config.chunk_size - prepend_len)
+
+            # Re-initialize the fallback splitter with the reduced chunk size
+            fallback_splitter = RAGFallbackTextSplitter(
+                chunk_size=available_chunk_size,
+                chunk_overlap=self.config.chunk_overlap,
+            )
+
         for block in merged_blocks:
             text = block.text.strip()
             if not text:
                 continue
 
             parts = [text]
-            if len(text) > self.config.chunk_size:
-                parts = [part.strip() for part in self.fallback_splitter.split_text(text) if part.strip()]
+            if len(text) > available_chunk_size:
+                parts = [part.strip() for part in fallback_splitter.split_text(text) if part.strip()]
 
             for part_index, part in enumerate(parts):
                 metadata = block.to_metadata()
@@ -136,11 +161,14 @@ class RAGSemanticChunker:
                         "is_split_chunk": len(parts) > 1,
                     }
                 )
+
+                final_content = f"{prepend_text}{part}" if prepend_text else part
+
                 chunks.append(
                     ChunkedDocument(
                         chunk_id=f"{document.doc_id}:chunk:{len(chunks) + 1:04d}",
                         doc_id=document.doc_id,
-                        page_content=part,
+                        page_content=final_content,
                         order=len(chunks) + 1,
                         source_element_ids=list(block.source_element_ids),
                         page_ids=list(block.page_ids),
@@ -301,18 +329,21 @@ class RAGSemanticChunker:
         return min(max(level or 1, 1), 6)
 
 
-def chunk_document(document: ParsedDocument, config: ChunkingConfig | None = None) -> list[ChunkedDocument]:
+def chunk_document(
+    document: ParsedDocument, config: ChunkingConfig | None = None, summary: str | None = None
+) -> list[ChunkedDocument]:
     """Convenience function for default semantic chunking.
 
     Args:
         document: The input ParsedDocument object to chunk.
         config: Optional ChunkingConfig for tuning chunking thresholds.
+        summary: Optional summary to prepend to each chunk for contextual retrieval.
 
     Returns:
         list[ChunkedDocument]: A list of chunked document instances.
     """
 
-    return RAGSemanticChunker(config=config).chunk_document(document)
+    return RAGSemanticChunker(config=config).chunk_document(document, summary=summary)
 
 
 def _strip_markdown_heading(content: str) -> str:
