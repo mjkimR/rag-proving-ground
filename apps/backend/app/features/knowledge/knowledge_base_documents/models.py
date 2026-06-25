@@ -21,6 +21,8 @@ class KnowledgeBaseDocument(Base, UUIDMixin, TimestampMixin):
     document_info: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
     parsing_config: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
     chunking_config: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
+    summary: Mapped[str | None] = mapped_column(nullable=True)
+    summary_model: Mapped[str | None] = mapped_column(nullable=True)
 
     # Relationships
     knowledge_base: Mapped["KnowledgeBase"] = relationship("KnowledgeBase", back_populates="documents")

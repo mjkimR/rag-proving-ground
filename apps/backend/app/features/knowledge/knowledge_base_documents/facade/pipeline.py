@@ -1,3 +1,4 @@
+import hashlib
 import json
 import time
 from dataclasses import dataclass
@@ -183,6 +184,11 @@ class KnowledgeDocumentPipelineService:
         resolved_config = resolve_chunking_config(chunking_config)
         chunking_config_hash = knowledge_chunking_config_hash(resolved_config)
 
+        # Explicitly declare scope variables to improve readability and satisfy linters
+        doc_info: dict = {}
+        db_chunk_hash: str | None = None
+        db_summary_hash: str | None = None
+
         async with AsyncTransaction() as session:
             await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.CHUNKING)
             db_doc = await self.doc_service.repo.get_by_pk_for_update(session, document_id)
@@ -195,6 +201,7 @@ class KnowledgeDocumentPipelineService:
             file_hash = db_doc.file_hash
             doc_info = dict(db_doc.document_info or {})
             db_chunk_hash = doc_info.get("chunking_config_hash")
+            db_summary_hash = doc_info.get("chunking_summary_hash")
 
         logger.info(f"Chunking document '{filename}' (ID: {document_id})")
         start_time = time.time()
@@ -202,8 +209,90 @@ class KnowledgeDocumentPipelineService:
         chunked_data_key = knowledge_chunked_data_key(kb_id, file_hash)
 
         try:
-            # 1. Check if cache is valid (matching hash and file exists in MinIO)
-            if db_chunk_hash == chunking_config_hash and await storage_client.file_exists(chunked_data_key):
+            # Generate summary if Contextual Retrieval is enabled
+            summary_to_prepend = None
+            if resolved_config.enable_contextual_retrieval:
+                # 1. Fetch DB doc without locking the row, to see if summary already exists
+                async with AsyncTransaction() as session:
+                    db_doc_check = await self.doc_service.repo.get_by_pk(session, document_id)
+                    db_summary = db_doc_check.summary if db_doc_check else None
+                    needs_summary = db_doc_check and db_summary is None
+
+                if needs_summary:
+                    logger.info(f"Generating contextual retrieval summary for document '{filename}'")
+                    from rag_core.summarize import TreeSummarizer
+
+                    summarizer = TreeSummarizer(model_name=resolved_config.contextual_retrieval_model)
+
+                    elements = parsed_doc.elements
+                    full_text_chunks = []
+                    for page in parsed_doc.pages:
+                        page_text = "\n\n".join(
+                            e.content
+                            for e in elements
+                            if e.page_id == page.page_id and e.content.strip() and not e.ignored
+                        )
+                        if page_text:
+                            full_text_chunks.append(page_text)
+
+                    # If elements not linked by page_id (or fallback), just get all text
+                    if not full_text_chunks:
+                        full_text_chunks = [
+                            e.content
+                            for e in elements
+                            if e.content.strip() and not e.ignored
+                        ]
+
+                    full_text = "\n\n".join(full_text_chunks)
+                    if full_text.strip():
+                        summary_query = (
+                            "Please provide a comprehensive summary of this document. "
+                            "This summary will be used to provide context for smaller chunks of the document during retrieval. "
+                            "Focus on the main topics, entities, and overall context of the document."
+                        )
+                        # Perform long running LLM generation outside of DB lock
+                        summary = await summarizer.summarize(full_text, query=summary_query)
+
+                        # 2. Re-fetch with lock to save summary (Double-Checked Locking)
+                        was_generated = False
+                        async with AsyncTransaction() as session:
+                            db_doc_for_summary = await self.doc_service.repo.get_by_pk_for_update(session, document_id)
+                            if db_doc_for_summary:
+                                if db_doc_for_summary.summary is None:
+                                    db_doc_for_summary.summary = summary
+                                    db_doc_for_summary.summary_model = summarizer.model_name
+                                    await session.flush()
+                                    summary_to_prepend = summary
+                                    was_generated = True
+                                else:
+                                    summary_to_prepend = db_doc_for_summary.summary
+
+                        if was_generated:
+                            logger.info(
+                                f"Saved summary for document '{filename}' using model {summarizer.model_name}"
+                            )
+                        else:
+                            logger.info(
+                                f"Summary for document '{filename}' was already generated by another worker. Using existing summary."
+                            )
+                    else:
+                        summary_to_prepend = None
+                else:
+                    summary_to_prepend = db_summary
+
+            # Compute summary hash for cache mapping
+            current_summary_hash = (
+                hashlib.sha256(summary_to_prepend.encode("utf-8")).hexdigest()[:16]
+                if summary_to_prepend
+                else None
+            )
+
+            # 1. Check if cache is valid (matching hash, summary hash, and file exists in MinIO)
+            if (
+                db_chunk_hash == chunking_config_hash
+                and db_summary_hash == current_summary_hash
+                and await storage_client.file_exists(chunked_data_key)
+            ):
                 logger.info(f"Chunk cache hit for document '{filename}' (ID: {document_id})")
                 chunks = await load_chunked_document_from_storage(chunked_data_key)
                 duration = time.time() - start_time
@@ -227,12 +316,13 @@ class KnowledgeDocumentPipelineService:
 
             # 2. Cache miss: perform the actual chunking
             logger.info(f"Chunk cache miss for document '{filename}' (ID: {document_id})")
+
             if embedding_config and embedding_config.use_colpali:
                 from rag_core.chunkers.visual import visual_chunk_document
 
                 chunks = visual_chunk_document(parsed_doc)
             else:
-                chunks = chunk_document(parsed_doc, config=resolved_config)
+                chunks = chunk_document(parsed_doc, config=resolved_config, summary=summary_to_prepend) # type: ignore
 
             # 3. Save chunking results to MinIO
             serialized_chunks = json.dumps([c.model_dump() for c in chunks], indent=2).encode("utf-8")
@@ -246,6 +336,7 @@ class KnowledgeDocumentPipelineService:
                     doc_info = dict(db_doc.document_info or {})
                     doc_info["chunk_count"] = len(chunks)
                     doc_info["chunking_config_hash"] = chunking_config_hash
+                    doc_info["chunking_summary_hash"] = current_summary_hash
                     doc_info["chunked_data_path"] = chunked_data_key
                     db_doc.document_info = doc_info
                 if stage_context.record_history:
