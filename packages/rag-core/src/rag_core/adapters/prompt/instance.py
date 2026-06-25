@@ -1,11 +1,11 @@
 from typing import Any
-from cachetools import TTLCache, cached
+
+from cachetools import TTLCache
 from loguru import logger
 
+from rag_core.adapters.prompt.config import get_prompt_settings
 from rag_core.adapters.prompt.factory import PromptFactory
 from rag_core.adapters.prompt.interface import PromptProvider
-from rag_core.adapters.prompt.config import get_prompt_settings
-
 
 # Global cache for providers to avoid re-instantiating connections/clients
 _provider_instance: PromptProvider | None = None
@@ -27,8 +27,7 @@ def get_prompt_provider() -> PromptProvider:
     return _provider_instance
 
 
-@cached(cache=_prompt_cache)
-def get_prompt(name: str, version: str | int | None = None) -> Any:
+async def get_prompt(name: str, version: str | int | None = None) -> Any:
     """
     Retrieves a prompt template by name using the configured prompt provider.
     Results are cached based on the PROMPT_CACHE_TTL_SECONDS configuration.
@@ -40,8 +39,15 @@ def get_prompt(name: str, version: str | int | None = None) -> Any:
     Returns:
         The prompt template (can be string, dict, or Langfuse prompt object).
     """
+    key = (name, version)
+    if key in _prompt_cache:
+        return _prompt_cache[key]
+
     provider = get_prompt_provider()
-    return provider.get_prompt(name, version=version)
+    prompt = await provider.get_prompt(name, version=version)
+    _prompt_cache[key] = prompt
+    return prompt
+
 
 def invalidate_prompt_cache() -> None:
     """Clears the prompt template cache."""
