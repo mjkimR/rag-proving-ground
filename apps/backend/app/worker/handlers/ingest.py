@@ -203,6 +203,7 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
                 return
             default_chunking_config = kb.default_chunking_config
             embedding_config_raw = kb.embedding_config
+            kb_language = kb.language
 
         parsed_data_path = document_info.get("parsed_data_path")
         if not parsed_data_path:
@@ -212,7 +213,7 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
         resolved_chunking_config = (
             chunking_config_override if chunking_config_override is not None else default_chunking_config
         )
-        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw, language=kb_language)
 
         # 2. Load parsed artifact from storage
         try:
@@ -295,13 +296,14 @@ async def handle_embed(msg: EmbedDocumentMessage) -> None:
                 return
             embedding_config_raw = kb.embedding_config
             previous_embed_config_hash = kb.embed_config_hash
+            kb_language = kb.language
 
         chunked_data_path = document_info.get("chunked_data_path")
         if not chunked_data_path:
             logger.error(f"Document {msg.document_id} has no chunked artifact path in document_info.")
             return
 
-        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw, language=kb_language)
 
         # 2. Load chunked artifact from storage
         try:

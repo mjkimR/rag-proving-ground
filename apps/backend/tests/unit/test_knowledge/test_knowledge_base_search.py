@@ -176,6 +176,7 @@ class _FakeKnowledgeBase:
     def __init__(self, knowledge_base_id):
         self.id = knowledge_base_id
         self.name = "test_kb"
+        self.language = "en"
         self.embedding_config = {"model": "test-embedding"}
 
 

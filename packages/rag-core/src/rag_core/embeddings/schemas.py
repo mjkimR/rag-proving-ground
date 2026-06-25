@@ -91,6 +91,7 @@ def resolve_knowledge_embedding_config(
     config: KnowledgeEmbeddingConfigInput = None,
     *,
     default_model: str | None = None,
+    language: str = "en",
 ) -> KnowledgeEmbeddingConfig:
     """Validate and resolve a knowledge embedding config with runtime defaults."""
 
@@ -102,7 +103,12 @@ def resolve_knowledge_embedding_config(
 
     sparse_model = None
     if embedding_config.retrieval_mode in (RetrievalMode.SPARSE, RetrievalMode.HYBRID):
-        sparse_model = embedding_config.sparse_model or SparseEmbeddingModel.EN_BM25.value
+        if not embedding_config.sparse_model:
+            sparse_model = (
+                SparseEmbeddingModel.KO_KIWI_BM25.value if language == "ko" else SparseEmbeddingModel.EN_BM25.value
+            )
+        else:
+            sparse_model = embedding_config.sparse_model
 
     return embedding_config.model_copy(
         update={

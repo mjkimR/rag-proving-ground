@@ -26,6 +26,7 @@ class KnowledgeBaseStatus(StrEnum):
 
 class KnowledgeBaseBase(BaseModel):
     name: str = Field(description="The name of the knowledge_base.")
+    language: str = Field(default="en", description="The language of the knowledge base.")
     embedding_config: KnowledgeEmbeddingConfig | None = Field(default=None, description="The embedding config.")
     default_chunking_config: ChunkingConfig | None = Field(default=None, description="The default chunking config.")
     default_parsing_config: KnowledgeParsingConfig | None = Field(
