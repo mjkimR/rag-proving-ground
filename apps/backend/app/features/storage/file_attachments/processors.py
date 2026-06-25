@@ -136,12 +136,13 @@ class TempKbDocumentProcessor(FileAttachmentProcessor):
             default_chunking_config = kb.default_chunking_config if kb else None
             embedding_config_raw = kb.embedding_config if kb else None
             previous_embed_config_hash = kb.embed_config_hash if kb else None
+            kb_language = kb.language if kb else "en"
 
             resolved_parsing_config = doc.parsing_config if doc.parsing_config is not None else default_parsing_config
             resolved_chunking_config = (
                 doc.chunking_config if doc.chunking_config is not None else default_chunking_config
             )
-            embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+            embedding_config = resolve_knowledge_embedding_config(embedding_config_raw, language=kb_language)
 
         # 5. Execute RAG Ingestion Pipeline synchronously
         pipeline_service = build_pipeline_service()

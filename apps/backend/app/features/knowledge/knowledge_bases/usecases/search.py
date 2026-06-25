@@ -46,6 +46,7 @@ class SearchKnowledgeBaseUseCase(BaseUseCase):
                 kb.embedding_config,
                 search_request.retrieval_mode,
                 search_request.sparse_model,
+                language=kb.language,
             )
         except HTTPException:
             raise
@@ -124,6 +125,7 @@ class SearchMultiKnowledgeBaseUseCase(BaseUseCase):
                     kb.embedding_config,
                     search_request.retrieval_mode,
                     search_request.sparse_model,
+                    language=kb.language,
                 )
             except HTTPException:
                 raise
@@ -186,9 +188,10 @@ def _resolve_with_overrides(
     db_config: Any,
     override_mode: RetrievalMode | None,
     override_sparse_model: str | None,
+    language: str = "en",
 ) -> Any:
     # First, resolve the database configuration
-    resolved = resolve_knowledge_embedding_config(db_config)
+    resolved = resolve_knowledge_embedding_config(db_config, language=language)
 
     if override_mode is not None:
         # Check if the override mode requires a sparse index
