@@ -159,3 +159,26 @@ class FastParserSettings(BaseSettings):
 @lru_cache
 def get_fast_parser_settings() -> FastParserSettings:
     return FastParserSettings()
+
+class PromptSettings(BaseSettings):
+    """Settings for prompt registry adapters."""
+
+    provider: str = Field(default="s3", validation_alias="PROMPT_PROVIDER")
+    s3_bucket: str = Field(default="prompts", validation_alias="PROMPT_S3_BUCKET")
+    cache_ttl_seconds: int = Field(default=300, validation_alias="PROMPT_CACHE_TTL_SECONDS")
+    fallback_dir: str = Field(
+        default="packages/rag-core/src/rag_core/prompt/fallback",
+        validation_alias="PROMPT_FALLBACK_DIR"
+    )
+
+    # Langfuse Settings
+    langfuse_public_key: str | None = Field(default=None, validation_alias="PROMPT_LANGFUSE_PUBLIC_KEY")
+    langfuse_secret_key: str | None = Field(default=None, validation_alias="PROMPT_LANGFUSE_SECRET_KEY")
+    langfuse_host: str = Field(default="https://cloud.langfuse.com", validation_alias="PROMPT_LANGFUSE_HOST")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_prompt_settings() -> PromptSettings:
+    return PromptSettings()

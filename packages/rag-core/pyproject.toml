@@ -14,13 +14,16 @@ dependencies = [
     "langchain-litellm>=0.6.4",
     "langchain-qdrant>=1.0.0",
     "langchain-text-splitters>=1.1.2",
+    "langfuse>=4.11.0",
     "litellm>=1.55.0",
     "loguru>=0.7.3",
     "markdown-it-py>=4.2.0",
+    "nest-asyncio>=1.6.0",
     "pillow>=12.2.0",
     "pydantic>=2.9.0",
     "pydantic-settings>=2.6.0",
     "pypdfium2>=5.10.1",
+    "pyyaml>=6.0.3",
     "qdrant-client>=1.12.1",
 ]
 
