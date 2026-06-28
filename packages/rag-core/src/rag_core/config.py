@@ -159,3 +159,21 @@ class FastParserSettings(BaseSettings):
 @lru_cache
 def get_fast_parser_settings() -> FastParserSettings:
     return FastParserSettings()
+
+
+class LLMLinguaSettings(BaseSettings):
+    """Settings for LLMLingua compression service."""
+
+    base_url: str = Field(default="http://localhost:15003/v1", validation_alias="RAG_LLMLINGUA_API_URL")
+    timeout: float = Field(default=60.0, validation_alias="RAG_LLMLINGUA_TIMEOUT")
+    max_batch_tokens: int = Field(default=2048, validation_alias="RAG_LLMLINGUA_MAX_BATCH_TOKENS")
+    high_score_threshold: float = Field(default=0.8, validation_alias="RAG_LLMLINGUA_HIGH_SCORE_THRESHOLD")
+    high_score_ratio: float = Field(default=0.8, validation_alias="RAG_LLMLINGUA_HIGH_SCORE_RATIO")
+    low_score_ratio: float = Field(default=0.3, validation_alias="RAG_LLMLINGUA_LOW_SCORE_RATIO")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_llmlingua_settings() -> LLMLinguaSettings:
+    return LLMLinguaSettings()

@@ -8,6 +8,17 @@ services:
       - ~/.ai_models/infinity:/app/.cache
     command: v2 --model-id vidore/colpali-v1.3-merged --dtype bfloat16 --device cpu --engine torch --port 7997
 
+  llmlingua:
+    image: ghcr.io/microsoft/llmlingua-2:latest
+    container_name: local-llmlingua
+    ports:
+      - "15003:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   default:
     name: rag-network
