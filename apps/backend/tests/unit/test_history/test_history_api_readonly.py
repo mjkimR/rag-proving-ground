@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def test_job_process_history_router_exposes_only_read_methods() -> None:
-    route_methods = {method for route in router.routes if isinstance(route, APIRoute) for method in route.methods}
+    route_methods = {method for route in router.routes if isinstance(route, APIRoute) and route.methods for method in route.methods}
 
     assert route_methods == {"GET"}
 

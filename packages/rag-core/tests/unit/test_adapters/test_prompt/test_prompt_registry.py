@@ -43,10 +43,14 @@ def test_registry_and_factory() -> None:
 
 
 async def test_fallback_logic(temp_fallback_dir) -> None:
-    # Write yaml and txt fallback files
+    # Write yaml, yml and txt fallback files
     yaml_data = {"template": "Hello {name} from YAML"}
     yaml_file = temp_fallback_dir / "test_prompt.yaml"
     yaml_file.write_text(yaml.dump(yaml_data), encoding="utf-8")
+
+    yml_data = {"template": "Hello {name} from YML"}
+    yml_file = temp_fallback_dir / "yml_prompt.yml"
+    yml_file.write_text(yaml.dump(yml_data), encoding="utf-8")
 
     txt_content = "Hello {name} from TXT"
     txt_file = temp_fallback_dir / "text_prompt.txt"
@@ -57,6 +61,10 @@ async def test_fallback_logic(temp_fallback_dir) -> None:
     # Test loading YAML fallback
     res_yaml = provider._get_fallback_prompt("test_prompt")
     assert res_yaml == yaml_data
+
+    # Test loading YML fallback
+    res_yml = provider._get_fallback_prompt("yml_prompt")
+    assert res_yml == yml_data
 
     # Test loading TXT fallback
     res_txt = provider._get_fallback_prompt("text_prompt")
@@ -78,20 +86,28 @@ async def test_s3_prompt_provider(mock_storage_client, temp_fallback_dir) -> Non
     assert res == yaml_data
     mock_storage_client.download_file.assert_called_with("prompts", "my_prompt.yaml")
 
-    # 2. Success case: Download TXT from S3 (when YAML is not found or fails)
-    # To mock YAML failing then TXT succeeding:
-    # download_file returns None for .yaml, and bytes for .txt
-    async def side_effect(bucket, key):
+    # 2. Success case: Download YML from S3 (when YAML is not found)
+    async def side_effect_yml(bucket, key):
         if key.endswith(".yaml"):
-            return None
+            raise FileNotFoundError("Mock S3 file not found")
+        return yaml.dump({"template": "Hello YML S3"}).encode("utf-8")
+
+    mock_storage_client.download_file.side_effect = side_effect_yml
+    res_yml = await provider.get_prompt("my_yml_prompt")
+    assert res_yml == {"template": "Hello YML S3"}
+
+    # 3. Success case: Download TXT from S3 (when YAML and YML are not found or fail)
+    async def side_effect_txt(bucket, key):
+        if key.endswith(".yaml") or key.endswith(".yml"):
+            raise FileNotFoundError("Mock S3 file not found")
         return b"Hello TXT S3"
 
-    mock_storage_client.download_file.side_effect = side_effect
+    mock_storage_client.download_file.side_effect = side_effect_txt
 
     res_txt = await provider.get_prompt("my_prompt")
     assert res_txt == "Hello TXT S3"
 
-    # 3. Fail case: S3 download fails, fallback is used
+    # 4. Fail case: S3 download fails, fallback is used
     mock_storage_client.download_file.side_effect = Exception("S3 Error")
     # write fallback file
     (temp_fallback_dir / "fallback_prompt.txt").write_text("Fallback content", encoding="utf-8")

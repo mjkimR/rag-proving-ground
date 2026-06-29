@@ -38,12 +38,12 @@ class PromptProvider(ABC):
         pass
 
     def _get_fallback_prompt(self, name: str) -> Any:
-        for ext in ["yaml", "txt"]:
+        for ext in ["yaml", "yml", "txt"]:
             fallback_path = self.fallback_dir / f"{name}.{ext}"
             if fallback_path.exists():
                 logger.info(f"Loaded fallback prompt from {fallback_path}")
                 content = fallback_path.read_text(encoding="utf-8")
-                if ext == "yaml":
+                if ext in ["yaml", "yml"]:
                     return yaml.safe_load(content)
                 return content
 

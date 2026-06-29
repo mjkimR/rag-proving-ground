@@ -639,6 +639,24 @@ export type ElementType = 'heading' | 'paragraph' | 'list' | 'list_item' | 'tabl
 export type EmbeddingDistanceMetric = 'cosine' | 'dot' | 'euclid';
 
 /**
+ * FallbackTemplateInfo
+ */
+export type FallbackTemplateInfo = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Format
+     */
+    format: string;
+    /**
+     * Content
+     */
+    content: string;
+};
+
+/**
  * FileAttachmentCreate
  */
 export type FileAttachmentCreate = {
@@ -796,6 +814,20 @@ export type HttpValidationError = {
      * Detail
      */
     detail?: Array<ValidationError>;
+};
+
+/**
+ * InvalidateCacheResponse
+ */
+export type InvalidateCacheResponse = {
+    /**
+     * Success
+     */
+    success: boolean;
+    /**
+     * Message
+     */
+    message: string;
 };
 
 /**
@@ -2067,6 +2099,32 @@ export type ParsedPage = {
     metadata?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * PromptProviderInfo
+ */
+export type PromptProviderInfo = {
+    /**
+     * Current Provider
+     */
+    current_provider: string;
+    /**
+     * Available Providers
+     */
+    available_providers: Array<string>;
+    /**
+     * S3 Bucket
+     */
+    s3_bucket?: string | null;
+    /**
+     * Fallback Dir
+     */
+    fallback_dir?: string | null;
+    /**
+     * Langfuse Host
+     */
+    langfuse_host?: string | null;
 };
 
 /**
@@ -4972,3 +5030,53 @@ export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttach
 };
 
 export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponse = PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponses[keyof PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponses];
+
+export type GetPromptProviderInfoApiV1ProvidersPromptsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/providers/prompts';
+};
+
+export type GetPromptProviderInfoApiV1ProvidersPromptsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PromptProviderInfo;
+};
+
+export type GetPromptProviderInfoApiV1ProvidersPromptsGetResponse = GetPromptProviderInfoApiV1ProvidersPromptsGetResponses[keyof GetPromptProviderInfoApiV1ProvidersPromptsGetResponses];
+
+export type InvalidateCacheApiV1ProvidersPromptsCacheInvalidatePostData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/providers/prompts/cache/invalidate';
+};
+
+export type InvalidateCacheApiV1ProvidersPromptsCacheInvalidatePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: InvalidateCacheResponse;
+};
+
+export type InvalidateCacheApiV1ProvidersPromptsCacheInvalidatePostResponse = InvalidateCacheApiV1ProvidersPromptsCacheInvalidatePostResponses[keyof InvalidateCacheApiV1ProvidersPromptsCacheInvalidatePostResponses];
+
+export type ListFallbackTemplatesApiV1ProvidersPromptsTemplatesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/providers/prompts/templates';
+};
+
+export type ListFallbackTemplatesApiV1ProvidersPromptsTemplatesGetResponses = {
+    /**
+     * Response List Fallback Templates Api V1 Providers Prompts Templates Get
+     *
+     * Successful Response
+     */
+    200: Array<FallbackTemplateInfo>;
+};
+
+export type ListFallbackTemplatesApiV1ProvidersPromptsTemplatesGetResponse = ListFallbackTemplatesApiV1ProvidersPromptsTemplatesGetResponses[keyof ListFallbackTemplatesApiV1ProvidersPromptsTemplatesGetResponses];
