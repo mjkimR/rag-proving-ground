@@ -37,6 +37,7 @@ class GraphConfig(TypedDict, total=False):
     retrieval_mode: str | None
     sparse_model: str | None
     rewrite_mode: str | None
+    language: str | None
 
 
 class _KnowledgeBaseConfig(BaseModel):
@@ -58,6 +59,7 @@ class _GraphRuntimeConfig(BaseModel):
     retrieval_mode: str | None = None
     sparse_model: str | None = None
     rewrite_mode: str | None = None
+    language: str | None = None
 
     @field_validator("knowledge_base_ids")
     @classmethod
@@ -175,7 +177,7 @@ async def _retrieve_context_chunks(
     from rag_core.query_rewrite.synonym_expander import SynonymExpander
 
     try:
-        expander = SynonymExpander()
+        expander = SynonymExpander(language=runtime_config.language or "en")
         results = await asyncio.gather(
             *(expander.expand_query(rewritten_query) for rewritten_query in queries),
             return_exceptions=True,

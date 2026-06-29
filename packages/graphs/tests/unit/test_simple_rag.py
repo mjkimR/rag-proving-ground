@@ -1,5 +1,5 @@
 import asyncio
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 import pytest
@@ -149,6 +149,9 @@ async def test_simple_rag_rewrites_before_synonym_expansion(mocker, monkeypatch)
             return [query, "alternate m-rag query"]
 
     class FakeSynonymExpander:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
         async def expand_query(self, query: str) -> str:
             nonlocal active_synonym_expansions, max_active_synonym_expansions
             synonym_inputs.append(query)
@@ -293,6 +296,9 @@ async def test_simple_rag_resilient_synonym_expansion(mocker, monkeypatch):
     synonym_inputs: list[str] = []
 
     class FakeSynonymExpander:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
         async def expand_query(self, query: str) -> str:
             synonym_inputs.append(query)
             if "fail" in query:
@@ -338,3 +344,44 @@ async def test_simple_rag_resilient_synonym_expansion(mocker, monkeypatch):
         "success-query (expanded)",
         "fail-query",
     ]
+
+
+async def test_simple_rag_passes_language_to_synonym_expander(mocker, monkeypatch):
+    mocker.patch("rag_graphs.simple_rag.get_model_options").return_value = {
+        "llm_models": ["allowed-model"],
+        "embedding_models": [],
+        "reranker_models": [],
+    }
+    mock_search = mocker.patch("rag_graphs.simple_rag.search_multi_knowledge_bases")
+    mock_search.return_value = []
+    mock_llm = mocker.MagicMock()
+    mock_llm.ainvoke = mocker.AsyncMock(return_value=AIMessage(content="No context"))
+    mocker.patch("rag_graphs.simple_rag.get_llm_model").return_value = mock_llm
+
+    passed_language = None
+
+    class FakeSynonymExpander:
+        def __init__(self, language: str = "en", **kwargs: Any) -> None:
+            nonlocal passed_language
+            passed_language = language
+
+        async def expand_query(self, query: str) -> str:
+            return query
+
+    monkeypatch.setattr("rag_core.query_rewrite.synonym_expander.SynonymExpander", FakeSynonymExpander)
+
+    config = cast(
+        RunnableConfig,
+        {
+            "configurable": {
+                "model_name": "allowed-model",
+                "knowledge_base_ids": [str(KB_ID)],
+                "language": "ko",
+            }
+        },
+    )
+    state = cast(MessagesState, {"messages": [HumanMessage(content="Test query")]})
+
+    await graph.ainvoke(state, config=config)
+
+    assert passed_language == "ko"

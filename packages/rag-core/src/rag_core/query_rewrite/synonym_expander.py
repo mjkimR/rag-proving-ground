@@ -1,5 +1,4 @@
 import asyncio
-import re
 import time
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
@@ -9,6 +8,12 @@ from uuid import uuid4
 from loguru import logger
 
 from rag_core.config import get_redis_settings, get_synonym_cache_settings
+
+from .word_boundary import (
+    WordBoundaryStrategy,
+    clear_word_boundary_cache,
+    get_word_boundary_strategy,
+)
 
 # Global cached synonyms mapping: keyword -> list of synonyms
 _CACHED_SYNONYMS: dict[str, list[str]] = {}
@@ -42,6 +47,7 @@ def clear_synonyms_cache() -> None:
     _VERSION_CHECK_EXPIRES_AT = 0.0
     _LOCAL_CACHE_EXPIRES_AT = 0.0
     _CACHED_SYNONYMS.clear()
+    clear_word_boundary_cache()
     logger.info("Synonyms in-memory cache cleared in rag-core.")
 
 
@@ -253,33 +259,40 @@ def _new_synonyms_version() -> str:
 
 
 class SynonymExpander:
-    """Applies dictionary-based synonym expansions to search queries."""
+    """Applies dictionary-based synonym expansions to search queries using a Language Strategy."""
 
-    async def expand_query(self, query: str) -> str:
+    def __init__(
+        self,
+        language: str = "en",
+        boundary_strategy: WordBoundaryStrategy | None = None,
+    ) -> None:
+        self.language = language
+        self.boundary_strategy = boundary_strategy or get_word_boundary_strategy(language)
+
+    async def expand_query(self, query: str, language: str | None = None) -> str:
         """Appends synonyms in parentheses for matching keywords.
 
-        Uses regex to match keywords as whole words (to prevent partial matches).
+        Uses the boundary strategy (by default the one associated with the configured language)
+        to match keywords as whole words.
         """
         synonyms_dict = await get_synonyms()
         if not synonyms_dict:
             return query
+
+        strategy = get_word_boundary_strategy(language) if language is not None else self.boundary_strategy
 
         expanded_query = query
         for keyword, synonyms in synonyms_dict.items():
             if not keyword or not synonyms:
                 continue
 
-            # Case-insensitive matching, checking word boundary.
-            # Prevent partial matches inside other English/Korean words at the start,
-            # but allow Korean postpositions at the end (only block alphanumeric suffixes).
-            pattern = re.compile(
-                rf"(?<![a-zA-Z0-9가-힣]){re.escape(keyword)}(?![a-zA-Z0-9])",
-                re.IGNORECASE,
-            )
-            if pattern.search(query):
+            pattern = strategy.get_pattern(keyword)
+            if pattern.search(expanded_query):
                 synonym_str = ", ".join(synonyms)
                 replacement = f"{keyword} ({synonym_str})"
                 expanded_query = pattern.sub(replacement, expanded_query)
-                logger.debug(f"Expanded keyword '{keyword}' -> '{replacement}' in query.")
+                logger.debug(
+                    f"Expanded keyword '{keyword}' -> '{replacement}' in query using {strategy.__class__.__name__}."
+                )
 
         return expanded_query

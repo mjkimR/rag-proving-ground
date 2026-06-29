@@ -59,33 +59,42 @@ async def test_synonym_expander_loading_and_matching() -> None:
     register_synonym_loader(mock_loader)
     clear_synonyms_cache()
 
-    expander = SynonymExpander()
+    # 2. English strategy tests (default)
+    expander_en = SynonymExpander(language="en")
 
     # Test exact boundary match
     query_1 = "m-rag is awesome"
-    res_1 = await expander.expand_query(query_1)
+    res_1 = await expander_en.expand_query(query_1)
     assert "m-rag (modular rag, 모듈형 rag) is awesome" in res_1
 
     # Test case insensitive match
     query_2 = "Tell me about LLM and its features."
-    res_2 = await expander.expand_query(query_2)
+    res_2 = await expander_en.expand_query(query_2)
     assert "llm (large language model)" in res_2.lower()
 
-    # Test Korean boundary match
+    # Test that English strategy does NOT match Korean postpositions (due to )
     query_3 = "그렇게 판단한 이유는 무엇인가요?"
-    res_3 = await expander.expand_query(query_3)
-    assert "이유 (사유, 원인)" in res_3
+    res_3 = await expander_en.expand_query(query_3)
+    assert "이유 (사유, 원인)" not in res_3
 
     # Test non-boundary mismatch (should not expand)
     query_4 = "This is a m-ragged edge"
-    res_4 = await expander.expand_query(query_4)
+    res_4 = await expander_en.expand_query(query_4)
     assert "m-rag (" not in res_4
+
+    # 3. Korean strategy tests
+    expander_ko = SynonymExpander(language="ko")
+
+    # Test that Korean strategy correctly matches Korean postpositions
+    query_ko = "그렇게 판단한 이유는 무엇인가요?"
+    res_ko = await expander_ko.expand_query(query_ko)
+    assert "이유 (사유, 원인)는 무엇인가요?" in res_ko
 
     # Test cache invalidation
     clear_synonyms_cache()
     # Modify mock loader data
     mock_data["llm"] = ["large language model", "거대언어모델"]
-    res_5 = await expander.expand_query("Tell me about llm")
+    res_5 = await expander_en.expand_query("Tell me about llm")
     assert "llm (large language model, 거대언어모델)" in res_5
 
 
@@ -249,6 +258,27 @@ async def test_synonyms_redis_outage_fallback_coalesces_concurrent_loads(
     assert first == {"llm": ["fresh db value"]}
     assert second == {"llm": ["fresh db value"]}
     assert load_calls == 1
+
+
+async def test_clear_synonyms_cache_clears_word_boundary_cache() -> None:
+    from rag_core.query_rewrite.word_boundary import (
+        _compile_english_pattern,
+        _compile_korean_pattern,
+    )
+
+    # Prime the caches
+    _compile_english_pattern("test1")
+    _compile_korean_pattern("test2")
+
+    assert _compile_english_pattern.cache_info().currsize > 0
+    assert _compile_korean_pattern.cache_info().currsize > 0
+
+    # Clear cache
+    clear_synonyms_cache()
+
+    # Caches should be cleared (currsize == 0)
+    assert _compile_english_pattern.cache_info().currsize == 0
+    assert _compile_korean_pattern.cache_info().currsize == 0
 
 
 # =============================================================================
