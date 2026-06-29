@@ -12,6 +12,7 @@ from rag_core.retrieval.schemas import RetrievedChunk
 def compressor():
     return LLMLinguaCompressor(max_chunks_to_process=2)
 
+
 @pytest.fixture
 def mock_chunks():
     kb_id = uuid.uuid4()
@@ -50,12 +51,7 @@ async def test_llmlingua_compressor_success(compressor, mock_chunks):
     url = f"{settings.base_url.rstrip('/')}/compress"
 
     # Mock the external API
-    respx.post(url).mock(
-        return_value=httpx.Response(
-            200,
-            json={"compressed_context": "Compressed chunk text"}
-        )
-    )
+    respx.post(url).mock(return_value=httpx.Response(200, json={"compressed_context": "Compressed chunk text"}))
 
     result = await compressor.compress("test query", mock_chunks)
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Map models to docker compose service names
-# valid models: all, embed, rerank, colpali
+# valid models: all, embed, rerank, colpali, llmlingua
 
 normalized_args=()
 for arg in "$@"; do
@@ -37,9 +37,12 @@ for arg in "${normalized_args[@]}"; do
         colpali)
             services+=("infinity-colpali")
             ;;
+        llmlingua)
+            services+=("llmlingua")
+            ;;
         *)
             echo "Error: Unknown model '$arg'." >&2
-            echo "Available models: all, embed, rerank, colpali" >&2
+            echo "Available models: all, embed, rerank, colpali, llmlingua" >&2
             exit 1
             ;;
     esac

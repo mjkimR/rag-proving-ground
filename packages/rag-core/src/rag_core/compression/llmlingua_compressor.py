@@ -46,13 +46,10 @@ class LLMLinguaCompressor(ContextCompressor):
         if not chunks:
             return []
 
-        top_chunks = list(chunks)[:self.max_chunks_to_process]
+        top_chunks = list(chunks)[: self.max_chunks_to_process]
         batches = self._split_into_batches(top_chunks, max_tokens=self.settings.max_batch_tokens)
 
-        tasks = [
-            self._call_api_with_dynamic_ratio(query, batch)
-            for batch in batches
-        ]
+        tasks = [self._call_api_with_dynamic_ratio(query, batch) for batch in batches]
 
         compressed_batches = await asyncio.gather(*tasks, return_exceptions=True)
         return self._merge_results(batches, compressed_batches)
@@ -105,11 +102,7 @@ class LLMLinguaCompressor(ContextCompressor):
         url = f"{self.settings.base_url.rstrip('/')}/compress"
 
         try:
-            response = await client.post(
-                url,
-                json=payload,
-                timeout=self.settings.timeout
-            )
+            response = await client.post(url, json=payload, timeout=self.settings.timeout)
             response.raise_for_status()
             data = response.json()
 
@@ -126,8 +119,7 @@ class LLMLinguaCompressor(ContextCompressor):
                 # metadata in the merged chunk's metadata to prevent data loss.
                 merged_metadata = batch[0].metadata.copy()
                 merged_metadata["original_chunks"] = [
-                    {"chunk_id": c.chunk_id, "doc_id": c.doc_id, "score": c.score}
-                    for c in batch
+                    {"chunk_id": c.chunk_id, "doc_id": c.doc_id, "score": c.score} for c in batch
                 ]
                 if isinstance(compressed_contexts, str):
                     return [
@@ -148,11 +140,11 @@ class LLMLinguaCompressor(ContextCompressor):
                         )
                     ]
 
-            return batch # Fallback
+            return batch  # Fallback
 
         except httpx.HTTPError as e:
             logger.error(f"LLMLingua API request failed: {e}")
-            return batch # Fallback to uncompressed on failure
+            return batch  # Fallback to uncompressed on failure
 
     def _merge_results(
         self,
