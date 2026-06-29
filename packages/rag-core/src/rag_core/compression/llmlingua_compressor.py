@@ -55,7 +55,7 @@ class LLMLinguaCompressor(ContextCompressor):
         ]
 
         compressed_batches = await asyncio.gather(*tasks, return_exceptions=True)
-        return self._merge_results(compressed_batches)
+        return self._merge_results(batches, compressed_batches)
 
     def _split_into_batches(self, chunks: list[RetrievedChunk], max_tokens: int) -> list[list[RetrievedChunk]]:
         """Splits chunks into batches such that each batch is under max_tokens."""
@@ -114,28 +114,39 @@ class LLMLinguaCompressor(ContextCompressor):
             data = response.json()
 
             compressed_contexts = data.get("compressed_context", [])
-            # Assuming the API returns a single string with all contexts or a list
-            # Usually LLMLingua returns a single string. If it returns a single string,
-            # we can't easily map back. If it returns a list of strings matching the input, we map them.
-            # Assuming standard LLMLingua wrapper returns a single string `compressed_context`
-
-            # To preserve schema, we can return the first chunk with the entire compressed context
-            # or try to map if it's a list. Assuming a single string response.
+            # Assuming the API returns a single string with all contexts or a list.
+            # If it returns a list of strings matching the input, we map them 1:1.
             if isinstance(compressed_contexts, list) and len(compressed_contexts) == len(batch):
                 return [
                     chunk.model_copy(update={"content": comp_ctx})
-                    for chunk, comp_ctx in zip(batch, compressed_contexts, strict=False)
+                    for chunk, comp_ctx in zip(batch, compressed_contexts, strict=True)
                 ]
             else:
-                # Merge into the first chunk's identity, but this is an assumption
-                # We will just update the first chunk with the entire compressed context for simplicity
-                # if the API only returns a single string.
+                # If API returns a single string or list size mismatch, we preserve all original chunks'
+                # metadata in the merged chunk's metadata to prevent data loss.
+                merged_metadata = batch[0].metadata.copy()
+                merged_metadata["original_chunks"] = [
+                    {"chunk_id": c.chunk_id, "doc_id": c.doc_id, "score": c.score}
+                    for c in batch
+                ]
                 if isinstance(compressed_contexts, str):
-                    first_chunk = batch[0]
-                    return [first_chunk.model_copy(update={"content": compressed_contexts})]
+                    return [
+                        batch[0].model_copy(
+                            update={
+                                "content": compressed_contexts,
+                                "metadata": merged_metadata,
+                            }
+                        )
+                    ]
                 elif isinstance(compressed_contexts, list) and len(compressed_contexts) > 0:
-                    first_chunk = batch[0]
-                    return [first_chunk.model_copy(update={"content": "\n\n".join(compressed_contexts)})]
+                    return [
+                        batch[0].model_copy(
+                            update={
+                                "content": "\n\n".join(compressed_contexts),
+                                "metadata": merged_metadata,
+                            }
+                        )
+                    ]
 
             return batch # Fallback
 
@@ -143,13 +154,17 @@ class LLMLinguaCompressor(ContextCompressor):
             logger.error(f"LLMLingua API request failed: {e}")
             return batch # Fallback to uncompressed on failure
 
-    def _merge_results(self, compressed_batches: list[Any]) -> list[RetrievedChunk]:
-        """Merges batch results, ignoring exceptions."""
+    def _merge_results(
+        self,
+        batches: Sequence[Sequence[RetrievedChunk]],
+        compressed_batches: Sequence[Sequence[RetrievedChunk] | BaseException],
+    ) -> list[RetrievedChunk]:
+        """Merges batch results, falling back to original chunks for failed batches."""
         results: list[RetrievedChunk] = []
-        for batch_res in compressed_batches:
-            if isinstance(batch_res, Exception):
-                logger.error(f"Batch processing error: {batch_res}")
-                continue
-            if isinstance(batch_res, list):
+        for batch, batch_res in zip(batches, compressed_batches, strict=True):
+            if isinstance(batch_res, BaseException):
+                logger.error(f"Batch processing error, falling back to original chunks: {batch_res}")
+                results.extend(batch)
+            elif isinstance(batch_res, list):
                 results.extend(batch_res)
         return results
