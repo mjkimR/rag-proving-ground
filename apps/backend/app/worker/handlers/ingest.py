@@ -12,6 +12,7 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     ParseDocumentMessage,
 )
 from app.features.knowledge.knowledge_base_pages.schemas import KnowledgeBasePageCreate
+from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status_for_document
 from app.worker.broker import broker
 from app.worker.services import build_pipeline_service
 from app_file_storage import get_storage_client
@@ -143,9 +144,12 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
 
         # 4. Chain: Dispatch to handle_chunk
         logger.info(f"Worker completed parse stage. Dispatching chunk task for {msg.document_id}")
-        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
-        kicker = handle_chunk.kicker().with_labels(queue_name=get_queue_name(msg.priority))
+        kicker = handle_chunk.kicker().with_labels(
+            queue_name=get_queue_name(msg.priority, stage="chunk"),
+            priority=map_priority_to_int(msg.priority),
+        )
         await kicker.kiq(
             ChunkDocumentMessage(
                 document_id=msg.document_id,
@@ -157,7 +161,7 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
 
     except Exception as exc:
         logger.error(f"Parse worker execution failed for document {msg.document_id}: {exc}")
-        await _update_status_to_failed(pipeline_service, msg.document_id)
+        await _update_status_to_failed(pipeline_service, msg.document_id, error_message=str(exc))
         raise exc
 
 
@@ -240,9 +244,12 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
 
         # 4. Chain: Dispatch to handle_embed
         logger.info(f"Worker completed chunk stage. Dispatching embed task for {msg.document_id}")
-        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
-        kicker = handle_embed.kicker().with_labels(queue_name=get_queue_name(msg.priority))
+        kicker = handle_embed.kicker().with_labels(
+            queue_name=get_queue_name(msg.priority, stage="embed"),
+            priority=map_priority_to_int(msg.priority),
+        )
         await kicker.kiq(
             EmbedDocumentMessage(
                 document_id=msg.document_id,
@@ -254,7 +261,7 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
 
     except Exception as exc:
         logger.error(f"Chunk worker execution failed for document {msg.document_id}: {exc}")
-        await _update_status_to_failed(pipeline_service, msg.document_id)
+        await _update_status_to_failed(pipeline_service, msg.document_id, error_message=str(exc))
         raise exc
 
 
@@ -332,18 +339,25 @@ async def handle_embed(msg: EmbedDocumentMessage) -> None:
 
     except Exception as exc:
         logger.error(f"Embed worker execution failed for document {msg.document_id}: {exc}")
-        await _update_status_to_failed(pipeline_service, msg.document_id)
+        await _update_status_to_failed(pipeline_service, msg.document_id, error_message=str(exc))
         raise exc
 
 
-async def _update_status_to_failed(pipeline_service, document_id) -> None:
+async def _update_status_to_failed(pipeline_service, document_id, error_message: str | None = None) -> None:
     try:
         async with AsyncTransaction() as session:
             stmt = (
                 update(KnowledgeBaseDocument)
                 .where(KnowledgeBaseDocument.id == document_id)
-                .values(status=KnowledgeBaseDocumentStatus.FAILED)
+                .values(status=KnowledgeBaseDocumentStatus.FAILED, error_message=error_message)
             )
             await session.execute(stmt)
+            await session.flush()
+            await refresh_knowledge_base_status_for_document(
+                session,
+                pipeline_service.kb_service,
+                pipeline_service.doc_service,
+                document_id,
+            )
     except Exception as db_exc:
         logger.error(f"Failed to update document status to FAILED in catch block: {db_exc}")

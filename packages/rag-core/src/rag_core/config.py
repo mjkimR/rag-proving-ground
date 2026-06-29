@@ -106,6 +106,23 @@ def get_redis_settings() -> RedisSettings:
     return RedisSettings()
 
 
+class RabbitMQSettings(BaseSettings):
+    """Settings for RabbitMQ connection (Taskiq broker)."""
+
+    url: str = Field(default="amqp://guest:guest@localhost:5672/", validation_alias="RABBITMQ_URL")
+    parse_queue_name: str = Field(default="kb_ingest_parse", validation_alias="RABBITMQ_QUEUE_NAME")
+    chunk_queue_name: str = Field(default="kb_ingest_chunk", validation_alias="RABBITMQ_CHUNK_QUEUE_NAME")
+    embed_queue_name: str = Field(default="kb_ingest_embed", validation_alias="RABBITMQ_EMBED_QUEUE_NAME")
+    max_priority: int = Field(default=5, validation_alias="RABBITMQ_MAX_PRIORITY")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_rabbitmq_settings() -> RabbitMQSettings:
+    return RabbitMQSettings()
+
+
 class SynonymCacheSettings(BaseSettings):
     """Settings for shared synonym expansion cache."""
 

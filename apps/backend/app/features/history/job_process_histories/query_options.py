@@ -57,9 +57,18 @@ def model_name(value: str | None):
     return None
 
 
+@filter_for(bound_type=UUID)
+def group_id(value: UUID | None):
+    """Filter by group ID"""
+    if value is not None:
+        return JobProcessHistory.group_id == value
+    return None
+
+
 history_filters_dependency = create_combined_filter_dependency(
     resource_type,
     resource_id,
+    group_id,
     stage,
     outcome,
     provider,

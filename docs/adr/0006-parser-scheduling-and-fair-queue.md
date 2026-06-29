@@ -1,7 +1,7 @@
 # ADR-0006: 파서별 워커 격리 및 지식 베이스(KB)별 공정 스케줄러(Round-Robin) 도입
 
 * **작성일 (Date)**: 2026-06-15
-* **상태 (Status)**: 제안됨 (Proposed)
+* **상태 (Status)**: 대체됨 ([ADR-0010](file:///Users/mj/workspace/playground/rag-proving-ground/docs/adr/0010-migration-from-redis-to-rabbitmq-broker.md))
 
 ---
 

@@ -28,7 +28,7 @@ export const SynonymTable: React.FC<SynonymTableProps> = ({
 }) => {
   const columns = [
     {
-      title: <span className="font-outfit" style={{ fontWeight: 700 }}>Keyword (단어)</span>,
+      title: <span className="font-outfit" style={{ fontWeight: 700 }}>Keyword</span>,
       dataIndex: 'keyword',
       key: 'keyword',
       width: '20%',
@@ -48,7 +48,7 @@ export const SynonymTable: React.FC<SynonymTableProps> = ({
       ),
     },
     {
-      title: <span className="font-outfit" style={{ fontWeight: 700 }}>Synonyms (동의어 목록)</span>,
+      title: <span className="font-outfit" style={{ fontWeight: 700 }}>Synonyms</span>,
       dataIndex: 'synonyms',
       key: 'synonyms',
       width: '45%',
@@ -72,7 +72,7 @@ export const SynonymTable: React.FC<SynonymTableProps> = ({
       ),
     },
     {
-      title: <span className="font-outfit" style={{ fontWeight: 700 }}>Description (설명)</span>,
+      title: <span className="font-outfit" style={{ fontWeight: 700 }}>Description</span>,
       dataIndex: 'description',
       key: 'description',
       width: '20%',

@@ -383,6 +383,18 @@ export type ChunkingConfig = {
      */
     breadcrumb_separator?: string;
     /**
+     * Enable Contextual Retrieval
+     *
+     * If true, generates a summary of the document to prepend to all chunks.
+     */
+    enable_contextual_retrieval?: boolean;
+    /**
+     * Contextual Retrieval Model
+     *
+     * Optional specific LLM model to use for contextual retrieval summaries.
+     */
+    contextual_retrieval_model?: string | null;
+    /**
      * Enrichment
      *
      * Optional configuration for future chunk enrichment methods.
@@ -821,6 +833,12 @@ export type JobProcessHistoryRead = {
      */
     resource_id: string;
     /**
+     * Group Id
+     *
+     * Optional group UUID to tie related processes together (e.g. knowledge base ID).
+     */
+    group_id?: string | null;
+    /**
      * Stage
      *
      * Processing stage, for example parsing, chunking, embedding, or indexing.
@@ -965,6 +983,24 @@ export type KnowledgeBaseDocumentCreate = {
      * Document-level chunking override config.
      */
     chunking_config?: ChunkingConfig | null;
+    /**
+     * Summary
+     *
+     * The summary of the document content.
+     */
+    summary?: string | null;
+    /**
+     * Summary Model
+     *
+     * The model used to generate the summary.
+     */
+    summary_model?: string | null;
+    /**
+     * Error Message
+     *
+     * Safe error details if ingestion fails.
+     */
+    error_message?: string | null;
 };
 
 /**
@@ -989,6 +1025,24 @@ export type KnowledgeBaseDocumentPatch = {
      * Document-level chunking override config.
      */
     chunking_config?: ChunkingConfig | null;
+    /**
+     * Summary
+     *
+     * The summary of the document content.
+     */
+    summary?: string | null;
+    /**
+     * Summary Model
+     *
+     * The model used to generate the summary.
+     */
+    summary_model?: string | null;
+    /**
+     * Error Message
+     *
+     * Safe error details if ingestion fails.
+     */
+    error_message?: string | null;
 };
 
 /**
@@ -1037,6 +1091,24 @@ export type KnowledgeBaseDocumentPut = {
      * Document-level chunking override config.
      */
     chunking_config?: ChunkingConfig | null;
+    /**
+     * Summary
+     *
+     * The summary of the document content.
+     */
+    summary?: string | null;
+    /**
+     * Summary Model
+     *
+     * The model used to generate the summary.
+     */
+    summary_model?: string | null;
+    /**
+     * Error Message
+     *
+     * Safe error details if ingestion fails.
+     */
+    error_message?: string | null;
 };
 
 /**
@@ -1085,6 +1157,24 @@ export type KnowledgeBaseDocumentRead = {
      * Document-level chunking override config.
      */
     chunking_config?: ChunkingConfig | null;
+    /**
+     * Summary
+     *
+     * The summary of the document content.
+     */
+    summary?: string | null;
+    /**
+     * Summary Model
+     *
+     * The model used to generate the summary.
+     */
+    summary_model?: string | null;
+    /**
+     * Error Message
+     *
+     * Safe error details if ingestion fails.
+     */
+    error_message?: string | null;
     /**
      * Created At
      */
@@ -3558,6 +3648,12 @@ export type GetJobProcessHistoriesApiV1JobProcessHistoriesGetData = {
          * Filter by resource ID
          */
         resource_id?: string | null;
+        /**
+         * Group Id
+         *
+         * Filter by group ID
+         */
+        group_id?: string | null;
         /**
          * Stage
          *

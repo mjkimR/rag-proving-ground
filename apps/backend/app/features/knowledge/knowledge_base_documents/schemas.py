@@ -60,6 +60,7 @@ class KnowledgeBaseDocumentBase(BaseModel):
     chunking_config: ChunkingConfig | None = Field(default=None, description="Document-level chunking override config.")
     summary: str | None = Field(default=None, description="The summary of the document content.")
     summary_model: str | None = Field(default=None, description="The model used to generate the summary.")
+    error_message: str | None = Field(default=None, description="Safe error details if ingestion fails.")
 
 
 class KnowledgeBaseDocumentCreate(KnowledgeBaseDocumentBase):
@@ -79,6 +80,7 @@ class KnowledgeBaseDocumentPatch(BaseModel):
     chunking_config: ChunkingConfig | None = Field(default=None, description="Document-level chunking override config.")
     summary: str | None = Field(default=None, description="The summary of the document content.")
     summary_model: str | None = Field(default=None, description="The model used to generate the summary.")
+    error_message: str | None = Field(default=None, description="Safe error details if ingestion fails.")
 
 
 class KnowledgeBaseDocumentRead(UUIDSchemaMixin, TimestampSchemaMixin, KnowledgeBaseDocumentBase):
@@ -126,10 +128,32 @@ class ReprocessDocumentMessage(BaseModel):
     mode: KnowledgeBaseDocumentReprocessMode = KnowledgeBaseDocumentReprocessMode.AUTO
 
 
-def get_queue_name(priority: str | TaskPriority) -> str:
-    """Prepend 'kb_ingest:' prefix to avoid Redis queue namespace collisions."""
+def get_queue_name(priority: str | TaskPriority, stage: str = "parse") -> str:
+    """Prepend 'kb_ingest:' prefix to avoid Redis queue namespace collisions.
+
+    Deprecated: All ingestion tasks are now consolidated into the queue specified in config.
+    """
+    from rag_core.config import get_rabbitmq_settings
+
+    settings = get_rabbitmq_settings()
+    if stage == "chunk":
+        return settings.chunk_queue_name
+    elif stage == "embed":
+        return settings.embed_queue_name
+    return settings.parse_queue_name
+
+
+def map_priority_to_int(priority: str | TaskPriority) -> int:
+    """Map TaskPriority enum or string to RabbitMQ native priority integer (1-5)."""
     p_val = priority.value if isinstance(priority, TaskPriority) else priority
-    return f"kb_ingest:{p_val}"
+    mapping = {
+        "critical": 5,
+        "high": 4,
+        "medium": 3,
+        "low": 2,
+        "lowest": 1,
+    }
+    return mapping.get(p_val, 3)
 
 
 class DocumentChunksRead(BaseModel):

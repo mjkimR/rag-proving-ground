@@ -66,10 +66,18 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            render: (status: string) => {
+            render: (status: string, record: KnowledgeBaseDocumentRead) => {
               let color = 'default';
               if (status === 'COMPLETED') color = 'success';
-              else if (status === 'FAILED') color = 'error';
+              else if (status === 'FAILED') {
+                return (
+                  <Tooltip title={record.error_message || 'Ingestion failed with an unknown error.'}>
+                    <Tag color="error" style={{ borderRadius: '4px', fontWeight: 600, cursor: 'help' }}>
+                      {status}
+                    </Tag>
+                  </Tooltip>
+                );
+              }
               else if (['PARSING', 'CHUNKING', 'EMBEDDING'].includes(status)) color = 'processing';
               else if (['PENDING_REPARSE', 'PENDING_RECHUNK', 'PENDING_REEMBED'].includes(status)) color = 'warning';
               return (

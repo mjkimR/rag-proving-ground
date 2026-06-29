@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class KnowledgeBase(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "knowledge_bases"
     name: Mapped[str] = mapped_column(unique=True)
-    language: Mapped[KnowledgeLanguage] = mapped_column(default=KnowledgeLanguage.EN)
+    language: Mapped[str] = mapped_column(default=KnowledgeLanguage.EN)
     status: Mapped[str] = mapped_column(default="READY")
     embedding_config: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
     embed_config_hash: Mapped[str | None] = mapped_column(nullable=True)
