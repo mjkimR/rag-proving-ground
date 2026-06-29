@@ -20,6 +20,14 @@ class ChunkingConfig(BaseModel):
     )
     include_root_breadcrumb: bool = Field(default=True, description="Keep the root heading when trimming breadcrumbs.")
     breadcrumb_separator: str = " > "
+    enable_contextual_retrieval: bool = Field(
+        default=False,
+        description="If true, generates a summary of the document to prepend to all chunks.",
+    )
+    contextual_retrieval_model: str | None = Field(
+        default=None,
+        description="Optional specific LLM model to use for contextual retrieval summaries.",
+    )
     enrichment: dict[str, Any] | None = Field(
         default=None,
         description="Optional configuration for future chunk enrichment methods.",

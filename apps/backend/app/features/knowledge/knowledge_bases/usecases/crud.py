@@ -39,6 +39,7 @@ from loguru import logger
 from pydantic import BaseModel
 from rag_core.chunkers import resolve_chunking_config
 from rag_core.embeddings import (
+    KnowledgeLanguage,
     knowledge_embedding_config_payload,
     resolve_knowledge_embedding_config,
 )
@@ -277,6 +278,11 @@ async def _update_knowledge_base_with_document_transitions(
     if not kb:
         return None, [], None
 
+    if context is None:
+        context = {}
+    context.setdefault("_current_language", KnowledgeLanguage(kb.language))
+    context.setdefault("_current_embedding_config", kb.embedding_config)
+
     change_set = _detect_config_changes(kb, obj_data, partial=partial)
     apply_mode = getattr(obj_data, "apply_mode", KnowledgeBaseConfigApplyMode.INHERITED_ONLY)
     if change_set.embedding_changed and apply_mode == KnowledgeBaseConfigApplyMode.NEW_ONLY:
@@ -338,9 +344,12 @@ async def _trigger_documents_reprocessing(
                 logger.info(f"Document {doc.id} marked as PENDING_REPARSE. Will be picked up by DB-polling dispatcher.")
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_RECHUNK:
                 logger.info(f"Dispatching chunk task for document {doc.id} (RECHUNK)")
-                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
-                kicker = handle_chunk.kicker().with_labels(queue_name=get_queue_name(doc.priority))
+                kicker = handle_chunk.kicker().with_labels(
+                    queue_name=get_queue_name(doc.priority, stage="chunk"),
+                    priority=map_priority_to_int(doc.priority),
+                )
                 await kicker.kiq(
                     ChunkDocumentMessage(
                         document_id=doc.id,
@@ -351,9 +360,12 @@ async def _trigger_documents_reprocessing(
                 )
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_REEMBED:
                 logger.info(f"Dispatching embed task for document {doc.id} (REEMBED)")
-                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
-                kicker = handle_embed.kicker().with_labels(queue_name=get_queue_name(doc.priority))
+                kicker = handle_embed.kicker().with_labels(
+                    queue_name=get_queue_name(doc.priority, stage="embed"),
+                    priority=map_priority_to_int(doc.priority),
+                )
                 await kicker.kiq(
                     EmbedDocumentMessage(
                         document_id=doc.id,
@@ -374,22 +386,23 @@ def _detect_config_changes(
 ) -> KnowledgeBaseConfigChangeSet:
     fields_set = obj_data.model_fields_set
     check_all_fields = not partial
+    parsing_changed = (check_all_fields or "default_parsing_config" in fields_set) and _parsing_config_value(
+        getattr(obj_data, "default_parsing_config", None)
+    ) != _parsing_config_value(kb.default_parsing_config)
+    chunking_changed = (check_all_fields or "default_chunking_config" in fields_set) and _chunking_config_value(
+        getattr(obj_data, "default_chunking_config", None)
+    ) != _chunking_config_value(kb.default_chunking_config)
+    old_lang = getattr(kb, "language", KnowledgeLanguage.EN)
+    new_lang = getattr(obj_data, "language", old_lang) if (check_all_fields or "language" in fields_set) else old_lang
+    embedding_changed = (
+        check_all_fields or "embedding_config" in fields_set or "language" in fields_set
+    ) and _embedding_config_value(
+        getattr(obj_data, "embedding_config", None), language=new_lang
+    ) != _embedding_config_value(kb.embedding_config, language=old_lang)
     return KnowledgeBaseConfigChangeSet(
-        parsing_changed=(
-            (check_all_fields or "default_parsing_config" in fields_set)
-            and _parsing_config_value(getattr(obj_data, "default_parsing_config", None))
-            != _parsing_config_value(kb.default_parsing_config)
-        ),
-        chunking_changed=(
-            (check_all_fields or "default_chunking_config" in fields_set)
-            and _chunking_config_value(getattr(obj_data, "default_chunking_config", None))
-            != _chunking_config_value(kb.default_chunking_config)
-        ),
-        embedding_changed=(
-            (check_all_fields or "embedding_config" in fields_set)
-            and _embedding_config_value(getattr(obj_data, "embedding_config", None))
-            != _embedding_config_value(kb.embedding_config)
-        ),
+        parsing_changed=parsing_changed,
+        chunking_changed=chunking_changed,
+        embedding_changed=embedding_changed,
     )
 
 
@@ -482,8 +495,8 @@ def _json_config_value(value: Any) -> Any:
     return value
 
 
-def _embedding_config_value(value: Any) -> dict[str, str]:
-    return knowledge_embedding_config_payload(resolve_knowledge_embedding_config(value))
+def _embedding_config_value(value: Any, language: KnowledgeLanguage | str = KnowledgeLanguage.EN) -> dict[str, Any]:
+    return knowledge_embedding_config_payload(resolve_knowledge_embedding_config(value, language=language))
 
 
 def _parsing_config_value(value: Any) -> dict[str, Any]:

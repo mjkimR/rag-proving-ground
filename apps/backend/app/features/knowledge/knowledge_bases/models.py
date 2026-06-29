@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from app.common.database import JSON_VARIANT
 from app.features.knowledge.session_knowledge_bases.models import SessionKnowledgeBase
 from app_layer_base.base.models.mixin import Base, TimestampMixin, UUIDMixin
+from rag_core.embeddings import KnowledgeLanguage
 from sqlalchemy import DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
 class KnowledgeBase(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "knowledge_bases"
     name: Mapped[str] = mapped_column(unique=True)
+    language: Mapped[str] = mapped_column(default=KnowledgeLanguage.EN)
     status: Mapped[str] = mapped_column(default="READY")
     embedding_config: Mapped[dict | None] = mapped_column(JSON_VARIANT, nullable=True)
     embed_config_hash: Mapped[str | None] = mapped_column(nullable=True)

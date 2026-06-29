@@ -1,3 +1,4 @@
+import hashlib
 import json
 import time
 from dataclasses import dataclass
@@ -9,6 +10,7 @@ from app.features.history.job_process_histories.services import JobProcessHistor
 from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_base_pages.services import KnowledgeBasePageService
+from app.features.knowledge.knowledge_bases.models import KnowledgeBase
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status_for_document
 from app_file_storage import get_storage_client
@@ -23,13 +25,16 @@ from rag_core.chunkers import (
     chunk_document,
     knowledge_chunking_config_hash,
     resolve_chunking_config,
+    visual_chunk_document,
 )
 from rag_core.embeddings import (
     KnowledgeEmbeddingConfig,
+    KnowledgeLanguage,
     chunks_to_langchain_documents,
     delete_document_vectors,
     get_knowledge_vector_store,
     knowledge_vector_collection_name,
+    resolve_knowledge_embedding_config,
 )
 from rag_core.parsers import (
     KnowledgeParsingConfig,
@@ -37,6 +42,9 @@ from rag_core.parsers import (
     knowledge_parsing_config_hash,
     resolve_knowledge_parsing_config,
 )
+from rag_core.summarize import TreeSummarizer
+from rag_core.tokenizers import get_tokenizer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 KNOWLEDGE_DOCUMENT_RESOURCE_TYPE = "knowledge_base_document"
@@ -104,6 +112,7 @@ class KnowledgeDocumentPipelineService:
                 duration = time.time() - start_time
                 await self._record_parse_success(
                     document_id=document_id,
+                    knowledge_base_id=knowledge_base_id,
                     filename=filename,
                     provider=parsing_provider,
                     parsing_config=resolved_config,
@@ -132,6 +141,7 @@ class KnowledgeDocumentPipelineService:
             duration = time.time() - start_time
             await self._record_parse_success(
                 document_id=document_id,
+                knowledge_base_id=knowledge_base_id,
                 filename=filename,
                 provider=parsing_provider,
                 parsing_config=resolved_config,
@@ -153,6 +163,7 @@ class KnowledgeDocumentPipelineService:
                     name=f"Parse failure: {filename}",
                     resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                     resource_id=document_id,
+                    group_id=knowledge_base_id,
                     stage="parsing",
                     outcome="FAILED",
                     provider=parsing_provider,
@@ -162,7 +173,9 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, parse_history)
-                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
+                await self._set_document_status(
+                    session, document_id, KnowledgeBaseDocumentStatus.FAILED, error_message=str(exc)
+                )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Ingestion failed at Parsing stage: {exc}",
@@ -183,6 +196,13 @@ class KnowledgeDocumentPipelineService:
         resolved_config = resolve_chunking_config(chunking_config)
         chunking_config_hash = knowledge_chunking_config_hash(resolved_config)
 
+        # Explicitly declare scope variables to improve readability and satisfy linters
+        doc_info: dict = {}
+        db_chunk_hash: str | None = None
+        db_summary_hash: str | None = None
+        kb_language = KnowledgeLanguage.EN
+        kb_embedding_config_val = None
+
         async with AsyncTransaction() as session:
             await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.CHUNKING)
             db_doc = await self.doc_service.repo.get_by_pk_for_update(session, document_id)
@@ -195,6 +215,28 @@ class KnowledgeDocumentPipelineService:
             file_hash = db_doc.file_hash
             doc_info = dict(db_doc.document_info or {})
             db_chunk_hash = doc_info.get("chunking_config_hash")
+            db_summary_hash = doc_info.get("chunking_summary_hash")
+
+            stmt = select(KnowledgeBase).where(KnowledgeBase.id == kb_id)
+            kb = (await session.execute(stmt)).scalar_one_or_none()
+            if not kb:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Knowledge base with ID '{kb_id}' not found.",
+                )
+            kb_language = kb.language or KnowledgeLanguage.EN
+            kb_embedding_config_val = kb.embedding_config
+
+        # 트랜잭션 종료 후 비즈니스 로직 수행
+        if embedding_config is None:
+            embedding_config = resolve_knowledge_embedding_config(kb_embedding_config_val, language=kb_language)
+
+        kb_language_str = KnowledgeLanguage.EN.value
+        if kb_language:
+            kb_language_str = kb_language.value if isinstance(kb_language, KnowledgeLanguage) else str(kb_language)
+
+        model_name_or_encoding = embedding_config.model if embedding_config else None
+        tokenizer = get_tokenizer(language=kb_language_str, model_name_or_encoding=model_name_or_encoding)
 
         logger.info(f"Chunking document '{filename}' (ID: {document_id})")
         start_time = time.time()
@@ -202,8 +244,80 @@ class KnowledgeDocumentPipelineService:
         chunked_data_key = knowledge_chunked_data_key(kb_id, file_hash)
 
         try:
-            # 1. Check if cache is valid (matching hash and file exists in MinIO)
-            if db_chunk_hash == chunking_config_hash and await storage_client.file_exists(chunked_data_key):
+            # Generate summary if Contextual Retrieval is enabled
+            summary_to_prepend = None
+            if resolved_config.enable_contextual_retrieval:
+                # 1. Fetch DB doc without locking the row, to see if summary already exists
+                async with AsyncTransaction() as session:
+                    db_doc_check = await self.doc_service.repo.get_by_pk(session, document_id)
+                    db_summary = db_doc_check.summary if db_doc_check else None
+                    needs_summary = db_doc_check and db_summary is None
+
+                if needs_summary:
+                    logger.info(f"Generating contextual retrieval summary for document '{filename}'")
+                    summarizer = TreeSummarizer(model_name=resolved_config.contextual_retrieval_model)
+
+                    elements = parsed_doc.elements
+                    full_text_chunks = []
+                    for page in parsed_doc.pages:
+                        page_text = "\n\n".join(
+                            e.content
+                            for e in elements
+                            if e.page_id == page.page_id and e.content.strip() and not e.ignored
+                        )
+                        if page_text:
+                            full_text_chunks.append(page_text)
+
+                    # If elements not linked by page_id (or fallback), just get all text
+                    if not full_text_chunks:
+                        full_text_chunks = [e.content for e in elements if e.content.strip() and not e.ignored]
+
+                    full_text = "\n\n".join(full_text_chunks)
+                    if full_text.strip():
+                        summary_query = (
+                            "Please provide a comprehensive summary of this document. "
+                            "This summary will be used to provide context for smaller chunks of the document during retrieval. "
+                            "Focus on the main topics, entities, and overall context of the document."
+                        )
+                        # Perform long running LLM generation outside of DB lock
+                        summary = await summarizer.summarize(full_text, query=summary_query)
+
+                        # 2. Re-fetch with lock to save summary (Double-Checked Locking)
+                        was_generated = False
+                        async with AsyncTransaction() as session:
+                            db_doc_for_summary = await self.doc_service.repo.get_by_pk_for_update(session, document_id)
+                            if db_doc_for_summary:
+                                if db_doc_for_summary.summary is None:
+                                    db_doc_for_summary.summary = summary
+                                    db_doc_for_summary.summary_model = summarizer.model_name
+                                    await session.flush()
+                                    summary_to_prepend = summary
+                                    was_generated = True
+                                else:
+                                    summary_to_prepend = db_doc_for_summary.summary
+
+                        if was_generated:
+                            logger.info(f"Saved summary for document '{filename}' using model {summarizer.model_name}")
+                        else:
+                            logger.info(
+                                f"Summary for document '{filename}' was already generated by another worker. Using existing summary."
+                            )
+                    else:
+                        summary_to_prepend = None
+                else:
+                    summary_to_prepend = db_summary
+
+            # Compute summary hash for cache mapping
+            current_summary_hash = (
+                hashlib.sha256(summary_to_prepend.encode("utf-8")).hexdigest()[:16] if summary_to_prepend else None
+            )
+
+            # 1. Check if cache is valid (matching hash, summary hash, and file exists in MinIO)
+            if (
+                db_chunk_hash == chunking_config_hash
+                and db_summary_hash == current_summary_hash
+                and await storage_client.file_exists(chunked_data_key)
+            ):
                 logger.info(f"Chunk cache hit for document '{filename}' (ID: {document_id})")
                 chunks = await load_chunked_document_from_storage(chunked_data_key)
                 duration = time.time() - start_time
@@ -214,6 +328,7 @@ class KnowledgeDocumentPipelineService:
                             name=f"{stage_context.name_prefix} cache hit: {filename}",
                             resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                             resource_id=document_id,
+                            group_id=kb_id,
                             stage="chunking",
                             outcome="SUCCESS",
                             config=_history_config(resolved_config),
@@ -227,12 +342,16 @@ class KnowledgeDocumentPipelineService:
 
             # 2. Cache miss: perform the actual chunking
             logger.info(f"Chunk cache miss for document '{filename}' (ID: {document_id})")
-            if embedding_config and embedding_config.use_colpali:
-                from rag_core.chunkers.visual import visual_chunk_document
 
+            if embedding_config and embedding_config.use_colpali:
                 chunks = visual_chunk_document(parsed_doc)
             else:
-                chunks = chunk_document(parsed_doc, config=resolved_config)
+                chunks = chunk_document(
+                    parsed_doc,
+                    config=resolved_config,
+                    summary=summary_to_prepend,
+                    tokenizer=tokenizer,
+                )
 
             # 3. Save chunking results to MinIO
             serialized_chunks = json.dumps([c.model_dump() for c in chunks], indent=2).encode("utf-8")
@@ -246,6 +365,7 @@ class KnowledgeDocumentPipelineService:
                     doc_info = dict(db_doc.document_info or {})
                     doc_info["chunk_count"] = len(chunks)
                     doc_info["chunking_config_hash"] = chunking_config_hash
+                    doc_info["chunking_summary_hash"] = current_summary_hash
                     doc_info["chunked_data_path"] = chunked_data_key
                     db_doc.document_info = doc_info
                 if stage_context.record_history:
@@ -253,6 +373,7 @@ class KnowledgeDocumentPipelineService:
                         name=f"{stage_context.name_prefix} success: {filename}",
                         resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                         resource_id=document_id,
+                        group_id=kb_id,
                         stage="chunking",
                         outcome="SUCCESS",
                         config=_history_config(resolved_config),
@@ -271,6 +392,7 @@ class KnowledgeDocumentPipelineService:
                     name=f"{stage_context.name_prefix} failure: {filename}",
                     resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                     resource_id=document_id,
+                    group_id=kb_id,
                     stage="chunking",
                     outcome="FAILED",
                     config=_history_config(resolved_config),
@@ -279,7 +401,9 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, chunk_history)
-                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
+                await self._set_document_status(
+                    session, document_id, KnowledgeBaseDocumentStatus.FAILED, error_message=str(exc)
+                )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"{stage_context.failure_detail_prefix} failed at Chunking stage: {exc}",
@@ -340,6 +464,7 @@ class KnowledgeDocumentPipelineService:
                     name=f"{stage_context.name_prefix} success: {filename}",
                     resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                     resource_id=document_id,
+                    group_id=knowledge_base_id,
                     stage="embedding",
                     outcome="SUCCESS",
                     model_name=embedding_model_name,
@@ -358,6 +483,7 @@ class KnowledgeDocumentPipelineService:
                     name=f"{stage_context.name_prefix} failure: {filename}",
                     resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                     resource_id=document_id,
+                    group_id=knowledge_base_id,
                     stage="embedding",
                     outcome="FAILED",
                     model_name=embedding_model_name,
@@ -367,7 +493,9 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, embed_history)
-                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
+                await self._set_document_status(
+                    session, document_id, KnowledgeBaseDocumentStatus.FAILED, error_message=str(exc)
+                )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"{stage_context.failure_detail_prefix} failed at Embedding stage: {exc}",
@@ -377,6 +505,7 @@ class KnowledgeDocumentPipelineService:
         self,
         *,
         document_id: UUID,
+        knowledge_base_id: UUID,
         filename: str,
         provider: str | None,
         parsing_config: KnowledgeParsingConfig,
@@ -404,6 +533,7 @@ class KnowledgeDocumentPipelineService:
                 name=f"Parse {'cache hit' if cache_hit else 'success'}: {filename}",
                 resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                 resource_id=document_id,
+                group_id=knowledge_base_id,
                 stage="parsing",
                 outcome="SUCCESS",
                 provider=provider,
@@ -423,10 +553,20 @@ class KnowledgeDocumentPipelineService:
         session: AsyncSession,
         document_id: UUID,
         document_status: KnowledgeBaseDocumentStatus,
+        error_message: str | None = None,
     ) -> None:
         db_doc = await self.doc_service.repo.get_by_pk_for_update(session, document_id)
         if db_doc:
             db_doc.status = document_status
+            if document_status == KnowledgeBaseDocumentStatus.FAILED:
+                db_doc.error_message = error_message
+            elif document_status in (
+                KnowledgeBaseDocumentStatus.PARSING,
+                KnowledgeBaseDocumentStatus.CHUNKING,
+                KnowledgeBaseDocumentStatus.EMBEDDING,
+                KnowledgeBaseDocumentStatus.COMPLETED,
+            ):
+                db_doc.error_message = None
             await session.flush()
         await refresh_knowledge_base_status_for_document(session, self.kb_service, self.doc_service, document_id)
 

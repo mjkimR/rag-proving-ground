@@ -12,6 +12,7 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     ParseDocumentMessage,
 )
 from app.features.knowledge.knowledge_base_pages.schemas import KnowledgeBasePageCreate
+from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status_for_document
 from app.worker.broker import broker
 from app.worker.services import build_pipeline_service
 from app_file_storage import get_storage_client
@@ -43,6 +44,7 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
                 return
             default_parsing_config = kb.default_parsing_config
             embedding_config_raw = kb.embedding_config
+            kb_language = kb.language if kb else "en"
 
         # Retrieve document and mark status inside a short locked transaction
         async with AsyncTransaction() as session:
@@ -64,7 +66,7 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
             await session.flush()
 
             resolved_parsing_config = doc.parsing_config if doc.parsing_config is not None else default_parsing_config
-            embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+            embedding_config = resolve_knowledge_embedding_config(embedding_config_raw, language=kb_language)
 
         # 2. Download raw file from MinIO
         storage_client = get_storage_client()
@@ -142,9 +144,12 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
 
         # 4. Chain: Dispatch to handle_chunk
         logger.info(f"Worker completed parse stage. Dispatching chunk task for {msg.document_id}")
-        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
-        kicker = handle_chunk.kicker().with_labels(queue_name=get_queue_name(msg.priority))
+        kicker = handle_chunk.kicker().with_labels(
+            queue_name=get_queue_name(msg.priority, stage="chunk"),
+            priority=map_priority_to_int(msg.priority),
+        )
         await kicker.kiq(
             ChunkDocumentMessage(
                 document_id=msg.document_id,
@@ -156,7 +161,7 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
 
     except Exception as exc:
         logger.error(f"Parse worker execution failed for document {msg.document_id}: {exc}")
-        await _update_status_to_failed(pipeline_service, msg.document_id)
+        await _update_status_to_failed(pipeline_service, msg.document_id, error_message=str(exc))
         raise exc
 
 
@@ -203,6 +208,7 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
                 return
             default_chunking_config = kb.default_chunking_config
             embedding_config_raw = kb.embedding_config
+            kb_language = kb.language if kb else "en"
 
         parsed_data_path = document_info.get("parsed_data_path")
         if not parsed_data_path:
@@ -212,7 +218,7 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
         resolved_chunking_config = (
             chunking_config_override if chunking_config_override is not None else default_chunking_config
         )
-        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw, language=kb_language)
 
         # 2. Load parsed artifact from storage
         try:
@@ -238,9 +244,12 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
 
         # 4. Chain: Dispatch to handle_embed
         logger.info(f"Worker completed chunk stage. Dispatching embed task for {msg.document_id}")
-        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+        from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
-        kicker = handle_embed.kicker().with_labels(queue_name=get_queue_name(msg.priority))
+        kicker = handle_embed.kicker().with_labels(
+            queue_name=get_queue_name(msg.priority, stage="embed"),
+            priority=map_priority_to_int(msg.priority),
+        )
         await kicker.kiq(
             EmbedDocumentMessage(
                 document_id=msg.document_id,
@@ -252,7 +261,7 @@ async def handle_chunk(msg: ChunkDocumentMessage) -> None:
 
     except Exception as exc:
         logger.error(f"Chunk worker execution failed for document {msg.document_id}: {exc}")
-        await _update_status_to_failed(pipeline_service, msg.document_id)
+        await _update_status_to_failed(pipeline_service, msg.document_id, error_message=str(exc))
         raise exc
 
 
@@ -295,13 +304,14 @@ async def handle_embed(msg: EmbedDocumentMessage) -> None:
                 return
             embedding_config_raw = kb.embedding_config
             previous_embed_config_hash = kb.embed_config_hash
+            kb_language = kb.language if kb else "en"
 
         chunked_data_path = document_info.get("chunked_data_path")
         if not chunked_data_path:
             logger.error(f"Document {msg.document_id} has no chunked artifact path in document_info.")
             return
 
-        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw)
+        embedding_config = resolve_knowledge_embedding_config(embedding_config_raw, language=kb_language)
 
         # 2. Load chunked artifact from storage
         try:
@@ -329,18 +339,25 @@ async def handle_embed(msg: EmbedDocumentMessage) -> None:
 
     except Exception as exc:
         logger.error(f"Embed worker execution failed for document {msg.document_id}: {exc}")
-        await _update_status_to_failed(pipeline_service, msg.document_id)
+        await _update_status_to_failed(pipeline_service, msg.document_id, error_message=str(exc))
         raise exc
 
 
-async def _update_status_to_failed(pipeline_service, document_id) -> None:
+async def _update_status_to_failed(pipeline_service, document_id, error_message: str | None = None) -> None:
     try:
         async with AsyncTransaction() as session:
             stmt = (
                 update(KnowledgeBaseDocument)
                 .where(KnowledgeBaseDocument.id == document_id)
-                .values(status=KnowledgeBaseDocumentStatus.FAILED)
+                .values(status=KnowledgeBaseDocumentStatus.FAILED, error_message=error_message)
             )
             await session.execute(stmt)
+            await session.flush()
+            await refresh_knowledge_base_status_for_document(
+                session,
+                pipeline_service.kb_service,
+                pipeline_service.doc_service,
+                document_id,
+            )
     except Exception as db_exc:
         logger.error(f"Failed to update document status to FAILED in catch block: {db_exc}")

@@ -38,4 +38,14 @@ for port in "${PORTS[@]}"; do
     kill_port "$port"
 done
 
+# Terminate any dangling taskiq workers (they don't bind to ports)
+if command -v pgrep >/dev/null 2>&1; then
+    pids=$(pgrep -f "taskiq worker" || true)
+    if [ -n "$pids" ]; then
+        echo "Terminating taskiq worker processes: $pids"
+        kill $pids 2>/dev/null || true
+    fi
+fi
+
 echo "Development servers cleaned up."
+
