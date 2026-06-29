@@ -160,6 +160,7 @@ class FastParserSettings(BaseSettings):
 def get_fast_parser_settings() -> FastParserSettings:
     return FastParserSettings()
 
+
 class PromptSettings(BaseSettings):
     """Settings for prompt registry adapters."""
 
@@ -167,8 +168,7 @@ class PromptSettings(BaseSettings):
     s3_bucket: str = Field(default="prompts", validation_alias="PROMPT_S3_BUCKET")
     cache_ttl_seconds: int = Field(default=300, validation_alias="PROMPT_CACHE_TTL_SECONDS")
     fallback_dir: str = Field(
-        default="packages/rag-core/src/rag_core/prompt/fallback",
-        validation_alias="PROMPT_FALLBACK_DIR"
+        default="packages/rag-core/src/rag_core/prompt/fallback", validation_alias="PROMPT_FALLBACK_DIR"
     )
 
     # Langfuse Settings

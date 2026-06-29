@@ -42,10 +42,6 @@ import {
   createDocumentParserApiV1DocumentParsersPost,
   deleteDocumentParserApiV1DocumentParsersDocumentParserIdDelete
 } from '@/generated/api/sdk.gen';
-import {
-  MessageSquare
-} from 'lucide-react';
-import { PromptsSection } from './PromptsSection';
 import type {
   AiModelRead,
   AiModelCreate,
@@ -630,15 +626,6 @@ export const Providers: React.FC = () => {
           />
         </Card>
       )
-    },
-    {
-      key: 'prompts',
-      label: (
-        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MessageSquare size={16} /> Prompts
-        </span>
-      ),
-      children: <PromptsSection />
     }
   ];
 

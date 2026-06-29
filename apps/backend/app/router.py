@@ -6,7 +6,6 @@ from app.features.knowledge.synonyms.api.v1 import router as v1_synonyms_router
 from app.features.playground.doc_parse.api.v1 import router as v1_doc_parse_router
 from app.features.providers.ai_models.api.v1 import router as v1_ai_models_router
 from app.features.providers.document_parsers.api.v1 import router as v1_document_parsers_router
-from app.features.providers.prompts.api.v1 import router as v1_prompts_router
 from app.features.providers.routes.api.v1 import router as v1_providers_router
 from app.features.storage.file_attachments.api.v1 import router as v1_file_attachments_router
 from fastapi import APIRouter, status
@@ -36,5 +35,4 @@ v1_router.include_router(v1_document_parsers_router)
 v1_router.include_router(v1_ai_models_router)
 v1_router.include_router(v1_synonyms_router)
 v1_router.include_router(v1_file_attachments_router)
-v1_router.include_router(v1_prompts_router)
 router.include_router(v1_router)
