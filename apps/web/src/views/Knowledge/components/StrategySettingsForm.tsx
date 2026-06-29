@@ -5,10 +5,12 @@ import {
 } from 'antd';
 import type { FormInstance } from 'antd';
 import { PARSER_LABELS } from '@/views/DocumentWorkbench/types';
+import type { KnowledgeBaseRead } from '@/generated/api/types.gen';
 
 const { Title, Paragraph, Text } = Typography;
 
 interface StrategySettingsFormProps {
+  kb: KnowledgeBaseRead;
   settingsForm: FormInstance;
   currentStep: number;
   showParserOverrides: boolean;
@@ -24,6 +26,7 @@ interface StrategySettingsFormProps {
 }
 
 export const StrategySettingsForm: React.FC<StrategySettingsFormProps> = ({
+  kb,
   settingsForm,
   currentStep,
   showParserOverrides,
@@ -37,6 +40,33 @@ export const StrategySettingsForm: React.FC<StrategySettingsFormProps> = ({
   handlePrevConfig,
   handleNextConfig,
 }) => {
+  React.useEffect(() => {
+    if (kb) {
+      settingsForm.setFieldsValue({
+        name: kb.name,
+        embedding_config: {
+          model: kb.embedding_config?.model || 'text-embedding-3-small',
+          distance: kb.embedding_config?.distance || 'cosine',
+          use_colpali: kb.embedding_config?.use_colpali || false,
+          colpali_model: kb.embedding_config?.colpali_model || 'vidore/colpali-v1.2-merged',
+          retrieval_mode: kb.embedding_config?.retrieval_mode || 'dense',
+          sparse_model: kb.embedding_config?.sparse_model || 'en-bm25',
+        },
+        default_chunking_config: {
+          chunk_size: kb.default_chunking_config?.chunk_size ?? 1024,
+          chunk_overlap: kb.default_chunking_config?.chunk_overlap ?? 200,
+          merge_max_chars: kb.default_chunking_config?.merge_max_chars ?? 4096,
+          breadcrumb_depth: kb.default_chunking_config?.breadcrumb_depth ?? 2,
+          include_root_breadcrumb: kb.default_chunking_config?.include_root_breadcrumb ?? true,
+          breadcrumb_separator: kb.default_chunking_config?.breadcrumb_separator || ' > ',
+        },
+        default_parsing_config: {
+          provider: kb.default_parsing_config?.provider || 'docling',
+          extension_providers: kb.default_parsing_config?.extension_providers || {},
+        }
+      });
+    }
+  }, [kb, settingsForm]);
   return (
     <Card variant="borderless" className="glass-card" style={{ borderRadius: '16px' }}>
       <div style={{ marginBottom: '20px' }}>

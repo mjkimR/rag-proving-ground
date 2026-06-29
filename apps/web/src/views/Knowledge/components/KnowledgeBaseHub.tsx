@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
-  Card, Table, Button, Input, Tag, Space, Typography, Modal, Form,
-  Select, InputNumber, Radio, Switch, Row, Col, Badge, Empty, message, Steps
+  Card, Table, Button, Input, Tag, Space, Typography, Form,
+  Select, InputNumber, Radio, Switch, Row, Col, Badge, Empty, Steps, App, Modal
 } from 'antd';
 import {
   Plus, Trash2, Database, ArrowRight, Search, Sparkles, Cpu,
   Layers, HardDrive, AlertTriangle, Calendar
 } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getKnowledgeBasesApiV1KnowledgeBasesGet,
   createKnowledgeBaseApiV1KnowledgeBasesPost,
@@ -69,8 +69,11 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
   const [showParserOverrides, setShowParserOverrides] = useState(false);
   const [form] = Form.useForm();
 
+  const queryClient = useQueryClient();
+  const { message, modal } = App.useApp();
+
   // 1. Fetch Knowledge Bases
-  const { data: kbList, isLoading: kbLoading, refetch: refetchKbs } = useQuery({
+  const { data: kbList, isLoading: kbLoading } = useQuery({
     queryKey: ['kbList', appliedSearchTerm],
     queryFn: () =>
       getKnowledgeBasesApiV1KnowledgeBasesGet({
@@ -133,14 +136,35 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
       form.resetFields();
       setCurrentStep(0);
       setShowParserOverrides(false);
-      refetchKbs();
+      
+      if (response.data) {
+        // Synchronously update the cache to avoid a "not found" page flash
+        queryClient.setQueryData(['kbList'], (old: any) => {
+          if (!old) return old;
+          const itemsList = old.data?.items || [];
+          if (itemsList.some((item: any) => item.id === response.data?.id)) {
+            return old;
+          }
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              items: [...itemsList, response.data],
+              total: (old.data?.total || 0) + 1,
+            },
+          };
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['kbList'] });
+
       if (response.data) {
         onSelect(response.data);
       }
     },
     onError: (e) => {
       console.error('Failed to create knowledge base:', e);
-      Modal.error({
+      modal.error({
         title: 'Creation Failed',
         content: e instanceof Error ? e.message : 'Please check your connection and configuration.',
       });
@@ -155,13 +179,29 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
         throwOnError: true,
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       message.success('Knowledge base deleted successfully.');
-      refetchKbs();
+      
+      // Synchronously remove deleted item from cache
+      queryClient.setQueryData(['kbList'], (old: any) => {
+        if (!old) return old;
+        const itemsList = old.data?.items || [];
+        const filtered = itemsList.filter((item: any) => item.id !== variables);
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            items: filtered,
+            total: Math.max(0, (old.data?.total || 0) - 1),
+          },
+        };
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['kbList'] });
     },
     onError: (e) => {
       console.error('Failed to delete knowledge base:', e);
-      Modal.error({
+      modal.error({
         title: 'Delete Failed',
         content: e instanceof Error ? e.message : 'Failed to delete the knowledge base.',
       });
@@ -189,7 +229,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
   };
 
   const handleDelete = (kbId: string, name: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Delete Knowledge Base',
       content: `Are you sure you want to permanently delete "${name}"? This will physically drop the collection in Qdrant and delete all ingested documents. This action CANNOT be undone.`,
       okText: 'Permanently Delete',

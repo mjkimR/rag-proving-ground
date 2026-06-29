@@ -106,6 +106,23 @@ def get_redis_settings() -> RedisSettings:
     return RedisSettings()
 
 
+class RabbitMQSettings(BaseSettings):
+    """Settings for RabbitMQ connection (Taskiq broker)."""
+
+    url: str = Field(default="amqp://guest:guest@localhost:5672/", validation_alias="RABBITMQ_URL")
+    parse_queue_name: str = Field(default="kb_ingest_parse", validation_alias="RABBITMQ_QUEUE_NAME")
+    chunk_queue_name: str = Field(default="kb_ingest_chunk", validation_alias="RABBITMQ_CHUNK_QUEUE_NAME")
+    embed_queue_name: str = Field(default="kb_ingest_embed", validation_alias="RABBITMQ_EMBED_QUEUE_NAME")
+    max_priority: int = Field(default=5, validation_alias="RABBITMQ_MAX_PRIORITY")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_rabbitmq_settings() -> RabbitMQSettings:
+    return RabbitMQSettings()
+
+
 class SynonymCacheSettings(BaseSettings):
     """Settings for shared synonym expansion cache."""
 
@@ -174,6 +191,29 @@ class LLMLinguaSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
+class PromptSettings(BaseSettings):
+    """Settings for prompt registry adapters."""
+
+    provider: str = Field(default="s3", validation_alias="PROMPT_PROVIDER")
+    s3_bucket: str = Field(default="prompts", validation_alias="PROMPT_S3_BUCKET")
+    cache_ttl_seconds: int = Field(default=300, validation_alias="PROMPT_CACHE_TTL_SECONDS")
+    fallback_dir: str = Field(
+        default="packages/rag-core/src/rag_core/prompt/fallback", validation_alias="PROMPT_FALLBACK_DIR"
+    )
+
+    # Langfuse Settings
+    langfuse_public_key: str | None = Field(default=None, validation_alias="PROMPT_LANGFUSE_PUBLIC_KEY")
+    langfuse_secret_key: str | None = Field(default=None, validation_alias="PROMPT_LANGFUSE_SECRET_KEY")
+    langfuse_host: str = Field(default="https://cloud.langfuse.com", validation_alias="PROMPT_LANGFUSE_HOST")
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
 @lru_cache
 def get_llmlingua_settings() -> LLMLinguaSettings:
     return LLMLinguaSettings()
+
+
+@lru_cache
+def get_prompt_settings() -> PromptSettings:
+    return PromptSettings()

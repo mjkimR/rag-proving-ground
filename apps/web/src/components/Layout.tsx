@@ -13,6 +13,7 @@ import {
   MessageSquare,
   GitMerge,
   BookOpen,
+  Terminal,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { healthApiHealthGet } from '../generated/api/sdk.gen';
@@ -77,6 +78,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       key: 'providers',
       icon: <Server size={18} />,
       label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Providers & Models</span>,
+    },
+    {
+      key: 'prompts',
+      icon: <Terminal size={18} />,
+      label: <span className="font-outfit" style={{ fontSize: '15px', fontWeight: 500 }}>Prompt Templates</span>,
     },
     {
       key: 'synonyms',
@@ -240,6 +246,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   ? 'Providers & Models Registry'
                 : activeTab === 'synonyms'
                   ? 'Synonym Dictionary Admin'
+                : activeTab === 'prompts'
+                  ? 'Prompt Template Registry'
                   : 'Dashboard Overview'}
             </h2>
           </div>

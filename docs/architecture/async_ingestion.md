@@ -1,6 +1,6 @@
 # 비동기 문서 인제스션 아키텍처 (Asynchronous Ingestion Architecture)
 
-본 문서는 **Taskiq**와 **Redis**를 기반으로 구축된 비동기 문서 인제스션 및 재처리 파이프라인의 아키텍처와 핵심 설계 패턴을 설명합니다.
+본 문서는 **Taskiq**, **RabbitMQ** 및 **Redis**를 기반으로 구축된 비동기 문서 인제스션 및 재처리 파이프라인의 아키텍처와 핵심 설계 패턴을 설명합니다.
 
 ---
 
@@ -23,9 +23,9 @@
 
 ──────────────────────────────────────────────────────────
 
-[ Redis (Taskiq Broker & Result Backend) ]
+[ RabbitMQ (Taskiq Broker) & Redis (Result Backend) ]
     │
-    │ (6) Fetch Task (Queues based on priority, e.g. kb_ingest:critical)
+    │ (6) Fetch Task (Unified priority queue 'kb_ingest')
     ▼
 [ Taskiq Worker Process ]
     │ (7) Download Raw File from MinIO
@@ -44,8 +44,8 @@
 | 컴포넌트 | 기술 스택 | 주요 역할 |
 |---|---|---|
 | **API Gateway** | **FastAPI** (Python 3.13) | 파일 검증, MinIO 원본 저장, DB 레코드 생성 및 `QUEUED` 상태 제어, Taskiq 브로커를 통한 비동기 태스크 발행 및 즉시 202 응답 반환 |
-| **Message Broker** | **Redis (ListQueueBroker)** (`rag-redis`) | 태스크 메시지 중개. 우선순위별 큐(`kb_ingest:critical`, `high`, `medium`, `low`, `lowest`)를 구성하여 공평(Fair) 및 우선순위 스케줄링 처리 |
-| **Async Worker** | **Taskiq** (`taskiq-redis`) | 태스크 구독 및 파이프라인 단계별 처리 프로세스 (API 프로세스와 물리적/논리적 격리) |
+| **Message Broker** | **RabbitMQ (AioPikaBroker)** (`rag-rabbitmq`) | 태스크 메시지 중개. 단일 `"kb_ingest"` 큐에 `x-queue-type: classic` 및 `x-max-priority: 10` 설정을 부여하여 RabbitMQ 엔진 레벨에서 네이티브로 우선순위 스케줄링 처리 |
+| **Async Worker** | **Taskiq** (`taskiq-aio-pika`) | 태스크 구독 및 파이프라인 단계별 처리 프로세스 (API 프로세스와 물리적/논리적 격리) |
 | **Result Backend** | **Redis (Result Backend)** | 처리 상태 및 작업 결과를 비동기적으로 저장 (2시간의 TTL을 적용하여 메모리 누수 방지) |
 | **Storage & DB** | **MinIO** & **PostgreSQL** | 원본 파일 보존 및 파싱 이력/문서 메타데이터, 상태 추적 저장 |
 
@@ -104,8 +104,9 @@ Worker 애플리케이션은 FastAPI 라이프사이클 외부에서 독립적�
 ## 5. 실행 및 관리 가이드
 
 ### 5.1. 설정 변수
-*   **`.env` 환경변수**: `REDIS_URL` 변수를 통해 Broker에 접근합니다.
+*   **`.env` 환경변수**: `RABBITMQ_URL` 변수를 통해 Broker에 접근하며, `REDIS_URL`은 결과 및 캐시 저장소용으로 사용됩니다.
     ```bash
+    RABBITMQ_URL=amqp://guest:guest@localhost:5672/
     REDIS_URL=redis://localhost:16379/0
     ```
 

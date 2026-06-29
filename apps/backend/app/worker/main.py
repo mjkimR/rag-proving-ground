@@ -20,7 +20,8 @@ except ImportError:
     pass
 
 
-# Import tasks to ensure they are registered on the broker
+# Import router to ensure all database models are registered, and tasks to ensure they are registered on the broker
+import app.router
 import app.worker.handlers.attachment
 import app.worker.handlers.ingest  # noqa: F401
 from app.worker.broker import broker

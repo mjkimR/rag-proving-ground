@@ -71,6 +71,19 @@ wheels = [
 ]
 
 [[package]]
+name = "aio-pika"
+version = "9.6.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiormq" },
+    { name = "yarl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/63/56354526f2e6e915c93bee6e4dedb35888fe82d6bc1a19f35f5a77e795ff/aio_pika-9.6.2.tar.gz", hash = "sha256:c49e9246080dc8ffa1bb0e4aca407bf3d8ad78c3ee3a93df88b68fe65d7a49b9", size = 70851 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/25/05/256fa313f48bed075056d13593b92ce804be05d75f4f312be24edb82860a/aio_pika-9.6.2-py3-none-any.whl", hash = "sha256:2a5478af920d169795071c9c09c7542cd8cdece60438cf7804533dcbcce93b7f", size = 56269 },
+]
+
+[[package]]
 name = "aiobotocore"
 version = "3.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -211,6 +224,19 @@ wheels = [
 ]
 
 [[package]]
+name = "aiormq"
+version = "6.9.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pamqp" },
+    { name = "yarl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6c/0e/db90154d52d399108903fe603e5110a533c42065180265dd003788264080/aiormq-6.9.4.tar.gz", hash = "sha256:0e7c01b662804e1cc7ace9a17794e8c1192a27fc2afa96162362a6e61ae8e8ef", size = 49232 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6c/48/1ce3773f392f02ceda37aee168fade9d725483a9592c202d06044cd093ff/aiormq-6.9.4-py3-none-any.whl", hash = "sha256:726a8586695e863fba68cf88842065ab12348c9438dcebdfc9d0bddaf6083277", size = 32166 },
+]
+
+[[package]]
 name = "aiosignal"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -229,6 +255,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/4e/8a/64761f4005f17809769d23e518d915db74e6310474e733e3593cfc854ef1/aiosqlite-0.22.1.tar.gz", hash = "sha256:043e0bd78d32888c0a9ca90fc788b38796843360c855a7262a532813133a0650", size = 14821, upload-time = "2025-12-23T19:25:43.997Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl", hash = "sha256:21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb", size = 17405, upload-time = "2025-12-23T19:25:42.139Z" },
+]
+
+[[package]]
+name = "aiostream"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8b/65/b9b69695702b76a878c9879f2ee80cefce75bc5cb864fc100460bc1c5380/aiostream-0.7.1.tar.gz", hash = "sha256:272aaa0d8f83beb906f5aa9022bb59046bb7a103fa3770f807c31f918595acf6", size = 44059 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/52/a0/d7c6ca304140f3f49987d710e15bc164248924a35d8cdfac2f6e87fca041/aiostream-0.7.1-py3-none-any.whl", hash = "sha256:ea8739e9158ee6a606b3feedf3762721c3507344e540d09a10984c5e88a13b37", size = 41416 },
 ]
 
 [[package]]
@@ -1584,6 +1622,25 @@ wheels = [
 ]
 
 [[package]]
+name = "langfuse"
+version = "4.11.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "backoff" },
+    { name = "httpx" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp-proto-http" },
+    { name = "opentelemetry-sdk" },
+    { name = "packaging" },
+    { name = "pydantic" },
+    { name = "wrapt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/cb/a69cfdc86c3d1893dc280ef28737fb750e93804382c7d7cca96331044f41/langfuse-4.11.0.tar.gz", hash = "sha256:bfa6b05d2a68376257728db860f15736051725c56945d5099038e38731b79b61", size = 346574 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c2/12/85deb81519bf6d1697875b1b68f00f7ae2e1da38baeed3b105a2ded73e8d/langfuse-4.11.0-py3-none-any.whl", hash = "sha256:aca7eab5ae94e7763b3ebe5ab0aeca677b165ea4fe9790be03513935d39196bd", size = 607683 },
+]
+
+[[package]]
 name = "langgraph"
 version = "1.2.6"
 source = { registry = "https://pypi.org/simple" }
@@ -2323,6 +2380,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d7/f1/e7a6dd94a8d4a5626c03e4e99c87f241ba9e350cd9e6d75123f992427270/packaging-26.2.tar.gz", hash = "sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661", size = 228134, upload-time = "2026-04-24T20:15:23.917Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/df/b2/87e62e8c3e2f4b32e5fe99e0b86d576da1312593b39f47d8ceef365e95ed/packaging-26.2-py3-none-any.whl", hash = "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e", size = 100195, upload-time = "2026-04-24T20:15:22.081Z" },
+]
+
+[[package]]
+name = "pamqp"
+version = "3.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fb/62/35bbd3d3021e008606cd0a9532db7850c65741bbf69ac8a3a0d8cfeb7934/pamqp-3.3.0.tar.gz", hash = "sha256:40b8795bd4efcf2b0f8821c1de83d12ca16d5760f4507836267fd7a02b06763b", size = 30993 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ac/8d/c1e93296e109a320e508e38118cf7d1fc2a4d1c2ec64de78565b3c445eb5/pamqp-3.3.0-py2.py3-none-any.whl", hash = "sha256:c901a684794157ae39b52cbf700db8c9aae7a470f13528b9d7b4e5f7202f8eb0", size = 33848 },
 ]
 
 [[package]]
@@ -3097,6 +3163,7 @@ dependencies = [
     { name = "langchain-litellm" },
     { name = "langchain-qdrant" },
     { name = "langchain-text-splitters" },
+    { name = "langfuse" },
     { name = "litellm" },
     { name = "loguru" },
     { name = "markdown-it-py" },
@@ -3104,6 +3171,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pypdfium2" },
+    { name = "pyyaml" },
     { name = "qdrant-client" },
     { name = "tiktoken" },
 ]
@@ -3126,6 +3194,7 @@ requires-dist = [
     { name = "langchain-litellm", specifier = ">=0.6.4" },
     { name = "langchain-qdrant", specifier = ">=1.0.0" },
     { name = "langchain-text-splitters", specifier = ">=1.1.2" },
+    { name = "langfuse", specifier = ">=4.11.0" },
     { name = "litellm", specifier = ">=1.55.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "markdown-it-py", specifier = ">=4.2.0" },
@@ -3133,6 +3202,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.9.0" },
     { name = "pydantic-settings", specifier = ">=2.6.0" },
     { name = "pypdfium2", specifier = ">=5.10.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "qdrant-client", specifier = ">=1.12.1" },
     { name = "tiktoken", specifier = ">=0.13.0" },
 ]
@@ -3217,6 +3287,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "rag-core" },
     { name = "taskiq" },
+    { name = "taskiq-aio-pika" },
     { name = "taskiq-fastapi" },
     { name = "taskiq-redis" },
     { name = "uvicorn", extra = ["standard"] },
@@ -3237,6 +3308,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.12" },
     { name = "rag-core", editable = "packages/rag-core" },
     { name = "taskiq", specifier = ">=0.11.0" },
+    { name = "taskiq-aio-pika", specifier = ">=0.4.0" },
     { name = "taskiq-fastapi", specifier = ">=0.3.0" },
     { name = "taskiq-redis", specifier = ">=1.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
@@ -3773,6 +3845,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fd/7d/32bdfddd09fe3520bfb4978618dd87292201ca3f0bf9b9c413eb4ee946eb/taskiq-0.12.4.tar.gz", hash = "sha256:887e6acc72eea322a1515d9863551f00be7c81c6a0f72b2961569e58d68edc34", size = 397640, upload-time = "2026-05-08T10:43:59.724Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/28/0a/35b7b2673f923fd57bda8820afee03a6bb57883c1a61ee9e04e31e37ca50/taskiq-0.12.4-py3-none-any.whl", hash = "sha256:b910d3676e45b317678b4a8a1865ba6c261f696a02541461c765a7773cf4fa4b", size = 91804, upload-time = "2026-05-08T10:44:00.889Z" },
+]
+
+[[package]]
+name = "taskiq-aio-pika"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aio-pika" },
+    { name = "aiostream" },
+    { name = "taskiq" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d5/05/e9f4e5cbc7f9777a09f493e502242922df2d3e3779364d0292313995d68c/taskiq_aio_pika-0.6.0.tar.gz", hash = "sha256:0a4ec304a5e860e205aaea5077d90d2a009a4842f3ee008b5185c29301992ed9", size = 9492 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/74/57/b06600675ef8ab6352f30632c0ece20d592f922531b3f490a0559ed792ea/taskiq_aio_pika-0.6.0-py3-none-any.whl", hash = "sha256:6bff38b61b24afd7d41b78ea9ffca0702fe9653e82289ca1287b063a53af2145", size = 10789 },
 ]
 
 [[package]]

@@ -103,13 +103,29 @@ services:
       - basic
       - redis
 
+  rag-rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rag-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   storage_object_data:
   vector_db_data:
   meta_db_data:
   redis_data:
   redis_insight_data:
+  rabbitmq_data:
 
 networks:
   default:
     name: rag-network
+

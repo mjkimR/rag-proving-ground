@@ -112,6 +112,7 @@ class KnowledgeDocumentPipelineService:
                 duration = time.time() - start_time
                 await self._record_parse_success(
                     document_id=document_id,
+                    knowledge_base_id=knowledge_base_id,
                     filename=filename,
                     provider=parsing_provider,
                     parsing_config=resolved_config,
@@ -140,6 +141,7 @@ class KnowledgeDocumentPipelineService:
             duration = time.time() - start_time
             await self._record_parse_success(
                 document_id=document_id,
+                knowledge_base_id=knowledge_base_id,
                 filename=filename,
                 provider=parsing_provider,
                 parsing_config=resolved_config,
@@ -161,6 +163,7 @@ class KnowledgeDocumentPipelineService:
                     name=f"Parse failure: {filename}",
                     resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                     resource_id=document_id,
+                    group_id=knowledge_base_id,
                     stage="parsing",
                     outcome="FAILED",
                     provider=parsing_provider,
@@ -170,7 +173,9 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, parse_history)
-                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
+                await self._set_document_status(
+                    session, document_id, KnowledgeBaseDocumentStatus.FAILED, error_message=str(exc)
+                )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Ingestion failed at Parsing stage: {exc}",
@@ -214,9 +219,13 @@ class KnowledgeDocumentPipelineService:
 
             stmt = select(KnowledgeBase).where(KnowledgeBase.id == kb_id)
             kb = (await session.execute(stmt)).scalar_one_or_none()
-            if kb:
-                kb_language = kb.language or KnowledgeLanguage.EN
-                kb_embedding_config_val = kb.embedding_config
+            if not kb:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Knowledge base with ID '{kb_id}' not found.",
+                )
+            kb_language = kb.language or KnowledgeLanguage.EN
+            kb_embedding_config_val = kb.embedding_config
 
         # 트랜잭션 종료 후 비즈니스 로직 수행
         if embedding_config is None:
@@ -224,7 +233,7 @@ class KnowledgeDocumentPipelineService:
 
         kb_language_str = KnowledgeLanguage.EN.value
         if kb_language:
-            kb_language_str = kb_language.value if hasattr(kb_language, "value") else str(kb_language)
+            kb_language_str = kb_language.value if isinstance(kb_language, KnowledgeLanguage) else str(kb_language)
 
         model_name_or_encoding = embedding_config.model if embedding_config else None
         tokenizer = get_tokenizer(language=kb_language_str, model_name_or_encoding=model_name_or_encoding)
@@ -319,6 +328,7 @@ class KnowledgeDocumentPipelineService:
                             name=f"{stage_context.name_prefix} cache hit: {filename}",
                             resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                             resource_id=document_id,
+                            group_id=kb_id,
                             stage="chunking",
                             outcome="SUCCESS",
                             config=_history_config(resolved_config),
@@ -363,6 +373,7 @@ class KnowledgeDocumentPipelineService:
                         name=f"{stage_context.name_prefix} success: {filename}",
                         resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                         resource_id=document_id,
+                        group_id=kb_id,
                         stage="chunking",
                         outcome="SUCCESS",
                         config=_history_config(resolved_config),
@@ -381,6 +392,7 @@ class KnowledgeDocumentPipelineService:
                     name=f"{stage_context.name_prefix} failure: {filename}",
                     resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                     resource_id=document_id,
+                    group_id=kb_id,
                     stage="chunking",
                     outcome="FAILED",
                     config=_history_config(resolved_config),
@@ -389,7 +401,9 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, chunk_history)
-                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
+                await self._set_document_status(
+                    session, document_id, KnowledgeBaseDocumentStatus.FAILED, error_message=str(exc)
+                )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"{stage_context.failure_detail_prefix} failed at Chunking stage: {exc}",
@@ -450,6 +464,7 @@ class KnowledgeDocumentPipelineService:
                     name=f"{stage_context.name_prefix} success: {filename}",
                     resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                     resource_id=document_id,
+                    group_id=knowledge_base_id,
                     stage="embedding",
                     outcome="SUCCESS",
                     model_name=embedding_model_name,
@@ -468,6 +483,7 @@ class KnowledgeDocumentPipelineService:
                     name=f"{stage_context.name_prefix} failure: {filename}",
                     resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                     resource_id=document_id,
+                    group_id=knowledge_base_id,
                     stage="embedding",
                     outcome="FAILED",
                     model_name=embedding_model_name,
@@ -477,7 +493,9 @@ class KnowledgeDocumentPipelineService:
                     duration_seconds=duration,
                 )
                 await self.history_service.record(session, embed_history)
-                await self._set_document_status(session, document_id, KnowledgeBaseDocumentStatus.FAILED)
+                await self._set_document_status(
+                    session, document_id, KnowledgeBaseDocumentStatus.FAILED, error_message=str(exc)
+                )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"{stage_context.failure_detail_prefix} failed at Embedding stage: {exc}",
@@ -487,6 +505,7 @@ class KnowledgeDocumentPipelineService:
         self,
         *,
         document_id: UUID,
+        knowledge_base_id: UUID,
         filename: str,
         provider: str | None,
         parsing_config: KnowledgeParsingConfig,
@@ -514,6 +533,7 @@ class KnowledgeDocumentPipelineService:
                 name=f"Parse {'cache hit' if cache_hit else 'success'}: {filename}",
                 resource_type=KNOWLEDGE_DOCUMENT_RESOURCE_TYPE,
                 resource_id=document_id,
+                group_id=knowledge_base_id,
                 stage="parsing",
                 outcome="SUCCESS",
                 provider=provider,
@@ -533,10 +553,20 @@ class KnowledgeDocumentPipelineService:
         session: AsyncSession,
         document_id: UUID,
         document_status: KnowledgeBaseDocumentStatus,
+        error_message: str | None = None,
     ) -> None:
         db_doc = await self.doc_service.repo.get_by_pk_for_update(session, document_id)
         if db_doc:
             db_doc.status = document_status
+            if document_status == KnowledgeBaseDocumentStatus.FAILED:
+                db_doc.error_message = error_message
+            elif document_status in (
+                KnowledgeBaseDocumentStatus.PARSING,
+                KnowledgeBaseDocumentStatus.CHUNKING,
+                KnowledgeBaseDocumentStatus.EMBEDDING,
+                KnowledgeBaseDocumentStatus.COMPLETED,
+            ):
+                db_doc.error_message = None
             await session.flush()
         await refresh_knowledge_base_status_for_document(session, self.kb_service, self.doc_service, document_id)
 

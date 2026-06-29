@@ -242,6 +242,7 @@ export const KnowledgeBaseDetail: React.FC<KnowledgeBaseDetailProps> = ({
             ),
             children: (
               <StrategySettingsForm
+                kb={kb}
                 settingsForm={settingsForm}
                 currentStep={currentStep}
                 showParserOverrides={showParserOverrides}

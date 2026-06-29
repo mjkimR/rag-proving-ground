@@ -58,7 +58,7 @@ export const SynonymModal: React.FC<SynonymModalProps> = ({
       >
         <Form.Item
           name="keyword"
-          label={<strong style={{ fontSize: '13px' }}>Keyword / Abbreviation (검색 단어)</strong>}
+          label={<strong style={{ fontSize: '13px' }}>Keyword / Abbreviation</strong>}
           rules={[
             { required: true, message: 'Please input the keyword!' },
             { max: 255, message: 'Keyword cannot exceed 255 characters.' },
@@ -75,7 +75,7 @@ export const SynonymModal: React.FC<SynonymModalProps> = ({
           name="synonyms"
           label={
             <strong style={{ fontSize: '13px' }}>
-              Synonyms (동의어 태그 목록 - 입력 후 Enter)
+              Synonyms
             </strong>
           }
           rules={[
@@ -94,7 +94,7 @@ export const SynonymModal: React.FC<SynonymModalProps> = ({
 
         <Form.Item
           name="description"
-          label={<strong style={{ fontSize: '13px' }}>Description (설명 - 선택)</strong>}
+          label={<strong style={{ fontSize: '13px' }}>Description (Optional)</strong>}
         >
           <Input.TextArea
             placeholder="Provide context on when this synonym mapping is applied..."

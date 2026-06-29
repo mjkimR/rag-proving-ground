@@ -163,6 +163,9 @@ def get_lifespan():
             register_synonym_loader(db_synonym_loader)
 
             # Seed and populate registry caches on boot
+            from rag_core.adapters.prompt.providers import register_default_prompt_providers
+
+            register_default_prompt_providers()
             await init_db_and_seed_models_parsers()
             await broker.startup()
             yield

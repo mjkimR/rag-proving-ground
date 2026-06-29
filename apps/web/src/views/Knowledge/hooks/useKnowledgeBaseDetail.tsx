@@ -1,6 +1,6 @@
 import { useState, useEffect, useReducer } from 'react';
 import type { SetStateAction } from 'react';
-import { Form, Modal, message } from 'antd';
+import { Form, App } from 'antd';
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getKnowledgeBaseDocumentsApiV1KnowledgeBasesKnowledgeBaseIdDocumentsGet,
@@ -107,6 +107,7 @@ export const useKnowledgeBaseDetail = ({
   onUpdateKbName,
 }: UseKnowledgeBaseDetailProps) => {
   const queryClient = useQueryClient();
+  const { message, modal } = App.useApp();
   const [activeTab, setActiveTab] = useState('1');
 
   // Fetch dynamic configuration options
@@ -126,7 +127,7 @@ export const useKnowledgeBaseDetail = ({
 
   const [isUploading, setIsUploading] = useState(false);
   const [selectedDocForSettings, setSelectedDocForSettings] = useState<KnowledgeBaseDocumentRead | null>(null);
-  
+
   // Configuration settings form states
   const [settingsForm] = Form.useForm();
   const [{
@@ -165,7 +166,7 @@ export const useKnowledgeBaseDetail = ({
   const { data: parseHistory, isLoading: parsingHistLoading, refetch: refetchParseHist } = useQuery({
     queryKey: ['parsingHistory', kb.id],
     queryFn: () => getJobProcessHistoriesApiV1JobProcessHistoriesGet({
-      query: { resource_type: 'knowledge_base_document', stage: 'parsing', limit: 20 },
+      query: { resource_type: 'knowledge_base_document', group_id: kb.id, stage: 'parsing', limit: 20 },
       throwOnError: true,
     }),
     enabled: activeTab === '3',
@@ -176,7 +177,7 @@ export const useKnowledgeBaseDetail = ({
   const { data: chunkHistory, isLoading: chunkingHistLoading, refetch: refetchChunkHist } = useQuery({
     queryKey: ['chunkingHistory', kb.id],
     queryFn: () => getJobProcessHistoriesApiV1JobProcessHistoriesGet({
-      query: { resource_type: 'knowledge_base_document', stage: 'chunking', limit: 20 },
+      query: { resource_type: 'knowledge_base_document', group_id: kb.id, stage: 'chunking', limit: 20 },
       throwOnError: true,
     }),
     enabled: activeTab === '3',
@@ -187,42 +188,13 @@ export const useKnowledgeBaseDetail = ({
   const { data: embedHistory, isLoading: embeddingHistLoading, refetch: refetchEmbedHist } = useQuery({
     queryKey: ['embeddingHistory', kb.id],
     queryFn: () => getJobProcessHistoriesApiV1JobProcessHistoriesGet({
-      query: { resource_type: 'knowledge_base_document', stage: 'embedding', limit: 20 },
+      query: { resource_type: 'knowledge_base_document', group_id: kb.id, stage: 'embedding', limit: 20 },
       throwOnError: true,
     }),
     enabled: activeTab === '3',
     placeholderData: keepPreviousData,
     staleTime: HISTORY_QUERY_STALE_TIME_MS,
   });
-
-  // Setup form default values when KB changes
-  useEffect(() => {
-    if (kb) {
-      settingsForm.setFieldsValue({
-        name: kb.name,
-        embedding_config: {
-          model: kb.embedding_config?.model || 'text-embedding-3-small',
-          distance: kb.embedding_config?.distance || 'cosine',
-          use_colpali: kb.embedding_config?.use_colpali || false,
-          colpali_model: kb.embedding_config?.colpali_model || 'vidore/colpali-v1.2-merged',
-          retrieval_mode: kb.embedding_config?.retrieval_mode || 'dense',
-          sparse_model: kb.embedding_config?.sparse_model || 'en-bm25',
-        },
-        default_chunking_config: {
-          chunk_size: kb.default_chunking_config?.chunk_size ?? 1024,
-          chunk_overlap: kb.default_chunking_config?.chunk_overlap ?? 200,
-          merge_max_chars: kb.default_chunking_config?.merge_max_chars ?? 4096,
-          breadcrumb_depth: kb.default_chunking_config?.breadcrumb_depth ?? 2,
-          include_root_breadcrumb: kb.default_chunking_config?.include_root_breadcrumb ?? true,
-          breadcrumb_separator: kb.default_chunking_config?.breadcrumb_separator || ' > ',
-        },
-        default_parsing_config: {
-          provider: kb.default_parsing_config?.provider || 'docling',
-          extension_providers: kb.default_parsing_config?.extension_providers || {},
-        }
-      });
-    }
-  }, [kb, settingsForm]);
 
 
   // --- MUTATION: Upload Document ---
@@ -244,7 +216,7 @@ export const useKnowledgeBaseDetail = ({
       queryClient.invalidateQueries({ queryKey: ['kbList'] });
     } catch (e) {
       console.error('File parsing/upload failed:', e);
-      Modal.error({
+      modal.error({
         title: 'Document Ingestion Failed',
         content: e instanceof Error ? e.message : 'Please check your backend connection, Docling parser logs, or LLM config.',
         icon: <AlertCircle color="#ef4444" />,
@@ -275,7 +247,7 @@ export const useKnowledgeBaseDetail = ({
   });
 
   const handleDeleteDoc = (docId: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Delete Document',
       content: 'Are you sure you want to delete this document and all its parsed elements/chunks from the database?',
       okText: 'Yes, Delete',
@@ -298,6 +270,23 @@ export const useKnowledgeBaseDetail = ({
     },
     onSuccess: () => {
       message.success('Knowledge Base deleted.');
+
+      // Synchronously remove deleted item from cache
+      queryClient.setQueryData(['kbList'], (old: any) => {
+        if (!old) return old;
+        const itemsList = old.data?.items || [];
+        const filtered = itemsList.filter((item: any) => item.id !== kb.id);
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            items: filtered,
+            total: Math.max(0, (old.data?.total || 0) - 1),
+          },
+        };
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['kbList'] });
       onDeleteSelected();
     },
     onError: (e) => {
@@ -306,7 +295,7 @@ export const useKnowledgeBaseDetail = ({
   });
 
   const handleDeleteKb = () => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Delete Knowledge Base',
       content: `Are you sure you want to permanently delete "${kb.name}"? This deletes all raw files, layouts, and vector embeddings in Qdrant.`,
       okText: 'Delete Everything',
@@ -335,7 +324,7 @@ export const useKnowledgeBaseDetail = ({
     },
     onError: (e) => {
       console.error('Failed to update knowledge base settings:', e);
-      Modal.error({
+      modal.error({
         title: 'Update Failed',
         content: e instanceof Error ? e.message : 'Please check your connection and settings.',
       });
@@ -355,7 +344,7 @@ export const useKnowledgeBaseDetail = ({
     const parsingChanged =
       kb.default_parsing_config?.provider !== values.default_parsing_config?.provider ||
       JSON.stringify(normalizeExtensions(kb.default_parsing_config?.extension_providers)) !==
-        JSON.stringify(normalizeExtensions(values.default_parsing_config?.extension_providers));
+      JSON.stringify(normalizeExtensions(values.default_parsing_config?.extension_providers));
 
     const chunkingChanged =
       kb.default_chunking_config?.chunk_size !== values.default_chunking_config?.chunk_size ||

@@ -8,6 +8,9 @@ class JobProcessHistoryBase(BaseModel):
     name: str | None = Field(default=None, description="Optional display name for the history event.")
     resource_type: str = Field(description="Logical resource type, for example knowledge_base_document.")
     resource_id: UUID = Field(description="Resource UUID. This is intentionally not a foreign key.")
+    group_id: UUID | None = Field(
+        default=None, description="Optional group UUID to tie related processes together (e.g. knowledge base ID)."
+    )
     stage: str = Field(description="Processing stage, for example parsing, chunking, embedding, or indexing.")
     outcome: str = Field(description="Result of this historical event, for example SUCCESS, FAILED, or SKIPPED.")
     provider: str | None = Field(default=None, description="Optional provider name used for the stage.")

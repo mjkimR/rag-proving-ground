@@ -69,7 +69,7 @@ class KnowledgeBaseService(
                 db_obj = await self.repo.get_by_pk(session, obj_pk)
                 if db_obj:
                     if missing_lang:
-                        context["_current_language"] = db_obj.language
+                        context["_current_language"] = KnowledgeLanguage(db_obj.language)
                     if missing_embed:
                         context["_current_embedding_config"] = db_obj.embedding_config
             yield

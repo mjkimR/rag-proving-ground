@@ -121,9 +121,17 @@ up +profiles="":
 up-gpu +profiles="":
     @bash ./scripts/compose-up.sh gpu {{ profiles }}
 
+# Start monitoring services (Ensure core services like rag-meta-db and rag-redis are running first)
+monitor-up:
+    docker compose --env-file .env -p rag -f infra/services/docker-compose.yml -f infra/services/docker-compose.monitor.yml up -d langfuse-worker langfuse-web clickhouse minio-init
+
+# Stop monitoring services
+monitor-down:
+    docker compose --env-file .env -p rag -f infra/services/docker-compose.yml -f infra/services/docker-compose.monitor.yml down
+
 # Stop all backend services
 down:
-    docker compose -p rag -f infra/services/docker-compose.yml -f infra/services/docker-compose.gpu.yml down --remove-orphans
+    docker compose --env-file .env -p rag -f infra/services/docker-compose.yml -f infra/services/docker-compose.gpu.yml -f infra/services/docker-compose.monitor.yml down --remove-orphans
 
 
 # Start local model serving (Ollama & TEI). Can specify multiple models (e.g. just models-up embed,rerank)

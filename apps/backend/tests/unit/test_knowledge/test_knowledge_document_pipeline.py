@@ -79,6 +79,8 @@ async def test_rebuild_chunks_cache_hit(monkeypatch) -> None:
     doc_id = uuid4()
     mock_kb = MagicMock()
     mock_kb.name = "my_kb"
+    mock_kb.language = "en"
+    mock_kb.embedding_config = {"model": "text-embedding-3-small"}
     mock_doc = MagicMock()
     mock_doc.file_hash = "hash123"
     mock_doc.knowledge_base_id = uuid4()
@@ -91,6 +93,7 @@ async def test_rebuild_chunks_cache_hit(monkeypatch) -> None:
     mock_doc.document_info = {"chunking_config_hash": config_hash, "chunked_data_path": "some_path"}
 
     kb_service.repo.get_by_pk = AsyncMock(return_value=mock_kb)
+    mock_result.scalar_one_or_none.return_value = mock_kb
     doc_service.repo.get_by_pk = AsyncMock(return_value=mock_doc)
     doc_service.repo.update_by_pk = AsyncMock()
     history_service.record = AsyncMock()
@@ -178,12 +181,15 @@ async def test_rebuild_chunks_cache_miss(monkeypatch, mocker) -> None:
     doc_id = uuid4()
     mock_kb = MagicMock()
     mock_kb.name = "my_kb"
+    mock_kb.language = "en"
+    mock_kb.embedding_config = {"model": "text-embedding-3-small"}
     mock_doc = MagicMock()
     mock_doc.file_hash = "hash123"
     mock_doc.document_info = {}  # Empty/no hash
 
     kb_id = uuid4()
     kb_service.repo.get_by_pk = AsyncMock(return_value=mock_kb)
+    mock_result.scalar_one_or_none.return_value = mock_kb
     mock_doc.knowledge_base_id = kb_id
     doc_service.repo.get_by_pk = AsyncMock(return_value=mock_doc)
     doc_service.repo.update_by_pk = AsyncMock()

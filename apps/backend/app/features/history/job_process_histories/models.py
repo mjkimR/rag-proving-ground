@@ -13,11 +13,13 @@ class JobProcessHistory(Base, UUIDMixin, TimestampMixin):
         Index("ix_job_process_histories_stage", "stage"),
         Index("ix_job_process_histories_outcome", "outcome"),
         Index("ix_job_process_histories_created_at", "created_at"),
+        Index("ix_job_process_histories_group_id", "group_id"),
     )
 
     name: Mapped[str | None] = mapped_column(nullable=True)
     resource_type: Mapped[str] = mapped_column()
     resource_id: Mapped[UUID] = mapped_column()
+    group_id: Mapped[UUID | None] = mapped_column(nullable=True)
     stage: Mapped[str] = mapped_column()
     outcome: Mapped[str] = mapped_column()
     provider: Mapped[str | None] = mapped_column(nullable=True)

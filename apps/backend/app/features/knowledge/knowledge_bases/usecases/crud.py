@@ -280,7 +280,7 @@ async def _update_knowledge_base_with_document_transitions(
 
     if context is None:
         context = {}
-    context.setdefault("_current_language", kb.language)
+    context.setdefault("_current_language", KnowledgeLanguage(kb.language))
     context.setdefault("_current_embedding_config", kb.embedding_config)
 
     change_set = _detect_config_changes(kb, obj_data, partial=partial)
@@ -344,9 +344,12 @@ async def _trigger_documents_reprocessing(
                 logger.info(f"Document {doc.id} marked as PENDING_REPARSE. Will be picked up by DB-polling dispatcher.")
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_RECHUNK:
                 logger.info(f"Dispatching chunk task for document {doc.id} (RECHUNK)")
-                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
-                kicker = handle_chunk.kicker().with_labels(queue_name=get_queue_name(doc.priority))
+                kicker = handle_chunk.kicker().with_labels(
+                    queue_name=get_queue_name(doc.priority, stage="chunk"),
+                    priority=map_priority_to_int(doc.priority),
+                )
                 await kicker.kiq(
                     ChunkDocumentMessage(
                         document_id=doc.id,
@@ -357,9 +360,12 @@ async def _trigger_documents_reprocessing(
                 )
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_REEMBED:
                 logger.info(f"Dispatching embed task for document {doc.id} (REEMBED)")
-                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
-                kicker = handle_embed.kicker().with_labels(queue_name=get_queue_name(doc.priority))
+                kicker = handle_embed.kicker().with_labels(
+                    queue_name=get_queue_name(doc.priority, stage="embed"),
+                    priority=map_priority_to_int(doc.priority),
+                )
                 await kicker.kiq(
                     EmbedDocumentMessage(
                         document_id=doc.id,

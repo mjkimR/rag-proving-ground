@@ -80,6 +80,14 @@ async def test_dispatcher_loop_schedules_round_robin(session, mocker):
     mock_redis.llen = mocker.AsyncMock(return_value=0)
     mocker.patch("app.worker.scheduling.get_redis_client", mocker.AsyncMock(return_value=mock_redis))
 
+    mock_rabbitmq_settings = mocker.MagicMock()
+    mock_rabbitmq_settings.url = "amqp://guest:guest@localhost:5672/"
+    mock_rabbitmq_settings.parse_queue_name = "kb_ingest_parse"
+    mock_rabbitmq_settings.max_priority = 5
+    mocker.patch("app.worker.scheduling.get_rabbitmq_settings", return_value=mock_rabbitmq_settings)
+
+    mocker.patch("app.worker.scheduling.get_queue_message_count", mocker.AsyncMock(return_value=(None, None, 0)))
+
     stop_event = asyncio.Event()
 
     async def mock_sleep(seconds):
@@ -93,10 +101,13 @@ async def test_dispatcher_loop_schedules_round_robin(session, mocker):
     assert mock_kicker.kiq.call_count == 2
 
     with_labels_calls = mock_kicker.with_labels.call_args_list
-    labels_passed = [c.kwargs.get("queue_name") for c in with_labels_calls]
-    assert "kb_ingest:high" in labels_passed
-    assert "kb_ingest:medium" in labels_passed
-    assert "kb_ingest:low" not in labels_passed
+    for call in with_labels_calls:
+        assert call.kwargs.get("queue_name") == "kb_ingest_parse"
+
+    priorities_passed = [call.kwargs.get("priority") for call in with_labels_calls]
+    assert 4 in priorities_passed  # high priority
+    assert 3 in priorities_passed  # medium priority
+    assert 2 not in priorities_passed  # low priority not dispatched
 
     kiq_calls = mock_kicker.kiq.call_args_list
     dispatched_ids = [call[0][0].document_id for call in kiq_calls]
