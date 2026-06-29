@@ -18,6 +18,7 @@ async def test_cleanup_knowledge_document_assets_collects_external_failures(monk
     target = KnowledgeDocumentCleanupTarget(
         document_id=uuid4(),
         file_hash="file-hash",
+        knowledge_base_id=uuid4(),
         knowledge_base_name="kb",
         embed_config_hash="hash123",
     )

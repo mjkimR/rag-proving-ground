@@ -33,7 +33,7 @@ from app_layer_base.base.repos.query_options import ListQueryOptions
 from app_layer_base.base.schemas.delete_resp import DeleteResponse
 from app_layer_base.base.schemas.paginated import PaginatedList
 from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile, status
 
 router = APIRouter(prefix="/knowledge_bases", tags=["KnowledgeBase"], dependencies=[])
 
@@ -110,11 +110,17 @@ async def delete_knowledge_base(
 async def upload_knowledge_base_document(
     knowledge_base_id: UUID,
     use_case: Annotated[IngestKnowledgeDocumentUseCase, Depends()],
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),  # noqa: B008
     provider: str | None = Form(None),
 ):
     """Upload a document, parse it, chunk it, embed it, and index it into the vector store."""
-    return await use_case.execute(knowledge_base_id=knowledge_base_id, file=file, provider=provider)
+    return await use_case.execute(
+        knowledge_base_id=knowledge_base_id,
+        file=file,
+        provider=provider,
+        background_tasks=background_tasks,
+    )
 
 
 @router.get("/{knowledge_base_id}/documents", response_model=PaginatedList[KnowledgeBaseDocumentRead])

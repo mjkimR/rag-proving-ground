@@ -157,6 +157,7 @@ class DeleteKnowledgeBaseDocumentUseCase(BaseUseCase):
             cleanup_target = KnowledgeDocumentCleanupTarget(
                 document_id=doc.id,
                 file_hash=doc.file_hash,
+                knowledge_base_id=doc.knowledge_base_id,
                 knowledge_base_name=kb.name if kb else "unknown",
                 embed_config_hash=kb.embed_config_hash if kb else None,
             )
@@ -190,6 +191,7 @@ class DeleteKnowledgeBaseDocumentUseCase(BaseUseCase):
 class KnowledgeDocumentCleanupTarget:
     document_id: UUID
     file_hash: str
+    knowledge_base_id: UUID
     knowledge_base_name: str
     embed_config_hash: str | None = None
 
@@ -226,7 +228,7 @@ async def _cleanup_vector_store_assets(target: KnowledgeDocumentCleanupTarget) -
 async def _cleanup_storage_assets(target: KnowledgeDocumentCleanupTarget) -> str | None:
     try:
         storage_client = get_storage_client()
-        prefix = f"knowledge/{target.knowledge_base_name}/{target.file_hash}/"
+        prefix = f"knowledge/{target.knowledge_base_id}/{target.file_hash}/"
         async for file_path in storage_client.list_files(prefix):
             await storage_client.delete_file(file_path)
     except Exception as exc:

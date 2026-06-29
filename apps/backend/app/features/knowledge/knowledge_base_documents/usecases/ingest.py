@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import os
 from typing import Annotated
@@ -10,16 +11,50 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     TaskPriority,
 )
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
+from app.features.knowledge.knowledge_base_documents.usecases.crud import (
+    KnowledgeDocumentCleanupTarget,
+    cleanup_knowledge_document_assets,
+)
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
 from app_file_storage import get_storage_client
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import Depends, HTTPException, UploadFile, status
+from fastapi import BackgroundTasks, Depends, HTTPException, UploadFile, status
 from loguru import logger
+
+_BACKGROUND_CLEANUP_TASKS: set[asyncio.Task] = set()
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {".pdf", ".html", ".htm", ".md", ".docx", ".txt"}
+
+STALE_INFO_KEYS = [
+    "parsing_config_hash",
+    "chunking_config_hash",
+    "chunking_summary_hash",
+    "chunk_count",
+    "original_file_path",
+    "parsed_data_path",
+    "chunked_data_path",
+]
+
+
+async def run_background_cleanup(target: KnowledgeDocumentCleanupTarget) -> None:
+    """Helper to run the asset cleanup process asynchronously with a timeout."""
+    try:
+        # Set a conservative timeout of 5 minutes (300 seconds) to prevent task leakage
+        errors = await asyncio.wait_for(cleanup_knowledge_document_assets(target), timeout=300.0)
+        if errors:
+            logger.error(
+                f"Background cleanup failed for document {target.document_id} (hash: {target.file_hash}): "
+                f"{'; '.join(errors)}"
+            )
+    except TimeoutError:
+        logger.error(
+            f"Background cleanup timed out for document {target.document_id} (hash: {target.file_hash}) after 300 seconds"
+        )
+    except Exception as exc:
+        logger.exception(f"Unexpected error during background cleanup for document {target.document_id}: {exc}")
 
 
 def file_content_hash(content: bytes) -> str:
@@ -41,6 +76,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
         file: UploadFile,
         provider: str | None = None,
         priority: TaskPriority = TaskPriority.LOW,
+        background_tasks: BackgroundTasks | None = None,
     ) -> dict:
         """Validate, upload to MinIO, and queue a document ingestion task, tracking state transitions."""
         # 1. Input validation & sanitization
@@ -67,6 +103,7 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
             )
 
         file_hash = file_content_hash(content)
+        cleanup_targets: list[KnowledgeDocumentCleanupTarget] = []
 
         # 2. Database record setup (First Transaction: Initialize/Get Document)
         async with AsyncTransaction() as session:
@@ -77,29 +114,55 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
                     detail=f"Knowledge base with ID '{knowledge_base_id}' not found.",
                 )
 
-            # Check if document already exists
+            # Check if document already exists by filename inside the same knowledge base
             existing_docs = await self.doc_service.repo.get_all(
                 session,
                 where=(
                     self.doc_service.repo.model.knowledge_base_id == knowledge_base_id,
-                    self.doc_service.repo.model.file_hash == file_hash,
+                    self.doc_service.repo.model.name == filename,
                 ),
             )
 
             if existing_docs:
                 doc = existing_docs[0]
-                doc.status = KnowledgeBaseDocumentStatus.QUEUED
-                doc.priority = priority
-                doc.name = filename
-                doc_info = dict(doc.document_info or {})
-                doc_info.update(
-                    {
-                        "filename": filename,
-                        "size_bytes": len(content),
-                        "content_type": file.content_type,
-                    }
-                )
-                doc.document_info = doc_info
+                if doc.file_hash == file_hash:
+                    # If content hash is the same, do not process again unless it was failed
+                    if doc.status == KnowledgeBaseDocumentStatus.FAILED:
+                        doc.status = KnowledgeBaseDocumentStatus.QUEUED
+                        doc.priority = priority
+                        doc.error_message = None
+                else:
+                    # Content hash has changed -> perform overwrite and invalidate cached stages
+                    old_file_hash = doc.file_hash
+                    old_cleanup_target = KnowledgeDocumentCleanupTarget(
+                        document_id=doc.id,
+                        file_hash=old_file_hash,
+                        knowledge_base_id=knowledge_base_id,
+                        knowledge_base_name=kb.name if kb else "unknown",
+                        embed_config_hash=kb.embed_config_hash if kb else None,
+                    )
+                    cleanup_targets.append(old_cleanup_target)
+
+                    doc.file_hash = file_hash
+                    doc.status = KnowledgeBaseDocumentStatus.QUEUED
+                    doc.priority = priority
+                    doc.error_message = None
+                    doc.summary = None
+                    doc.summary_model = None
+
+                    doc_info = dict(doc.document_info or {})
+                    doc_info.update(
+                        {
+                            "filename": filename,
+                            "size_bytes": len(content),
+                            "content_type": file.content_type,
+                        }
+                    )
+                    # Clear stale parser/chunker hashes & cached paths to force reprocessing
+                    for key in STALE_INFO_KEYS:
+                        doc_info.pop(key, None)
+                    doc.document_info = doc_info
+
                 await session.flush()
             else:
                 doc_create = KnowledgeBaseDocumentCreate(
@@ -118,6 +181,15 @@ class IngestKnowledgeDocumentUseCase(BaseUseCase):
 
             await refresh_knowledge_base_status(session, self.kb_service, self.doc_service, knowledge_base_id)
             doc_id = doc.id
+
+        # Trigger background cleanups only after the transaction commits successfully
+        for target in cleanup_targets:
+            if background_tasks:
+                background_tasks.add_task(run_background_cleanup, target)
+            else:
+                task = asyncio.create_task(run_background_cleanup(target))
+                _BACKGROUND_CLEANUP_TASKS.add(task)
+                task.add_done_callback(_BACKGROUND_CLEANUP_TASKS.discard)
 
         # 3. Upload file content to MinIO
         storage_client = get_storage_client()
