@@ -24,7 +24,7 @@
 
 ### 2.1. RabbitMQ 메시지 브로커 도입 및 단일 우선순위 큐 통합
 - `apps/backend/app/worker/broker.py`의 브로커 객체를 기존 Redis List 기반에서 `taskiq-aio-pika` 패키지의 `AioPikaBroker`로 교체함.
-- **단일 우선순위 큐 통합**: Redis 환경에서의 5개 물리 큐(`kb_ingest:critical` 등)를 하나의 `"kb_ingest"` 큐로 통일함. 이를 위해 RabbitMQ 선언 시 `"x-queue-type": "classic"` 및 `"x-max-priority": 10` 아규먼트를 설정하여 RabbitMQ 엔진 레벨에서 메시지 헤더의 우선순위 값에 따라 네이티브로 작업을 정렬 및 배분하도록 설계함 (Quorum 큐는 우선순위 기능 미지원으로 Classic 큐 강제 적용).
+- **단일 우선순위 큐 통합**: Redis 환경에서의 5개 물리 큐(`kb_ingest:critical` 등)를 하나의 `"kb_ingest"` 큐로 통일함. 이를 위해 RabbitMQ 선언 시 `"x-queue-type": "classic"` 및 `"x-max-priority": 5` 아규먼트를 설정하여 RabbitMQ 엔진 레벨에서 메시지 헤더의 우선순위 값에 따라 네이티브로 작업을 정렬 및 배분하도록 설계함 (Quorum 큐는 우선순위 기능 미지원으로 Classic 큐 강제 적용).
 - **호환성 유지**: Taskiq는 브로커 추상화 계층이 잘 정의되어 있으므로, 백엔드의 비동기 태스크 선언(`@broker.task`)이나 LangGraph, API 단에서의 태스크 호출부 코드 수정을 최소화함.
 
 
