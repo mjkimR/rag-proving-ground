@@ -2070,6 +2070,32 @@ export type ParsedPage = {
 };
 
 /**
+ * PromptProviderInfo
+ */
+export type PromptProviderInfo = {
+    /**
+     * Current Provider
+     */
+    current_provider: string;
+    /**
+     * Available Providers
+     */
+    available_providers: Array<string>;
+    /**
+     * S3 Bucket
+     */
+    s3_bucket?: string | null;
+    /**
+     * Fallback Dir
+     */
+    fallback_dir?: string | null;
+    /**
+     * Langfuse Host
+     */
+    langfuse_host?: string | null;
+};
+
+/**
  * Provenance
  *
  * Trace information linking an IR element back to provider output.
@@ -4972,3 +4998,19 @@ export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttach
 };
 
 export type PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponse = PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponses[keyof PutSessionFileAttachmentApiV1SessionFileAttachmentsSessionFileAttachmentIdPutResponses];
+
+export type GetPromptProviderInfoApiV1ProvidersPromptsGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/providers/prompts';
+};
+
+export type GetPromptProviderInfoApiV1ProvidersPromptsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PromptProviderInfo;
+};
+
+export type GetPromptProviderInfoApiV1ProvidersPromptsGetResponse = GetPromptProviderInfoApiV1ProvidersPromptsGetResponses[keyof GetPromptProviderInfoApiV1ProvidersPromptsGetResponses];

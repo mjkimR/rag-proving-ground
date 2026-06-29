@@ -2,7 +2,6 @@ from typing import ClassVar
 
 from rag_core.adapters.prompt.interface import PromptProvider
 
-
 class PromptProviderRegistry:
     """Registry for prompt providers keyed by provider name."""
 
