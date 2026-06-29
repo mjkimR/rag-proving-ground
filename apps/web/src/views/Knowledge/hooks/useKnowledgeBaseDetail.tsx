@@ -10,12 +10,15 @@ import {
   deleteKnowledgeBaseApiV1KnowledgeBasesKnowledgeBaseIdDelete,
   getJobProcessHistoriesApiV1JobProcessHistoriesGet,
   getProviderOptionsApiV1ProvidersOptionsGet,
+  getKnowledgeBasesApiV1KnowledgeBasesGet,
 } from '@/generated/api/sdk.gen';
 import { AlertCircle } from 'lucide-react';
 import type {
   KnowledgeBaseRead, KnowledgeBaseDocumentRead, KnowledgeBaseConfigApplyMode, KnowledgeBasePatch
 } from '@/generated/api/types.gen';
 import { API_BASE_URL } from '@/lib/config';
+
+type KbListResponse = Awaited<ReturnType<typeof getKnowledgeBasesApiV1KnowledgeBasesGet>>;
 
 const normalizeExtensions = (
   obj: Record<string, string | null | undefined> | null | undefined
@@ -272,16 +275,16 @@ export const useKnowledgeBaseDetail = ({
       message.success('Knowledge Base deleted.');
 
       // Synchronously remove deleted item from cache
-      queryClient.setQueryData(['kbList'], (old: any) => {
-        if (!old) return old;
-        const itemsList = old.data?.items || [];
-        const filtered = itemsList.filter((item: any) => item.id !== kb.id);
+      queryClient.setQueryData(['kbList'], (old: KbListResponse | undefined) => {
+        if (!old || !old.data) return old;
+        const itemsList = old.data.items || [];
+        const filtered = itemsList.filter((item) => item.id !== kb.id);
         return {
           ...old,
           data: {
             ...old.data,
             items: filtered,
-            total: Math.max(0, (old.data?.total || 0) - 1),
+            total_count: Math.max(0, (old.data.total_count || 0) - 1),
           },
         };
       });

@@ -19,6 +19,8 @@ import styles from './KnowledgeBaseHub.module.css';
 
 const { Title, Text, Paragraph } = Typography;
 
+type KbListResponse = Awaited<ReturnType<typeof getKnowledgeBasesApiV1KnowledgeBasesGet>>;
+
 interface CreateFormValues {
   name: string;
   embedding_model?: string;
@@ -139,10 +141,10 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
       
       if (response.data) {
         // Synchronously update the cache to avoid a "not found" page flash
-        queryClient.setQueryData(['kbList'], (old: any) => {
-          if (!old) return old;
-          const itemsList = old.data?.items || [];
-          if (itemsList.some((item: any) => item.id === response.data?.id)) {
+        queryClient.setQueryData(['kbList'], (old: KbListResponse | undefined) => {
+          if (!old || !old.data) return old;
+          const itemsList = old.data.items || [];
+          if (itemsList.some((item) => item.id === response.data?.id)) {
             return old;
           }
           return {
@@ -150,7 +152,7 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
             data: {
               ...old.data,
               items: [...itemsList, response.data],
-              total: (old.data?.total || 0) + 1,
+              total_count: (old.data.total_count || 0) + 1,
             },
           };
         });
@@ -183,16 +185,16 @@ export const KnowledgeBaseHub: React.FC<KnowledgeBaseHubProps> = ({ onSelect }) 
       message.success('Knowledge base deleted successfully.');
       
       // Synchronously remove deleted item from cache
-      queryClient.setQueryData(['kbList'], (old: any) => {
-        if (!old) return old;
-        const itemsList = old.data?.items || [];
-        const filtered = itemsList.filter((item: any) => item.id !== variables);
+      queryClient.setQueryData(['kbList'], (old: KbListResponse | undefined) => {
+        if (!old || !old.data) return old;
+        const itemsList = old.data.items || [];
+        const filtered = itemsList.filter((item) => item.id !== variables);
         return {
           ...old,
           data: {
             ...old.data,
             items: filtered,
-            total: Math.max(0, (old.data?.total || 0) - 1),
+            total_count: Math.max(0, (old.data.total_count || 0) - 1),
           },
         };
       });
