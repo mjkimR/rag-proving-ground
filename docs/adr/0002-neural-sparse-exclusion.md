@@ -1,6 +1,7 @@
-# ADR-0001: Neural Sparse Model 배제 및 렉시컬 검색(BM25)으로의 대체
+# ADR-0002: Neural Sparse Model 배제 및 렉시컬 검색(BM25)으로의 대체
 
 * **작성일 (Date)**: 2026-06-11
+* **상태 (Status)**: 승인됨 (Accepted)
 
 ## 맥락 (Context)
 - RAG 파이프라인에서 검색(Retrieval) 품질을 보완하기 위해 Dense Retrieval 외에 Sparse Retrieval 모듈 도입 검토.

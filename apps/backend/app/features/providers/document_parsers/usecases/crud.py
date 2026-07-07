@@ -1,16 +1,5 @@
 from typing import Annotated, Any
 
-from app.features.providers.document_parsers.models import DocumentParser
-from app.features.providers.document_parsers.schemas import (
-    DocumentParserCreate,
-    DocumentParserPatch,
-    DocumentParserPut,
-)
-from app.features.providers.document_parsers.services import (
-    DocumentParserContextKwargs,
-    DocumentParserService,
-)
-from app.features.providers.routes.cache import refresh_document_parsers_cache
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.usecases.crud import (
     BaseCreateUseCase,
@@ -23,6 +12,18 @@ from app_layer_base.base.usecases.crud import (
 from fastapi import Depends
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.features.providers.document_parsers.models import DocumentParser
+from app.features.providers.document_parsers.schemas import (
+    DocumentParserCreate,
+    DocumentParserPatch,
+    DocumentParserPut,
+)
+from app.features.providers.document_parsers.services import (
+    DocumentParserContextKwargs,
+    DocumentParserService,
+)
+from app.features.providers.routes.cache import refresh_document_parsers_cache
 
 
 class GetDocumentParserUseCase(BaseGetUseCase[DocumentParserService, DocumentParser, DocumentParserContextKwargs]):

@@ -72,7 +72,7 @@ async def test_synonym_expander_loading_and_matching() -> None:
     res_2 = await expander_en.expand_query(query_2)
     assert "llm (large language model)" in res_2.lower()
 
-    # Test that English strategy does NOT match Korean postpositions (due to )
+    # Test that English strategy does NOT match Korean postpositions (due to \b)
     query_3 = "그렇게 판단한 이유는 무엇인가요?"
     res_3 = await expander_en.expand_query(query_3)
     assert "이유 (사유, 원인)" not in res_3
@@ -102,7 +102,7 @@ async def test_invalidate_synonyms_cache_bumps_distributed_version(monkeypatch: 
     from rag_core.query_rewrite import synonym_expander
 
     fake_cache = FakeVersionCache()
-    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: fake_cache)
+    monkeypatch.setattr(synonym_expander, "_get_version_cache_client", lambda: fake_cache)
 
     synonym_expander._CACHED_SYNONYMS = {"llm": ["old value"]}
     synonym_expander._IS_LOADED = True
@@ -118,27 +118,23 @@ async def test_invalidate_synonyms_cache_bumps_distributed_version(monkeypatch: 
     assert fake_cache.set_values["synonyms:version"] != "old-version"
 
 
-def test_redis_cache_client_uses_string_serializer(monkeypatch: pytest.MonkeyPatch) -> None:
-    from aiocache.serializers import StringSerializer
+def test_registered_version_cache_is_used_only_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     from rag_core.query_rewrite import synonym_expander
-
-    class RedisSettings:
-        url = "redis://:secret@localhost:6380/2"
 
     class CacheSettings:
         enabled = True
-        namespace = "test-synonyms"
 
-    monkeypatch.setattr(synonym_expander, "get_redis_settings", lambda: RedisSettings())
+    class DisabledCacheSettings:
+        enabled = False
+
+    fake_cache = FakeVersionCache()
+    monkeypatch.setattr(synonym_expander, "_VERSION_CACHE_CLIENT", fake_cache)
+
     monkeypatch.setattr(synonym_expander, "get_synonym_cache_settings", lambda: CacheSettings())
-    monkeypatch.setattr(synonym_expander, "_REDIS_CACHE_CLIENT", None)
-    monkeypatch.setattr(synonym_expander, "_REDIS_CACHE_IMPORT_FAILED", False)
-    monkeypatch.setattr(synonym_expander, "_REDIS_CACHE_CONNECT_FAILED", False)
+    assert synonym_expander._get_version_cache_client() is fake_cache
 
-    redis_client = synonym_expander._get_redis_cache_client()
-
-    assert redis_client is not None
-    assert isinstance(redis_client.serializer, StringSerializer)
+    monkeypatch.setattr(synonym_expander, "get_synonym_cache_settings", lambda: DisabledCacheSettings())
+    assert synonym_expander._get_version_cache_client() is None
 
 
 async def test_synonyms_use_local_cache_when_distributed_version_is_unchanged(
@@ -154,7 +150,7 @@ async def test_synonyms_use_local_cache_when_distributed_version_is_unchanged(
         return {"llm": ["large language model"]}
 
     fake_cache = FakeVersionCache(version="version-1")
-    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: fake_cache)
+    monkeypatch.setattr(synonym_expander, "_get_version_cache_client", lambda: fake_cache)
     register_synonym_loader(loader)
     synonym_expander.clear_synonyms_cache()
 
@@ -181,7 +177,7 @@ async def test_synonyms_recheck_version_without_downloading_map_after_local_ttl(
         return {"llm": ["large language model"]}
 
     fake_cache = FakeVersionCache(version="version-1")
-    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: fake_cache)
+    monkeypatch.setattr(synonym_expander, "_get_version_cache_client", lambda: fake_cache)
     register_synonym_loader(loader)
     synonym_expander.clear_synonyms_cache()
 
@@ -207,7 +203,7 @@ async def test_synonyms_reload_from_loader_when_redis_version_read_fails(
         load_calls += 1
         return {"llm": ["fresh db value"]}
 
-    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: FailingVersionCache())
+    monkeypatch.setattr(synonym_expander, "_get_version_cache_client", lambda: FailingVersionCache())
     register_synonym_loader(fresh_loader)
 
     synonym_expander._CACHED_SYNONYMS = {"llm": ["stale local value"]}
@@ -242,7 +238,7 @@ async def test_synonyms_redis_outage_fallback_coalesces_concurrent_loads(
         await release_loader.wait()
         return {"llm": ["fresh db value"]}
 
-    monkeypatch.setattr(synonym_expander, "_get_redis_cache_client", lambda: FailingVersionCache())
+    monkeypatch.setattr(synonym_expander, "_get_version_cache_client", lambda: FailingVersionCache())
     register_synonym_loader(slow_loader)
     clear_synonyms_cache()
 

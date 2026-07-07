@@ -1,3 +1,11 @@
+from app_file_storage import get_storage_client
+from app_layer_base.core.database.transaction import AsyncTransaction
+from loguru import logger
+from rag_core.embeddings import resolve_knowledge_embedding_config
+from sqlalchemy import update
+from tenacity import retry, stop_after_attempt
+
+from app.features.knowledge.knowledge_base_documents.facade.factory import build_pipeline_service
 from app.features.knowledge.knowledge_base_documents.facade.pipeline import (
     PipelineStageContext,
     knowledge_original_file_key,
@@ -11,16 +19,8 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
     KnowledgeBaseDocumentStatus,
     ParseDocumentMessage,
 )
-from app.features.knowledge.knowledge_base_pages.schemas import KnowledgeBasePageCreate
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status_for_document
 from app.worker.broker import broker
-from app.worker.services import build_pipeline_service
-from app_file_storage import get_storage_client
-from app_layer_base.core.database.transaction import AsyncTransaction
-from loguru import logger
-from rag_core.embeddings import resolve_knowledge_embedding_config
-from sqlalchemy import update
-from tenacity import retry, stop_after_attempt
 
 
 @broker.task(task_name="parse_document")
@@ -90,57 +90,16 @@ async def handle_parse(msg: ParseDocumentMessage) -> None:
             provider_override=msg.provider,
         )
 
-        is_vision_rag = embedding_config.use_colpali
-
-        if is_vision_rag:
+        if embedding_config.use_colpali:
             logger.info(f"ColPali model detected. Rendering pages to images for document {msg.document_id}")
-            from rag_core.parsers.pdf_page_renderer import render_and_store_pdf_pages
-
-            asset_refs = await render_and_store_pdf_pages(content, str(msg.document_id), storage_client)
-            # Map page images back to parsed_doc.pages
-            sorted_pages = sorted(parsed_doc.pages, key=lambda p: p.page_no)
-            for page, asset_ref in zip(sorted_pages, asset_refs, strict=True):
-                page.image = asset_ref
+            await pipeline_service.attach_page_images_for_vision(
+                parsed_doc=parsed_doc,
+                raw_content=content,
+                document_id=msg.document_id,
+            )
 
         logger.info(f"Worker saving pages for document {msg.document_id}")
-        # Group and sort elements by page_id in O(N log N)
-        from collections import defaultdict
-
-        elements_by_page = defaultdict(list)
-        for element in parsed_doc.elements:
-            if element.page_id:
-                elements_by_page[element.page_id].append(element)
-        for page_id in elements_by_page:
-            elements_by_page[page_id].sort(key=lambda e: e.order)
-
-        # Batch insert pages (e.g., 50 pages per batch) inside a single transaction to ensure atomicity
-        batch_size = 50
-        page_creates = []
-        async with AsyncTransaction() as session:
-            await pipeline_service.page_service.repo.delete_by_document_id(session, msg.document_id)
-            for page in parsed_doc.pages:
-                page_elements = elements_by_page.get(page.page_id, [])
-                content_text = "\n\n".join(e.content for e in page_elements if not e.ignored and e.content.strip())
-
-                metadata_info = dict(page.metadata)
-                if page.image:
-                    metadata_info["image"] = page.image.model_dump()
-
-                page_creates.append(
-                    KnowledgeBasePageCreate(
-                        document_id=msg.document_id,
-                        page_id=page.page_id,
-                        page_number=page.page_no,
-                        content=content_text,
-                        metadata_info=metadata_info,
-                    )
-                )
-                if len(page_creates) >= batch_size:
-                    await pipeline_service.page_service.repo.bulk_create(session, page_creates, msg.document_id)
-                    page_creates = []
-
-            if page_creates:
-                await pipeline_service.page_service.repo.bulk_create(session, page_creates, msg.document_id)
+        await pipeline_service.save_document_pages(document_id=msg.document_id, parsed_doc=parsed_doc)
 
         # 4. Chain: Dispatch to handle_chunk
         logger.info(f"Worker completed parse stage. Dispatching chunk task for {msg.document_id}")

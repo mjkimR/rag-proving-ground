@@ -1,12 +1,5 @@
 from typing import Annotated
 
-from app.features.storage.session_file_attachments.models import SessionFileAttachment
-from app.features.storage.session_file_attachments.repos import SessionFileAttachmentRepository
-from app.features.storage.session_file_attachments.schemas import (
-    SessionFileAttachmentCreate,
-    SessionFileAttachmentPatch,
-    SessionFileAttachmentPut,
-)
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,
@@ -16,6 +9,14 @@ from app_layer_base.base.services.base import (
     BaseUpdateServiceMixin,
 )
 from fastapi import Depends
+
+from app.features.storage.session_file_attachments.models import SessionFileAttachment
+from app.features.storage.session_file_attachments.repos import SessionFileAttachmentRepository
+from app.features.storage.session_file_attachments.schemas import (
+    SessionFileAttachmentCreate,
+    SessionFileAttachmentPatch,
+    SessionFileAttachmentPut,
+)
 
 
 class SessionFileAttachmentContextKwargs(BaseContextKwargs):

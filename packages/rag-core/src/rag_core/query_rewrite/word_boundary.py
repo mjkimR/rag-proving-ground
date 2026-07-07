@@ -25,7 +25,7 @@ def _compile_korean_pattern(keyword: str) -> re.Pattern[str]:
 @lru_cache(maxsize=4096)
 def _compile_english_pattern(keyword: str) -> re.Pattern[str]:
     return re.compile(
-        rf"{re.escape(keyword)}",
+        rf"\b{re.escape(keyword)}\b",
         re.IGNORECASE,
     )
 
@@ -44,7 +44,7 @@ class KoreanWordBoundaryStrategy(WordBoundaryStrategy):
 class EnglishWordBoundaryStrategy(WordBoundaryStrategy):
     """Word boundary strategy for English queries.
 
-    Uses strict word boundaries () to prevent partial substring matches.
+    Uses strict word boundaries (\b) to prevent partial substring matches.
     """
 
     def get_pattern(self, keyword: str) -> re.Pattern[str]:

@@ -1,8 +1,5 @@
 from typing import Annotated
 
-from app.features.knowledge.synonyms.models import SynonymMap
-from app.features.knowledge.synonyms.repos import SynonymMapRepository
-from app.features.knowledge.synonyms.schemas import SynonymMapCreate, SynonymMapPatch, SynonymMapPut
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,
@@ -12,6 +9,10 @@ from app_layer_base.base.services.base import (
     BaseUpdateServiceMixin,
 )
 from fastapi import Depends
+
+from app.features.knowledge.synonyms.models import SynonymMap
+from app.features.knowledge.synonyms.repos import SynonymMapRepository
+from app.features.knowledge.synonyms.schemas import SynonymMapCreate, SynonymMapPatch, SynonymMapPut
 
 
 class SynonymContextKwargs(BaseContextKwargs):

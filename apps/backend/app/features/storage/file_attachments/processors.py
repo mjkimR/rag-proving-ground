@@ -2,7 +2,14 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from uuid import UUID
 
+from app_file_storage import get_storage_client
+from app_layer_base.core.database.transaction import AsyncTransaction
+from loguru import logger
+from rag_core.embeddings import resolve_knowledge_embedding_config
+from sqlalchemy import select
+
 from app.common.utils.time_util import get_current_time
+from app.features.knowledge.knowledge_base_documents.facade.factory import build_pipeline_service
 from app.features.knowledge.knowledge_base_documents.facade.pipeline import (
     PipelineStageContext,
     knowledge_original_file_key,
@@ -11,12 +18,6 @@ from app.features.knowledge.knowledge_base_documents.models import KnowledgeBase
 from app.features.knowledge.knowledge_bases.models import KnowledgeBase
 from app.features.knowledge.session_knowledge_bases.models import SessionKnowledgeBase
 from app.features.storage.session_file_attachments.models import SessionFileAttachment
-from app.worker.services import build_pipeline_service
-from app_file_storage import get_storage_client
-from app_layer_base.core.database.transaction import AsyncTransaction
-from loguru import logger
-from rag_core.embeddings import resolve_knowledge_embedding_config
-from sqlalchemy import select
 
 
 class FileAttachmentProcessor(ABC):
@@ -159,54 +160,15 @@ class TempKbDocumentProcessor(FileAttachmentProcessor):
             parsing_config=resolved_parsing_config,
         )
 
-        is_vision_rag = embedding_config.use_colpali
-        if is_vision_rag:
-            from rag_core.parsers.pdf_page_renderer import render_and_store_pdf_pages
-
+        if embedding_config.use_colpali:
             logger.info("PDF page image rendering required for ColPali. Rendering...")
-            asset_refs = await render_and_store_pdf_pages(raw_file_bytes, str(doc_id), storage_client)
-            sorted_pages = sorted(parsed_doc.pages, key=lambda p: p.page_no)
-            for page, asset_ref in zip(sorted_pages, asset_refs, strict=True):
-                page.image = asset_ref
+            await pipeline_service.attach_page_images_for_vision(
+                parsed_doc=parsed_doc,
+                raw_content=raw_file_bytes,
+                document_id=doc_id,
+            )
 
-        # Batch insert pages in DB
-        from collections import defaultdict
-
-        from app.features.knowledge.knowledge_base_pages.schemas import KnowledgeBasePageCreate
-
-        elements_by_page = defaultdict(list)
-        for element in parsed_doc.elements:
-            if element.page_id:
-                elements_by_page[element.page_id].append(element)
-        for page_id in elements_by_page:
-            elements_by_page[page_id].sort(key=lambda e: e.order)
-
-        async with AsyncTransaction() as session:
-            await pipeline_service.page_service.repo.delete_by_document_id(session, doc_id)
-            page_creates = []
-            for page in parsed_doc.pages:
-                page_elements = elements_by_page.get(page.page_id, [])
-                content_text = "\n\n".join(e.content for e in page_elements if not e.ignored and e.content.strip())
-
-                metadata_info = dict(page.metadata)
-                if page.image:
-                    metadata_info["image"] = page.image.model_dump()
-
-                page_creates.append(
-                    KnowledgeBasePageCreate(
-                        document_id=doc_id,
-                        page_id=page.page_id,
-                        page_number=page.page_no,
-                        content=content_text,
-                        metadata_info=metadata_info,
-                    )
-                )
-                if len(page_creates) >= 50:
-                    await pipeline_service.page_service.repo.bulk_create(session, page_creates, doc_id)
-                    page_creates = []
-
-            if page_creates:
-                await pipeline_service.page_service.repo.bulk_create(session, page_creates, doc_id)
+        await pipeline_service.save_document_pages(document_id=doc_id, parsed_doc=parsed_doc)
 
         # Step B: Chunk
         logger.info(f"Running sequential pipeline for doc {doc_id}: chunking...")

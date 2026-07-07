@@ -2,25 +2,12 @@ import base64
 from typing import Any, ClassVar
 
 from app_http_client import get_http_client
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from rag_core.adapters.parser.interface import Parser, ParserInput
+from rag_core.config import get_docling_parser_settings
 from rag_core.parsers.schemas import PARSED_DOCUMENT_SCHEMA_VERSION, ParsedDocument
 
 from .normalizer import normalize_docling_document
-
-
-class DoclingParserSettings(BaseSettings):
-    """Settings used only by the Docling parser provider."""
-
-    base_url: str = Field(
-        default="http://127.0.0.1:5001",
-        validation_alias="DOCLING_BASE_URL",
-    )
-    timeout: float = Field(default=120.0, validation_alias="DOCLING_TIMEOUT", gt=0)
-
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 class DoclingParser(Parser):
@@ -35,7 +22,7 @@ class DoclingParser(Parser):
 
     @classmethod
     def from_config(cls) -> "DoclingParser":
-        docling_settings = DoclingParserSettings()
+        docling_settings = get_docling_parser_settings()
         return cls(
             base_url=str(docling_settings.base_url),
             timeout=docling_settings.timeout,

@@ -1,8 +1,9 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends
+
 from app.features.providers.routes.schemas import ProviderOptions
 from app.features.providers.routes.usecases.options import GetProviderOptionsUseCase
-from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/providers", tags=["Providers"])
 

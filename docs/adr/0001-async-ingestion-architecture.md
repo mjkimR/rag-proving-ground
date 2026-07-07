@@ -1,4 +1,4 @@
-# ADR-0002: FastStream 기반 비동기 문서 인제스션 아키텍처 및 외부 자원 분리 설계
+# ADR-0001: FastStream 기반 비동기 문서 인제스션 아키텍처 및 외부 자원 분리 설계
 
 * **작성일 (Date)**: 2026-06-11
 * **상태 (Status)**: 대체됨 ([ADR-0010](file:///Users/mj/workspace/playground/rag-proving-ground/docs/adr/0010-migration-from-redis-to-rabbitmq-broker.md))

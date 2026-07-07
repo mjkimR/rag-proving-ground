@@ -5,17 +5,22 @@ Retrieval-Augmented Generation (RAG) pipelines.
 
 ## Stack
 
-| Layer                  | Technology                                                        |
-|------------------------|-------------------------------------------------------------------|
-| API                    | Python 3.13, FastAPI, uvicorn                                     |
-| Core library           | `rag-core` — parsers, chunkers, embeddings, LLM/reranker wrappers |
-| Graph pipelines        | `rag-graphs` — LangGraph-based RAG pipeline definitions           |
-| Frontend               | React 19, Vite, TypeScript, CopilotKit                            |
-| LLM gateway            | LiteLLM proxy (`models.yaml`)                                     |
-| Object storage         | MinIO (S3-compatible)                                             |
-| Document parsing       | Docling Serve                                                     |
-| Task runner            | [just](https://github.com/casey/just)                             |
-| Python package manager | [uv](https://github.com/astral-sh/uv)                             |
+| Layer                  | Technology                                                                     |
+|------------------------|--------------------------------------------------------------------------------|
+| API / Worker           | Python 3.13, FastAPI, Taskiq, uvicorn                                          |
+| Core library           | `rag-core` — parsers, chunkers, embeddings, retrieval, LLM/reranker wrappers   |
+| Graph pipelines        | `rag-graphs` — LangGraph pipelines, served via Aegra (`apps/serve`)            |
+| Evaluation             | `rag-eval` — RAGAS / DeepEval evaluation runners                               |
+| Frontend               | React 19, Vite, TypeScript, CopilotKit                                         |
+| LLM gateway            | LiteLLM proxy (`models.yaml`)                                                  |
+| Vector store           | Qdrant                                                                         |
+| Metadata DB            | PostgreSQL (pgvector image)                                                    |
+| Message broker         | RabbitMQ (Taskiq broker)                                                       |
+| Cache / task results   | Redis                                                                          |
+| Object storage         | MinIO (S3-compatible)                                                          |
+| Document parsing       | Docling Serve, fast-parser                                                     |
+| Task runner            | [just](https://github.com/casey/just)                                          |
+| Python package manager | [uv](https://github.com/astral-sh/uv)                                          |
 
 ---
 
@@ -69,19 +74,26 @@ cp models.example.yaml models.yaml
 ### 5. Start Infrastructure
 
 ```bash
-just up                    # CPU mode — starts Docling + LiteLLM + MinIO
-just up-gpu                # GPU mode (WSL / Linux)
-just up docling marker     # Start with additional optional profiles
-just down                  # Stop all services
+just up                       # CPU mode — starts the default `basic` profile (all services below)
+just up-gpu                   # GPU mode (WSL / Linux)
+just up docling fast-parser   # Start with specific profiles only
+just down                     # Stop all services
+just monitor-up               # Optional: Langfuse monitoring stack (langfuse-web/worker + ClickHouse)
+just models-up                # Optional: local model runtimes (Infinity ColPali, LLMLingua)
 ```
 
-Services started by `just up`:
+Services started by `just up` (default `basic` profile):
 
-| Service       | Port            | Description                                      |
-|---------------|-----------------|--------------------------------------------------|
-| LiteLLM proxy | `4000`          | OpenAI-compatible gateway to LLM backends        |
-| MinIO         | `9000` / `9001` | S3-compatible object storage (console at `9001`) |
-| Docling       | `5001`          | Document parsing server (`/docs` · `/ui`)        |
+| Service       | Host port         | Description                                          |
+|---------------|-------------------|------------------------------------------------------|
+| LiteLLM proxy | `14004`           | OpenAI-compatible gateway to LLM backends            |
+| MinIO         | `19000` / `19001` | S3-compatible object storage (console at `19001`)    |
+| Qdrant        | `16333` / `16334` | Vector store (HTTP / gRPC)                           |
+| PostgreSQL    | `15431`           | Metadata DB (pgvector image; litellm/aegra DBs)      |
+| Redis         | `16379`           | Task results / cache (RedisInsight at `18001`)       |
+| RabbitMQ      | `5672` / `15672`  | Taskiq message broker (management UI at `15672`)     |
+| Docling       | `15001`           | Document parsing server (`/docs` · `/ui`)            |
+| fast-parser   | `15002`           | Lightweight PDF parsing server                       |
 
 ---
 
@@ -133,35 +145,36 @@ just dev web     # Start React Vite frontend
 ```
 rag-proving-ground/
 ├── apps/
-│   ├── api/                      # FastAPI application (parsing/chunking endpoints)
-│   │   └── app/main.py
-│   └── web/                      # React 19 + Vite frontend
-│       └── src/
+│   ├── backend/                  # FastAPI app + Taskiq worker (app/features, app/worker)
+│   ├── serve/                    # Aegra server entry point (serves rag-graphs pipelines)
+│   └── web/                      # React 19 + Vite frontend (generated client in src/generated/api)
 ├── packages/
-│   ├── rag-core/                 # Shared library: parsers, chunkers, embeddings, AI, config
+│   ├── rag-core/                 # Shared library: parsing, chunking, retrieval, embedding, config
 │   │   └── src/rag_core/
-│   │       ├── adapters/         # Provider adapters (e.g., Docling parser adapter)
-│   │       ├── ai/               # LLM / reranker wrappers
-│   │       ├── chunkers/         # Recursive and semantic chunking strategies
-│   │       ├── embeddings/       # Embedding model wrappers
-│   │       ├── parsers/          # Document parser interfaces and schemas
-│   │       ├── vector_db/        # Vector store utilities
-│   │       └── config.py         # Pydantic settings (LiteLLM, Parser, HTTP)
-│   └── graphs/                   # LangGraph RAG pipeline definitions
-│       └── src/rag_graphs/
+│   │       ├── adapters/         # Provider adapters (parser, prompt, vector_store)
+│   │       ├── ai/               # LLM / embedding / reranker / sparse model wrappers
+│   │       ├── chunkers/         # Recursive, semantic, visual chunking strategies
+│   │       ├── compression/      # Context compression (LLMLingua, reranker prefilter)
+│   │       ├── embeddings/       # Indexing helpers and embedding config schemas
+│   │       ├── parsers/          # Parsed-document IR schemas and renderers
+│   │       ├── query_rewrite/    # Query rewriting and synonym expansion
+│   │       ├── retrieval/        # Search and rerank orchestration
+│   │       ├── summarize/        # Intent routing and tree summarization
+│   │       ├── tokenizers/       # Tokenizer wrappers
+│   │       └── config.py         # Pydantic settings
+│   ├── graphs/                   # LangGraph RAG pipeline definitions (rag-graphs)
+│   └── rag-eval/                 # Evaluation interfaces/runners (RAGAS, DeepEval)
 ├── infra/
-│   ├── services/                 # Databases, vector store, redis, minio, docling compose settings
-│   │   ├── docker-compose.yml
-│   │   └── docker-compose.gpu.yml
-│   ├── models/                   # Local model runtimes (Ollama, TEI)
-│   │   └── docker-compose.yml
+│   ├── services/                 # LiteLLM, MinIO, Qdrant, PostgreSQL, Redis, RabbitMQ, parsers
+│   │   ├── docker-compose.yml            # (+ .gpu.yml override, .monitor.yml Langfuse stack)
+│   │   └── ...
+│   ├── models/                   # Local model runtimes (Infinity ColPali, LLMLingua)
 │   └── app/                      # Application docker settings placeholder
-│       └── docker-compose.yml
-├── experiments/
-│   ├── autorag/                  # AutoRAG evaluation configs and results
-│   ├── baselines/                # Baseline pipeline scripts
-│   └── notebooks/                # Jupyter notebooks
-├── scripts/                      # Shell helper scripts
+├── experiments/                  # Evaluation runs (rag-eval demo, sample dataset)
+├── datasets/                     # Sample PDFs, parsing cache, batch parse CLI
+├── docs/                         # ADRs and architecture docs
+├── dev-agents/                   # Development-time agent instructions, hooks, skills
+├── scripts/                      # Shell helper scripts called by justfile
 ├── models.yaml                   # LiteLLM model routing config (gitignored)
 ├── models.example.yaml           # Model routing template
 ├── .env.example                  # Environment variable template

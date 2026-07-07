@@ -1,5 +1,9 @@
 from uuid import UUID
 
+from app_file_storage import get_storage_client
+from app_layer_base.core.database.transaction import AsyncTransaction
+from loguru import logger
+
 from app.features.storage.file_attachments.processors import (
     AudioTranscriptionProcessor,
     ImageVisionProcessor,
@@ -7,9 +11,6 @@ from app.features.storage.file_attachments.processors import (
 )
 from app.features.storage.session_file_attachments.models import SessionFileAttachment
 from app.worker.broker import broker
-from app_file_storage import get_storage_client
-from app_layer_base.core.database.transaction import AsyncTransaction
-from loguru import logger
 
 
 @broker.task(task_name="process_file_attachment")

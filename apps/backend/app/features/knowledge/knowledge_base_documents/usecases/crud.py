@@ -4,19 +4,6 @@ from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
-from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
-from app.features.knowledge.knowledge_base_documents.schemas import (
-    KnowledgeBaseDocumentCreate,
-    KnowledgeBaseDocumentPatch,
-    KnowledgeBaseDocumentPut,
-    KnowledgeBaseDocumentStatus,
-)
-from app.features.knowledge.knowledge_base_documents.services import (
-    KnowledgeBaseDocumentContextKwargs,
-    KnowledgeBaseDocumentService,
-)
-from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
-from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
 from app_file_storage import get_storage_client
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.usecases.base import BaseUseCase
@@ -32,6 +19,20 @@ from fastapi import Depends, HTTPException, status
 from loguru import logger
 from rag_core.embeddings import delete_document_vectors, knowledge_vector_collection_name
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
+from app.features.knowledge.knowledge_base_documents.schemas import (
+    KnowledgeBaseDocumentCreate,
+    KnowledgeBaseDocumentPatch,
+    KnowledgeBaseDocumentPut,
+    KnowledgeBaseDocumentStatus,
+)
+from app.features.knowledge.knowledge_base_documents.services import (
+    KnowledgeBaseDocumentContextKwargs,
+    KnowledgeBaseDocumentService,
+)
+from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
+from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
 
 
 class GetKnowledgeBaseDocumentUseCase(

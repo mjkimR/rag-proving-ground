@@ -1,5 +1,10 @@
 from typing import Annotated, Any
 
+from app_layer_base.base.usecases.base import BaseUseCase
+from app_layer_base.core.database.transaction import AsyncTransaction
+from fastapi import Depends, HTTPException, status
+from loguru import logger
+
 from app.features.storage.file_attachments.services import FileAttachmentService
 from app.features.storage.session_file_attachments.schemas import (
     SessionFileAttachmentCreate,
@@ -7,10 +12,6 @@ from app.features.storage.session_file_attachments.schemas import (
 from app.features.storage.session_file_attachments.services import (
     SessionFileAttachmentService,
 )
-from app_layer_base.base.usecases.base import BaseUseCase
-from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import Depends, HTTPException, status
-from loguru import logger
 
 
 def detect_purpose(mime_type: str) -> str:
@@ -92,10 +93,10 @@ class BindFileToSessionUseCase(BaseUseCase):
 
         # 4. Trigger the Taskiq worker task (outside transaction to avoid lock contention)
         try:
-            from app.worker.handlers.attachment import process_file_attachment
+            from app.common.task_dispatch import PROCESS_FILE_ATTACHMENT_TASK, kick_task
 
             logger.info(f"Dispatching process task for SessionFileAttachment {session_file_id}")
-            task = await process_file_attachment.kiq(session_file_attachment_id=session_file_id)
+            task = await kick_task(PROCESS_FILE_ATTACHMENT_TASK, session_file_attachment_id=session_file_id)
             task_id = task.task_id
         except Exception as exc:
             logger.error(f"Failed to dispatch Taskiq task for SessionFileAttachment {session_file_id}: {exc}")

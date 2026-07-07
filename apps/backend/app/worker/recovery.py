@@ -1,12 +1,13 @@
 from datetime import timedelta
 from typing import Any
 
-from app.common.utils.time_util import get_current_time
-from app.features.knowledge.knowledge_base_documents.repos import KnowledgeBaseDocumentRepository
-from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 from app_layer_base.core.database.transaction import AsyncTransaction
 from loguru import logger
 from sqlalchemy import or_, select
+
+from app.common.utils.time_util import get_current_time
+from app.features.knowledge.knowledge_base_documents.repos import KnowledgeBaseDocumentRepository
+from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 
 # If stuck in QUEUED status for longer than this, or processing for longer than 15 minutes, consider it stuck
 STUCK_QUEUED_THRESHOLD_MINUTES = 5

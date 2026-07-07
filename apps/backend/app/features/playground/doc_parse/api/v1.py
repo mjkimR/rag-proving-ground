@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from app.features.playground.doc_parse.usecases.parsing import DocumentParsingUseCase
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from rag_core.parsers.schemas import ParsedDocument
+
+from app.features.playground.doc_parse.usecases.parsing import DocumentParsingUseCase
 
 router = APIRouter(prefix="/doc_parse", tags=["Document Parse"], dependencies=[])
 

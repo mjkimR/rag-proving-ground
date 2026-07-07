@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from app.features.storage.session_file_attachments.schemas import SessionFileAttachmentRead
-from app.features.storage.session_file_attachments.services import SessionFileAttachmentService
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends
+
+from app.features.storage.session_file_attachments.schemas import SessionFileAttachmentRead
+from app.features.storage.session_file_attachments.services import SessionFileAttachmentService
 
 
 class GetSessionAttachmentsUseCase(BaseUseCase):

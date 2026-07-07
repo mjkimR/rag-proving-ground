@@ -1,7 +1,8 @@
 # ADR-0009: 어댑터 패턴 기반의 프롬프트 레지스트리 레이어 (Prompt Registry Layer) 도입
 
 * **작성일 (Date)**: 2026-06-25
-* **상태 (Status)**: 제안됨 (Proposed)
+* **상태 (Status)**: 승인됨 (Accepted)
+* **구현 노트**: `rag_core/adapters/prompt/`(interface/registry/factory/instance + providers `s3`, `langfuse`)로 구현됨. 로컬 fallback은 본문의 `rag_core/prompt/fallback/` 고정 경로 대신 `PromptSettings.fallback_dir` 설정값으로 대체됨.
 
 ---
 

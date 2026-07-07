@@ -1,6 +1,13 @@
 from typing import Annotated
 from uuid import UUID
 
+from app_layer_base.base.deps.params.page import PaginationParam
+from app_layer_base.base.exceptions.basic import NotFoundException
+from app_layer_base.base.repos.query_options import ListQueryOptions
+from app_layer_base.base.schemas.delete_resp import DeleteResponse
+from app_layer_base.base.schemas.paginated import PaginatedList
+from fastapi import APIRouter, Depends, File, UploadFile, status
+
 from app.features.storage.file_attachments.schemas import (
     FileAttachmentCreate,
     FileAttachmentPatch,
@@ -32,12 +39,6 @@ from app.features.storage.session_file_attachments.usecases.crud import (
     PatchSessionFileAttachmentUseCase,
     PutSessionFileAttachmentUseCase,
 )
-from app_layer_base.base.deps.params.page import PaginationParam
-from app_layer_base.base.exceptions.basic import NotFoundException
-from app_layer_base.base.repos.query_options import ListQueryOptions
-from app_layer_base.base.schemas.delete_resp import DeleteResponse
-from app_layer_base.base.schemas.paginated import PaginatedList
-from fastapi import APIRouter, Depends, File, UploadFile, status
 
 router = APIRouter(tags=["FileAttachment"], dependencies=[])
 

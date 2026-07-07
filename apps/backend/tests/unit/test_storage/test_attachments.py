@@ -64,7 +64,7 @@ async def test_bind_file_to_session(client, session, monkeypatch) -> None:
     mock_task = MagicMock()
     mock_task.task_id = "task-uuid-456"
     mock_kiq = AsyncMock(return_value=mock_task)
-    monkeypatch.setattr("app.worker.handlers.attachment.process_file_attachment.kiq", mock_kiq)
+    monkeypatch.setattr("app.common.task_dispatch.kick_task", mock_kiq)
 
     # 3. Request binding to session
     payload = {"thread_id": "thread-abc", "file_attachment_id": str(fa.id), "purpose": "temp_kb"}
@@ -82,7 +82,9 @@ async def test_bind_file_to_session(client, session, monkeypatch) -> None:
     assert data["task_id"] == "task-uuid-456"
 
     # Verify taskiq task was dispatched
-    mock_kiq.assert_called_once_with(session_file_attachment_id=UUID(data["id"]))
+    from app.common.task_dispatch import PROCESS_FILE_ATTACHMENT_TASK
+
+    mock_kiq.assert_called_once_with(PROCESS_FILE_ATTACHMENT_TASK, session_file_attachment_id=UUID(data["id"]))
 
     # 4. Request same binding again (idempotency check)
     mock_kiq.reset_mock()

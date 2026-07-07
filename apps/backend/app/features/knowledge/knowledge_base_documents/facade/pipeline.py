@@ -1,18 +1,11 @@
 import hashlib
 import json
 import time
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
-from app.features.history.job_process_histories.schemas import JobProcessHistoryCreate
-from app.features.history.job_process_histories.services import JobProcessHistoryService
-from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
-from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
-from app.features.knowledge.knowledge_base_pages.services import KnowledgeBasePageService
-from app.features.knowledge.knowledge_bases.models import KnowledgeBase
-from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
-from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status_for_document
 from app_file_storage import get_storage_client
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
@@ -46,6 +39,16 @@ from rag_core.summarize import TreeSummarizer
 from rag_core.tokenizers import get_tokenizer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.features.history.job_process_histories.schemas import JobProcessHistoryCreate
+from app.features.history.job_process_histories.services import JobProcessHistoryService
+from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
+from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
+from app.features.knowledge.knowledge_base_pages.schemas import KnowledgeBasePageCreate
+from app.features.knowledge.knowledge_base_pages.services import KnowledgeBasePageService
+from app.features.knowledge.knowledge_bases.models import KnowledgeBase
+from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
+from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status_for_document
 
 KNOWLEDGE_DOCUMENT_RESOURCE_TYPE = "knowledge_base_document"
 
@@ -180,6 +183,64 @@ class KnowledgeDocumentPipelineService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Ingestion failed at Parsing stage: {exc}",
             ) from exc
+
+    async def attach_page_images_for_vision(
+        self,
+        *,
+        parsed_doc: ParsedDocument,
+        raw_content: bytes,
+        document_id: UUID,
+    ) -> None:
+        """Renders PDF pages to images and attaches asset refs (ColPali vision RAG)."""
+        from rag_core.parsers.pdf_page_renderer import render_and_store_pdf_pages
+
+        storage_client = get_storage_client()
+        asset_refs = await render_and_store_pdf_pages(raw_content, str(document_id), storage_client)
+        sorted_pages = sorted(parsed_doc.pages, key=lambda p: p.page_no)
+        for page, asset_ref in zip(sorted_pages, asset_refs, strict=True):
+            page.image = asset_ref
+
+    async def save_document_pages(
+        self,
+        *,
+        document_id: UUID,
+        parsed_doc: ParsedDocument,
+        batch_size: int = 50,
+    ) -> None:
+        """Replaces the document's page records with the parsed pages, batching inserts."""
+        elements_by_page: dict[str, list] = defaultdict(list)
+        for element in parsed_doc.elements:
+            if element.page_id:
+                elements_by_page[element.page_id].append(element)
+        for page_id in elements_by_page:
+            elements_by_page[page_id].sort(key=lambda e: e.order)
+
+        async with AsyncTransaction() as session:
+            await self.page_service.repo.delete_by_document_id(session, document_id)
+            page_creates = []
+            for page in parsed_doc.pages:
+                page_elements = elements_by_page.get(page.page_id, [])
+                content_text = "\n\n".join(e.content for e in page_elements if not e.ignored and e.content.strip())
+
+                metadata_info = dict(page.metadata)
+                if page.image:
+                    metadata_info["image"] = page.image.model_dump()
+
+                page_creates.append(
+                    KnowledgeBasePageCreate(
+                        document_id=document_id,
+                        page_id=page.page_id,
+                        page_number=page.page_no,
+                        content=content_text,
+                        metadata_info=metadata_info,
+                    )
+                )
+                if len(page_creates) >= batch_size:
+                    await self.page_service.repo.bulk_create(session, page_creates, document_id)
+                    page_creates = []
+
+            if page_creates:
+                await self.page_service.repo.bulk_create(session, page_creates, document_id)
 
     async def rebuild_chunks(
         self,

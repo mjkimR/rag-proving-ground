@@ -1,8 +1,5 @@
 from typing import Annotated
 
-from app.features.providers.ai_models.models import AIModel
-from app.features.providers.ai_models.repos import AIModelRepository
-from app.features.providers.ai_models.schemas import AIModelCreate, AIModelPatch, AIModelPut
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,
@@ -12,6 +9,10 @@ from app_layer_base.base.services.base import (
     BaseUpdateServiceMixin,
 )
 from fastapi import Depends
+
+from app.features.providers.ai_models.models import AIModel
+from app.features.providers.ai_models.repos import AIModelRepository
+from app.features.providers.ai_models.schemas import AIModelCreate, AIModelPatch, AIModelPut
 
 
 class AIModelContextKwargs(BaseContextKwargs):

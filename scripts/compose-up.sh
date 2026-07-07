@@ -28,6 +28,10 @@ if [ "$#" -eq 0 ]; then
 else
     for profile in "$@"; do
         if [ "$profile" = "serve" ]; then
+            if [ ! -f infra/services/docker-compose.serve.yml ]; then
+                echo "Error: 'serve' profile requires infra/services/docker-compose.serve.yml, which does not exist yet." >&2
+                exit 2
+            fi
             compose_args+=(-f infra/services/docker-compose.serve.yml)
         fi
         profile_args+=("--profile" "$profile")

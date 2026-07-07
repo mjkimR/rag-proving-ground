@@ -1,7 +1,7 @@
 import functools
 from enum import StrEnum
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +22,17 @@ class VectorDBSettings(BaseSettings):
     )
 
 
+class QdrantSettings(BaseSettings):
+    url: str = Field(default="http://localhost:6333", description="Qdrant server URL")
+    api_key: SecretStr | None = Field(default=None, description="API key for Qdrant authentication")
+    model_config = SettingsConfigDict(env_prefix="VECTOR_DB_QDRANT_")
+
+
 @functools.lru_cache
 def get_vector_db_settings() -> VectorDBSettings:
     return VectorDBSettings()
+
+
+@functools.lru_cache
+def get_qdrant_settings() -> QdrantSettings:
+    return QdrantSettings()  # type: ignore[call-arg]

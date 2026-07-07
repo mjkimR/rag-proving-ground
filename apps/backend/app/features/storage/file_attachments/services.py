@@ -1,12 +1,5 @@
 from typing import Annotated
 
-from app.features.storage.file_attachments.models import FileAttachment
-from app.features.storage.file_attachments.repos import FileAttachmentRepository
-from app.features.storage.file_attachments.schemas import (
-    FileAttachmentCreate,
-    FileAttachmentPatch,
-    FileAttachmentPut,
-)
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,
@@ -16,6 +9,14 @@ from app_layer_base.base.services.base import (
     BaseUpdateServiceMixin,
 )
 from fastapi import Depends
+
+from app.features.storage.file_attachments.models import FileAttachment
+from app.features.storage.file_attachments.repos import FileAttachmentRepository
+from app.features.storage.file_attachments.schemas import (
+    FileAttachmentCreate,
+    FileAttachmentPatch,
+    FileAttachmentPut,
+)
 
 
 class FileAttachmentContextKwargs(BaseContextKwargs):

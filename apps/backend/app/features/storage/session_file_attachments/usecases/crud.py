@@ -1,5 +1,15 @@
 from typing import Annotated
 
+from app_layer_base.base.usecases.crud import (
+    BaseCreateUseCase,
+    BaseDeleteUseCase,
+    BaseGetMultiUseCase,
+    BaseGetUseCase,
+    BasePatchUseCase,
+    BasePutUseCase,
+)
+from fastapi import Depends
+
 from app.features.storage.session_file_attachments.models import SessionFileAttachment
 from app.features.storage.session_file_attachments.schemas import (
     SessionFileAttachmentCreate,
@@ -10,15 +20,6 @@ from app.features.storage.session_file_attachments.services import (
     SessionFileAttachmentContextKwargs,
     SessionFileAttachmentService,
 )
-from app_layer_base.base.usecases.crud import (
-    BaseCreateUseCase,
-    BaseDeleteUseCase,
-    BaseGetMultiUseCase,
-    BaseGetUseCase,
-    BasePatchUseCase,
-    BasePutUseCase,
-)
-from fastapi import Depends
 
 
 class GetSessionFileAttachmentUseCase(

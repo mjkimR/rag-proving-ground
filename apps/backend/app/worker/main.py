@@ -21,18 +21,19 @@ except ImportError:
 
 
 # Import router to ensure all database models are registered, and tasks to ensure they are registered on the broker
-import app.router
-import app.worker.handlers.attachment
-import app.worker.handlers.ingest  # noqa: F401
-from app.worker.broker import broker
-from app.worker.recovery import recover_stuck_documents
-from app.worker.scheduling import start_dispatchers, stop_dispatchers
 from app_file_storage import lifespan_file_storage
 from app_http_client import lifespan_http_client
 from fastapi import FastAPI
 from loguru import logger
 from rag_core.adapters.vector_store import lifespan_vector_store
 from taskiq import TaskiqEvents, TaskiqState
+
+import app.router
+import app.worker.handlers.attachment
+import app.worker.handlers.ingest  # noqa: F401
+from app.worker.broker import broker
+from app.worker.recovery import recover_stuck_documents
+from app.worker.scheduling import start_dispatchers, stop_dispatchers
 
 
 class StateDummy:

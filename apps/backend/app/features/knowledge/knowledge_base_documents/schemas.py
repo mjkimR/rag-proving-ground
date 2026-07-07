@@ -129,10 +129,7 @@ class ReprocessDocumentMessage(BaseModel):
 
 
 def get_queue_name(priority: str | TaskPriority, stage: str = "parse") -> str:
-    """Prepend 'kb_ingest:' prefix to avoid Redis queue namespace collisions.
-
-    Deprecated: All ingestion tasks are now consolidated into the queue specified in config.
-    """
+    """Resolve the RabbitMQ queue name for the given ingestion stage."""
     from rag_core.config import get_rabbitmq_settings
 
     settings = get_rabbitmq_settings()

@@ -1,8 +1,5 @@
 from typing import Annotated, Any
 
-from app.features.knowledge.synonyms.models import SynonymMap
-from app.features.knowledge.synonyms.schemas import SynonymMapCreate, SynonymMapPatch, SynonymMapPut
-from app.features.knowledge.synonyms.services import SynonymContextKwargs, SynonymMapService
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.usecases.crud import (
     BaseCreateUseCase,
@@ -14,6 +11,10 @@ from app_layer_base.base.usecases.crud import (
 )
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.features.knowledge.synonyms.models import SynonymMap
+from app.features.knowledge.synonyms.schemas import SynonymMapCreate, SynonymMapPatch, SynonymMapPut
+from app.features.knowledge.synonyms.services import SynonymContextKwargs, SynonymMapService
 
 
 async def _invalidate_cache() -> None:

@@ -16,8 +16,6 @@ try:
 except ImportError:
     pass
 
-from app.router import router
-from app.worker.broker import broker
 from app_file_storage import lifespan_file_storage
 from app_http_client import lifespan_http_client
 from app_layer_base.base.exceptions.handler import set_exception_handler
@@ -27,17 +25,21 @@ from fastapi import FastAPI
 from rag_core.adapters.vector_store import lifespan_vector_store
 from starlette.responses import RedirectResponse
 
+from app.router import router
+from app.worker.broker import broker
+
 
 async def init_db_and_seed_models_parsers() -> None:
     """Seed models and parsers on startup if tables are empty, and load cache registries."""
+    from app_layer_base.core.database.transaction import AsyncTransaction
+    from rag_core.adapters.parser.registry import ParserRegistry
+    from rag_core.ai.gateway import fetch_raw_model_info_from_gateway
+    from rag_core.config import get_litellm_settings, get_parser_settings
+    from sqlalchemy import select
+
     from app.features.providers.ai_models.models import AIModel
     from app.features.providers.document_parsers.models import DocumentParser
     from app.features.providers.routes.cache import refresh_ai_models_cache, refresh_document_parsers_cache
-    from app_layer_base.core.database.transaction import AsyncTransaction
-    from rag_core.adapters.parser.registry import ParserRegistry
-    from rag_core.ai.models import _fetch_raw_model_info_from_gateway, get_litellm_settings
-    from rag_core.config import get_parser_settings
-    from sqlalchemy import select
 
     async with AsyncTransaction() as session:
         # 1. AI Models Seeding
@@ -47,7 +49,7 @@ async def init_db_and_seed_models_parsers() -> None:
             logger.info("AI Models table is empty. Seeding from LiteLLM gateway...")
             settings = get_litellm_settings()
             try:
-                model_list = _fetch_raw_model_info_from_gateway()
+                model_list = fetch_raw_model_info_from_gateway()
             except Exception as e:
                 logger.warning(f"Could not connect to LiteLLM gateway during startup seeding: {e}. Using placeholders.")
                 model_list = [
@@ -142,10 +144,12 @@ def get_lifespan():
         logger.info("Starting app lifespan")
         async with lifespan_http_client(app), lifespan_file_storage(app), lifespan_vector_store(app):
             # Register synonym loader callback
-            from app.features.knowledge.synonyms.repos import SynonymMapRepository
             from app_layer_base.base.repos.query_options import ListQueryOptions
             from app_layer_base.core.database.transaction import AsyncTransaction
-            from rag_core.query_rewrite.synonym_expander import register_synonym_loader
+            from rag_core.query_rewrite.synonym_expander import register_synonym_loader, register_synonym_version_cache
+
+            from app.common.synonym_version_cache import build_synonym_version_cache
+            from app.features.knowledge.synonyms.repos import SynonymMapRepository
 
             async def db_synonym_loader() -> dict[str, list[str]]:
                 synonyms: dict[str, list[str]] = {}
@@ -161,6 +165,7 @@ def get_lifespan():
                 return synonyms
 
             register_synonym_loader(db_synonym_loader)
+            register_synonym_version_cache(build_synonym_version_cache())
 
             # Seed and populate registry caches on boot
             from rag_core.adapters.prompt.providers import register_default_prompt_providers

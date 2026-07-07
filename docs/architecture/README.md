@@ -13,7 +13,8 @@ graph TD
     Web[apps/web<br>React 19 / CopilotKit] <-->|HTTP / WS Streaming| Aegra[packages/graphs<br>Aegra / LangGraph]
     Web <-->|REST API| Backend[apps/backend<br>FastAPI / Taskiq]
     Aegra -->|REST API Search| Backend
-    Backend <-->|Broker / Results| Redis[(Redis)]
+    Backend <-->|Broker AMQP| RabbitMQ[(RabbitMQ)]
+    Backend <-->|Results / Lock| Redis[(Redis)]
     Backend <-->|Task IQ| Worker[Taskiq Worker]
     Worker -->|Metadata / Status| Postgres[(PostgreSQL)]
     Worker -->|Vector Upsert| Qdrant[(Qdrant)]

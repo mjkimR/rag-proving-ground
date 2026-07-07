@@ -1,11 +1,12 @@
 from uuid import UUID
 
-from app.features.history.job_process_histories.models import JobProcessHistory
 from app_layer_base.base.deps.filters.combine import create_combined_filter_dependency
 from app_layer_base.base.deps.filters.decorators import filter_for
 from app_layer_base.base.deps.ordering.base import order_by_for
 from app_layer_base.base.deps.ordering.combine import create_order_by_dependency
 from app_layer_base.base.deps.query_options import create_list_query_options_dependency
+
+from app.features.history.job_process_histories.models import JobProcessHistory
 
 
 # Filters definition

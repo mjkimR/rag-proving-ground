@@ -1,7 +1,8 @@
-from app.features.storage.session_file_attachments.models import SessionFileAttachment
 from app_layer_base.base.models.mixin import Base, TimestampMixin, UUIDMixin
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.features.storage.session_file_attachments.models import SessionFileAttachment
 
 
 class FileAttachment(Base, UUIDMixin, TimestampMixin):

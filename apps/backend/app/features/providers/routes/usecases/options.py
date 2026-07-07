@@ -1,9 +1,10 @@
-from app.features.providers.routes.schemas import ProviderOptions
 from app_layer_base.base.usecases.base import BaseUseCase
-from rag_core.adapters.parser.instance import _ACTIVE_PARSERS
+from rag_core.adapters.parser.instance import get_active_parsers
 from rag_core.adapters.parser.providers import register_default_parsers
 from rag_core.adapters.parser.registry import ParserRegistry
-from rag_core.ai.models import _ACTIVE_MODELS, get_model_options
+from rag_core.ai.models import get_active_models, get_model_options
+
+from app.features.providers.routes.schemas import ProviderOptions
 
 register_default_parsers()
 
@@ -13,10 +14,11 @@ class GetProviderOptionsUseCase(BaseUseCase):
 
     async def execute(self) -> ProviderOptions:
         # 1. Retrieve AI models from the DB active models registry (fallback to LiteLLM config if empty)
-        if _ACTIVE_MODELS:
-            llm_models = [name for name, m in _ACTIVE_MODELS.items() if m.get("model_type") == "llm"]
-            embedding_models = [name for name, m in _ACTIVE_MODELS.items() if m.get("model_type") == "embedding"]
-            reranker_models = [name for name, m in _ACTIVE_MODELS.items() if m.get("model_type") == "reranker"]
+        active_models = get_active_models()
+        if active_models:
+            llm_models = [name for name, m in active_models.items() if m.get("model_type") == "llm"]
+            embedding_models = [name for name, m in active_models.items() if m.get("model_type") == "embedding"]
+            reranker_models = [name for name, m in active_models.items() if m.get("model_type") == "reranker"]
         else:
             model_options = get_model_options()
             llm_models = model_options["llm_models"]
@@ -24,7 +26,8 @@ class GetProviderOptionsUseCase(BaseUseCase):
             reranker_models = model_options["reranker_models"]
 
         # 2. Retrieve document parsers from the DB active parsers registry (fallback to ParserRegistry if empty)
-        parsers = list(_ACTIVE_PARSERS.keys()) if _ACTIVE_PARSERS else ParserRegistry.list_parsers()
+        active_parsers = get_active_parsers()
+        parsers = list(active_parsers.keys()) if active_parsers else ParserRegistry.list_parsers()
 
         # 3. Retrieve supported sparse embedding models from registry
         from rag_core.ai.sparse.factory import SparseEmbeddingFactory

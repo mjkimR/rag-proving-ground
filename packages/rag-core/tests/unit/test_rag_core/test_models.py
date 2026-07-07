@@ -33,9 +33,9 @@ def test_get_model_metadata_returns_correct_params(monkeypatch: pytest.MonkeyPat
         },
     ]
     # Clear cache before test
-    gateway._fetch_raw_model_info_from_gateway.cache_clear()
+    gateway.fetch_raw_model_info_from_gateway.cache_clear()
     gateway._get_model_metadata_map.cache_clear()
-    monkeypatch.setattr(gateway, "_fetch_raw_model_info_from_gateway", lambda: mock_model_list)
+    monkeypatch.setattr(gateway, "fetch_raw_model_info_from_gateway", lambda: mock_model_list)
 
     metadata = get_model_metadata("test-llm")
     assert metadata.get("role") == "llm"
@@ -60,9 +60,9 @@ def test_get_llm_model_merges_model_params(monkeypatch: pytest.MonkeyPatch) -> N
             },
         }
     ]
-    gateway._fetch_raw_model_info_from_gateway.cache_clear()
+    gateway.fetch_raw_model_info_from_gateway.cache_clear()
     gateway._get_model_metadata_map.cache_clear()
-    monkeypatch.setattr(gateway, "_fetch_raw_model_info_from_gateway", lambda: mock_model_list)
+    monkeypatch.setattr(gateway, "fetch_raw_model_info_from_gateway", lambda: mock_model_list)
 
     # We mock ChatLiteLLM to intercept what is passed
     chat_init_args = {}
@@ -100,9 +100,9 @@ def test_get_embedding_model_merges_model_params(monkeypatch: pytest.MonkeyPatch
             },
         }
     ]
-    gateway._fetch_raw_model_info_from_gateway.cache_clear()
+    gateway.fetch_raw_model_info_from_gateway.cache_clear()
     gateway._get_model_metadata_map.cache_clear()
-    monkeypatch.setattr(gateway, "_fetch_raw_model_info_from_gateway", lambda: mock_model_list)
+    monkeypatch.setattr(gateway, "fetch_raw_model_info_from_gateway", lambda: mock_model_list)
 
     embed_init_args = {}
 
@@ -133,9 +133,9 @@ def test_get_reranker_model_merges_model_params(monkeypatch: pytest.MonkeyPatch)
             },
         }
     ]
-    gateway._fetch_raw_model_info_from_gateway.cache_clear()
+    gateway.fetch_raw_model_info_from_gateway.cache_clear()
     gateway._get_model_metadata_map.cache_clear()
-    monkeypatch.setattr(gateway, "_fetch_raw_model_info_from_gateway", lambda: mock_model_list)
+    monkeypatch.setattr(gateway, "fetch_raw_model_info_from_gateway", lambda: mock_model_list)
 
     rerank_init_args = {}
 
@@ -165,9 +165,9 @@ def test_temperature_is_not_forced_if_none(monkeypatch: pytest.MonkeyPatch) -> N
             },
         }
     ]
-    gateway._fetch_raw_model_info_from_gateway.cache_clear()
+    gateway.fetch_raw_model_info_from_gateway.cache_clear()
     gateway._get_model_metadata_map.cache_clear()
-    monkeypatch.setattr(gateway, "_fetch_raw_model_info_from_gateway", lambda: mock_model_list)
+    monkeypatch.setattr(gateway, "fetch_raw_model_info_from_gateway", lambda: mock_model_list)
 
     # Mock settings to have temperature = None
     settings = models.get_litellm_settings()
@@ -202,9 +202,9 @@ def test_resolve_model_params_fallback_explicit_none(monkeypatch: pytest.MonkeyP
             },
         }
     ]
-    gateway._fetch_raw_model_info_from_gateway.cache_clear()
+    gateway.fetch_raw_model_info_from_gateway.cache_clear()
     gateway._get_model_metadata_map.cache_clear()
-    monkeypatch.setattr(gateway, "_fetch_raw_model_info_from_gateway", lambda: mock_model_list)
+    monkeypatch.setattr(gateway, "fetch_raw_model_info_from_gateway", lambda: mock_model_list)
 
     # Set mock settings
     settings = models.get_litellm_settings()

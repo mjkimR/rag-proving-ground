@@ -1,5 +1,15 @@
 from typing import Annotated
 
+from app_layer_base.base.usecases.crud import (
+    BaseCreateUseCase,
+    BaseDeleteUseCase,
+    BaseGetMultiUseCase,
+    BaseGetUseCase,
+    BasePatchUseCase,
+    BasePutUseCase,
+)
+from fastapi import Depends
+
 from app.features.knowledge.knowledge_base_pages.models import KnowledgeBasePage
 from app.features.knowledge.knowledge_base_pages.schemas import (
     KnowledgeBasePageCreate,
@@ -10,15 +20,6 @@ from app.features.knowledge.knowledge_base_pages.services import (
     KnowledgeBasePageContextKwargs,
     KnowledgeBasePageService,
 )
-from app_layer_base.base.usecases.crud import (
-    BaseCreateUseCase,
-    BaseDeleteUseCase,
-    BaseGetMultiUseCase,
-    BaseGetUseCase,
-    BasePatchUseCase,
-    BasePutUseCase,
-)
-from fastapi import Depends
 
 
 class GetKnowledgeBasePageUseCase(

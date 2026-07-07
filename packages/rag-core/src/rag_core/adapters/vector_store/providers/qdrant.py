@@ -1,17 +1,9 @@
 import asyncio
 from typing import Any
 
-from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
+from rag_core.adapters.vector_store.config import get_qdrant_settings
 from rag_core.adapters.vector_store.interface import VectorStoreProvider, import_error_handler
 from rag_core.ai.models import get_embedding_model
-
-
-class QdrantSettings(BaseSettings):
-    url: str = Field(default="http://localhost:6333", description="Qdrant server URL")
-    api_key: SecretStr | None = Field(default=None, description="API key for Qdrant authentication")
-    model_config = SettingsConfigDict(env_prefix="VECTOR_DB_QDRANT_")
 
 
 class QdrantProvider(VectorStoreProvider):
@@ -19,7 +11,7 @@ class QdrantProvider(VectorStoreProvider):
     def from_env(cls) -> VectorStoreProvider:
         with import_error_handler("qdrant"):
             from qdrant_client import AsyncQdrantClient, QdrantClient
-        config = QdrantSettings()  # type: ignore
+        config = get_qdrant_settings()
         api_key = config.api_key.get_secret_value() if config.api_key else None
         client = QdrantClient(url=config.url, api_key=api_key)
         async_client = AsyncQdrantClient(url=config.url, api_key=api_key)

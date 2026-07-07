@@ -54,6 +54,11 @@ def update_parser_registry(parsers: list[dict[str, Any]]) -> None:
             break
 
 
+def get_active_parsers() -> dict[str, dict[str, Any]]:
+    """Returns the in-memory registry of active parser configurations keyed by name."""
+    return _ACTIVE_PARSERS
+
+
 def register_parser(parser_class: type[Parser]) -> None:
     """Registers a parser provider class in the global ParserRegistry.
 

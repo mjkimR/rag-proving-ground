@@ -113,11 +113,11 @@ worker:
 gen-ui-api:
     @bash ./scripts/gen-ui-api.sh
 
-# Start backend services in CPU mode (Default / macOS). Can specify multiple profiles (e.g. just up docling marker)
+# Start backend services in CPU mode (Default / macOS). Can specify multiple profiles (e.g. just up docling fast-parser)
 up +profiles="":
     @bash ./scripts/compose-up.sh cpu {{ profiles }}
 
-# Start backend services in GPU mode (WSL / Linux). Can specify multiple profiles (e.g. just up-gpu docling marker)
+# Start backend services in GPU mode (WSL / Linux). Can specify multiple profiles (e.g. just up-gpu docling fast-parser)
 up-gpu +profiles="":
     @bash ./scripts/compose-up.sh gpu {{ profiles }}
 
@@ -134,11 +134,11 @@ down:
     docker compose --env-file .env -p rag -f infra/services/docker-compose.yml -f infra/services/docker-compose.gpu.yml -f infra/services/docker-compose.monitor.yml down --remove-orphans
 
 
-# Start local model serving (Ollama & TEI). Can specify multiple models (e.g. just models-up embed,rerank)
+# Start local model serving (Infinity ColPali & LLMLingua). Can specify multiple models (e.g. just models-up colpali,llmlingua)
 models-up +models="all":
     @bash ./scripts/models-up.sh {{ models }}
 
-# Stop local model serving (Ollama & TEI)
+# Stop local model serving (Infinity ColPali & LLMLingua)
 models-down:
     docker compose -f infra/models/docker-compose.yml down --remove-orphans
 

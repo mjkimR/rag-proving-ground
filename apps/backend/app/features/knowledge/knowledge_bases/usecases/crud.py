@@ -3,6 +3,27 @@ from dataclasses import dataclass
 from typing import Annotated, Any, cast
 from uuid import UUID
 
+from app_layer_base.base.repos.base import PrimaryKeyType
+from app_layer_base.base.usecases.base import BaseUseCase
+from app_layer_base.base.usecases.crud import (
+    BaseCreateUseCase,
+    BaseGetMultiUseCase,
+    BasePatchUseCase,
+    BasePutUseCase,
+)
+from app_layer_base.core.database.transaction import AsyncTransaction
+from fastapi import Depends, HTTPException, status
+from loguru import logger
+from pydantic import BaseModel
+from rag_core.chunkers import resolve_chunking_config
+from rag_core.embeddings import (
+    KnowledgeLanguage,
+    knowledge_embedding_config_payload,
+    resolve_knowledge_embedding_config,
+)
+from rag_core.parsers import resolve_knowledge_parsing_config
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
 from app.features.knowledge.knowledge_base_documents.schemas import (
     ChunkDocumentMessage,
@@ -25,26 +46,6 @@ from app.features.knowledge.knowledge_bases.schemas import (
 )
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseContextKwargs, KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
-from app_layer_base.base.repos.base import PrimaryKeyType
-from app_layer_base.base.usecases.base import BaseUseCase
-from app_layer_base.base.usecases.crud import (
-    BaseCreateUseCase,
-    BaseGetMultiUseCase,
-    BasePatchUseCase,
-    BasePutUseCase,
-)
-from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import Depends, HTTPException, status
-from loguru import logger
-from pydantic import BaseModel
-from rag_core.chunkers import resolve_chunking_config
-from rag_core.embeddings import (
-    KnowledgeLanguage,
-    knowledge_embedding_config_payload,
-    resolve_knowledge_embedding_config,
-)
-from rag_core.parsers import resolve_knowledge_parsing_config
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class GetKnowledgeBaseUseCase(BaseUseCase):
@@ -185,6 +186,7 @@ class DeleteKnowledgeBaseUseCase(BaseUseCase):
                 KnowledgeDocumentCleanupTarget(
                     document_id=doc.id,
                     file_hash=doc.file_hash,
+                    knowledge_base_id=kb.id,
                     knowledge_base_name=kb.name,
                     embed_config_hash=kb.embed_config_hash,
                 )
@@ -335,7 +337,8 @@ async def _trigger_documents_reprocessing(
     target_status: KnowledgeBaseDocumentStatus,
 ) -> None:
     logger.info(f"Triggering reprocessing for {len(docs)} document(s) with target status {target_status}")
-    from app.worker.handlers.ingest import handle_chunk, handle_embed
+    from app.common.task_dispatch import CHUNK_DOCUMENT_TASK, EMBED_DOCUMENT_TASK, kick_task
+    from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
 
     for doc in docs:
         try:
@@ -344,35 +347,29 @@ async def _trigger_documents_reprocessing(
                 logger.info(f"Document {doc.id} marked as PENDING_REPARSE. Will be picked up by DB-polling dispatcher.")
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_RECHUNK:
                 logger.info(f"Dispatching chunk task for document {doc.id} (RECHUNK)")
-                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
-
-                kicker = handle_chunk.kicker().with_labels(
-                    queue_name=get_queue_name(doc.priority, stage="chunk"),
-                    priority=map_priority_to_int(doc.priority),
-                )
-                await kicker.kiq(
+                await kick_task(
+                    CHUNK_DOCUMENT_TASK,
                     ChunkDocumentMessage(
                         document_id=doc.id,
                         knowledge_base_id=doc.knowledge_base_id,
                         filename=doc.name,
                         priority=doc.priority,
-                    )
+                    ),
+                    queue_name=get_queue_name(doc.priority, stage="chunk"),
+                    priority=map_priority_to_int(doc.priority),
                 )
             elif target_status == KnowledgeBaseDocumentStatus.PENDING_REEMBED:
                 logger.info(f"Dispatching embed task for document {doc.id} (REEMBED)")
-                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
-
-                kicker = handle_embed.kicker().with_labels(
-                    queue_name=get_queue_name(doc.priority, stage="embed"),
-                    priority=map_priority_to_int(doc.priority),
-                )
-                await kicker.kiq(
+                await kick_task(
+                    EMBED_DOCUMENT_TASK,
                     EmbedDocumentMessage(
                         document_id=doc.id,
                         knowledge_base_id=doc.knowledge_base_id,
                         filename=doc.name,
                         priority=doc.priority,
-                    )
+                    ),
+                    queue_name=get_queue_name(doc.priority, stage="embed"),
+                    priority=map_priority_to_int(doc.priority),
                 )
         except Exception as exc:
             logger.error(f"Failed to publish reprocess/ingest message for document {doc.id}: {exc}")

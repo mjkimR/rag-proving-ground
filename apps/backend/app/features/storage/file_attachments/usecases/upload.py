@@ -2,13 +2,14 @@ import hashlib
 import os
 from typing import Annotated, Any
 
-from app.features.storage.file_attachments.schemas import FileAttachmentCreate
-from app.features.storage.file_attachments.services import FileAttachmentService
 from app_file_storage import get_storage_client
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, UploadFile, status
 from loguru import logger
+
+from app.features.storage.file_attachments.schemas import FileAttachmentCreate
+from app.features.storage.file_attachments.services import FileAttachmentService
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 

@@ -1,9 +1,10 @@
-from app.features.knowledge.knowledge_bases.models import KnowledgeBase
 from app_layer_base.base.deps.filters.combine import create_combined_filter_dependency
 from app_layer_base.base.deps.filters.decorators import filter_for
 from app_layer_base.base.deps.ordering.base import order_by_for
 from app_layer_base.base.deps.ordering.combine import create_order_by_dependency
 from app_layer_base.base.deps.query_options import create_list_query_options_dependency
+
+from app.features.knowledge.knowledge_bases.models import KnowledgeBase
 
 
 # Filters definition

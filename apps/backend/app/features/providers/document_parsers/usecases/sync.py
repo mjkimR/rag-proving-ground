@@ -1,14 +1,15 @@
 from typing import Annotated
 
-from app.features.providers.document_parsers.models import DocumentParser
-from app.features.providers.document_parsers.schemas import DocumentParserCreate
-from app.features.providers.document_parsers.services import DocumentParserService
-from app.features.providers.routes.cache import refresh_document_parsers_cache
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends
 from rag_core.adapters.parser.registry import ParserRegistry
 from sqlalchemy import select
+
+from app.features.providers.document_parsers.models import DocumentParser
+from app.features.providers.document_parsers.schemas import DocumentParserCreate
+from app.features.providers.document_parsers.services import DocumentParserService
+from app.features.providers.routes.cache import refresh_document_parsers_cache
 
 
 class SyncDocumentParsersUseCase(BaseUseCase):

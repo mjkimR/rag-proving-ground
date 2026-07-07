@@ -12,9 +12,9 @@ from langchain_litellm import ChatLiteLLM, LiteLLMEmbeddings
 
 from rag_core.ai.gateway import (
     _fetch_model_options_from_gateway,
-    _fetch_raw_model_info_from_gateway,
     _gateway_base_url,
     _get_model_metadata_map,
+    fetch_raw_model_info_from_gateway,
     get_model_metadata,
     get_model_options,
 )
@@ -25,6 +25,8 @@ from rag_core.config import get_litellm_settings
 
 __all__ = [
     "clear_gateway_cache",
+    "fetch_raw_model_info_from_gateway",
+    "get_active_models",
     "get_embedding_model",
     "get_llm_model",
     "get_model_metadata",
@@ -78,9 +80,14 @@ def update_model_registry(models: list[dict[str, Any]]) -> None:
             _DEFAULT_MODELS[m["model_type"]] = m
 
 
+def get_active_models() -> dict[str, dict[str, Any]]:
+    """Returns the in-memory registry of active model configurations keyed by name."""
+    return _ACTIVE_MODELS
+
+
 def clear_gateway_cache() -> None:
     """Clears all lru_cache instances caching LiteLLM gateway dynamic model information."""
-    _fetch_raw_model_info_from_gateway.cache_clear()
+    fetch_raw_model_info_from_gateway.cache_clear()
     _get_model_metadata_map.cache_clear()
     _fetch_model_options_from_gateway.cache_clear()
 

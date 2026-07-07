@@ -1,14 +1,16 @@
 from typing import Annotated
 
+from app_layer_base.base.usecases.base import BaseUseCase
+from app_layer_base.core.database.transaction import AsyncTransaction
+from fastapi import Depends
+from rag_core.ai.gateway import fetch_raw_model_info_from_gateway
+from rag_core.ai.models import clear_gateway_cache
+from sqlalchemy import select
+
 from app.features.providers.ai_models.models import AIModel
 from app.features.providers.ai_models.schemas import AIModelCreate
 from app.features.providers.ai_models.services import AIModelService
 from app.features.providers.routes.cache import refresh_ai_models_cache
-from app_layer_base.base.usecases.base import BaseUseCase
-from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import Depends
-from rag_core.ai.models import _fetch_raw_model_info_from_gateway, clear_gateway_cache
-from sqlalchemy import select
 
 
 class SyncAIModelsUseCase(BaseUseCase):
@@ -21,7 +23,7 @@ class SyncAIModelsUseCase(BaseUseCase):
 
         # Fetch raw models from LiteLLM gateway
         try:
-            model_list = _fetch_raw_model_info_from_gateway()
+            model_list = fetch_raw_model_info_from_gateway()
         except Exception:
             model_list = []
 

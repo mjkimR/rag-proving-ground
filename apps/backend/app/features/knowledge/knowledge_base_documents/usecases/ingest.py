@@ -4,6 +4,12 @@ import os
 from typing import Annotated
 from uuid import UUID
 
+from app_file_storage import get_storage_client
+from app_layer_base.base.usecases.base import BaseUseCase
+from app_layer_base.core.database.transaction import AsyncTransaction
+from fastapi import BackgroundTasks, Depends, HTTPException, UploadFile, status
+from loguru import logger
+
 from app.features.knowledge.knowledge_base_documents.facade.pipeline import knowledge_original_file_key
 from app.features.knowledge.knowledge_base_documents.schemas import (
     KnowledgeBaseDocumentCreate,
@@ -17,11 +23,6 @@ from app.features.knowledge.knowledge_base_documents.usecases.crud import (
 )
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
-from app_file_storage import get_storage_client
-from app_layer_base.base.usecases.base import BaseUseCase
-from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import BackgroundTasks, Depends, HTTPException, UploadFile, status
-from loguru import logger
 
 _BACKGROUND_CLEANUP_TASKS: set[asyncio.Task] = set()
 

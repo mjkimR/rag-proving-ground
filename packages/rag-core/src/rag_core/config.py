@@ -43,6 +43,18 @@ class NativeTextParserSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
+class DoclingParserSettings(BaseSettings):
+    """Settings used only by the Docling parser provider."""
+
+    base_url: str = Field(
+        default="http://127.0.0.1:5001",
+        validation_alias="DOCLING_BASE_URL",
+    )
+    timeout: float = Field(default=120.0, validation_alias="DOCLING_TIMEOUT", gt=0)
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
 class HTTPClientSettings(BaseSettings):
     """
     Settings for the global HTTP client (httpx).
@@ -86,6 +98,11 @@ def get_parser_settings() -> ParserSettings:
 @lru_cache
 def get_native_text_parser_settings() -> NativeTextParserSettings:
     return NativeTextParserSettings()
+
+
+@lru_cache
+def get_docling_parser_settings() -> DoclingParserSettings:
+    return DoclingParserSettings()
 
 
 @lru_cache

@@ -1,13 +1,14 @@
 from typing import Annotated, Any
 from uuid import UUID
 
-from app.features.providers.ai_models.services import AIModelService
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage
 from rag_core.ai.models import get_embedding_model, get_llm_model, get_reranker_model
+
+from app.features.providers.ai_models.services import AIModelService
 
 
 class TestAIModelConnectionUseCase(BaseUseCase):

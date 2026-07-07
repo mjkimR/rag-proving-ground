@@ -3,8 +3,6 @@ import urllib.parse
 from typing import Annotated
 from uuid import UUID
 
-from app.features.knowledge.knowledge_base_documents.schemas import DocumentChunksRead
-from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app_file_storage import get_storage_client
 from app_layer_base.base.exceptions.basic import NotFoundException
 from app_layer_base.base.usecases.base import BaseUseCase
@@ -12,6 +10,9 @@ from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends
 from fastapi.responses import StreamingResponse
 from rag_core.parsers import ParsedDocument
+
+from app.features.knowledge.knowledge_base_documents.schemas import DocumentChunksRead
+from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 
 
 class DownloadKnowledgeBaseDocumentUseCase(BaseUseCase):

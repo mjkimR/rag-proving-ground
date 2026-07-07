@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from app.common.database import JSON_VARIANT
 from app_layer_base.base.models.mixin import Base, TimestampMixin, UUIDMixin
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.common.database import JSON_VARIANT
 
 if TYPE_CHECKING:
     from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument

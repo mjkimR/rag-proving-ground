@@ -1,15 +1,16 @@
 from uuid import UUID
 
+from app_layer_base.base.repos.base import BaseRepository
+from rag_core.retrieval import RetrievedChunk
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.features.knowledge.knowledge_base_pages.models import KnowledgeBasePage
 from app.features.knowledge.knowledge_base_pages.schemas import (
     KnowledgeBasePageCreate,
     KnowledgeBasePagePatch,
     KnowledgeBasePagePut,
 )
-from app_layer_base.base.repos.base import BaseRepository
-from rag_core.retrieval import RetrievedChunk
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class KnowledgeBasePageRepository(

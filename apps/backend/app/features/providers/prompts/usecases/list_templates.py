@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from app.features.providers.prompts.schemas import FallbackTemplateInfo
 from app_layer_base.base.usecases.base import BaseUseCase
 from loguru import logger
 from rag_core.adapters.prompt.config import get_prompt_settings
+
+from app.features.providers.prompts.schemas import FallbackTemplateInfo
 
 
 class ListFallbackTemplatesUseCase(BaseUseCase):

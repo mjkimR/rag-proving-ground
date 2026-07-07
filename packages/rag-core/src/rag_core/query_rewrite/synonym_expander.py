@@ -2,12 +2,11 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
-from urllib.parse import unquote, urlparse
 from uuid import uuid4
 
 from loguru import logger
 
-from rag_core.config import get_redis_settings, get_synonym_cache_settings
+from rag_core.config import get_synonym_cache_settings
 
 from .word_boundary import (
     WordBoundaryStrategy,
@@ -21,9 +20,6 @@ _CACHED_VERSION: str | None = None
 _VERSION_CHECK_EXPIRES_AT = 0.0
 _LOCAL_CACHE_EXPIRES_AT = 0.0
 _IS_LOADED = False
-_REDIS_CACHE_CLIENT: Any | None = None
-_REDIS_CACHE_IMPORT_FAILED = False
-_REDIS_CACHE_CONNECT_FAILED = False
 _SYNONYMS_VERSION_KEY = "synonyms:version"
 _SYNONYMS_LOCAL_REFRESH_LOCK: asyncio.Lock | None = None
 _REDIS_READ_FAILED = object()
@@ -31,12 +27,29 @@ _REDIS_READ_FAILED = object()
 # Async loader callback registry
 _SYNONYM_LOADER_FN: Callable[[], Awaitable[dict[str, list[str]]]] | None = None
 
+# Injected shared version-cache client (e.g. Redis-backed aiocache). rag-core never
+# opens infrastructure connections itself (ADR-0008); the owning application
+# registers a client, and processes without one fall back to TTL-based local caching.
+_VERSION_CACHE_CLIENT: Any | None = None
+
 
 def register_synonym_loader(loader_fn: Callable[[], Awaitable[dict[str, list[str]]]]) -> None:
     """Registers the dynamic database/repository loader function for synonyms."""
     global _SYNONYM_LOADER_FN
     _SYNONYM_LOADER_FN = loader_fn
     logger.info("Synonym loader callback registered successfully in rag-core.")
+
+
+def register_synonym_version_cache(client: Any | None) -> None:
+    """Registers the shared version-cache client used for cross-process invalidation.
+
+    The client must expose async `get(key)` / `set(key, value)` (aiocache-compatible).
+    Pass None to unregister and fall back to process-local TTL caching.
+    """
+    global _VERSION_CACHE_CLIENT
+    _VERSION_CACHE_CLIENT = client
+    if client is not None:
+        logger.info("Synonym version-cache client registered in rag-core.")
 
 
 def clear_synonyms_cache() -> None:
@@ -54,7 +67,7 @@ def clear_synonyms_cache() -> None:
 async def invalidate_synonyms_cache() -> None:
     """Invalidates both process-local and shared synonym caches."""
     clear_synonyms_cache()
-    redis_client = _get_redis_cache_client()
+    redis_client = _get_version_cache_client()
     if redis_client is None:
         return
 
@@ -69,7 +82,7 @@ async def get_synonyms() -> dict[str, list[str]]:
     """Retrieves the synonyms map, triggering the registered loader if cache is empty."""
     global _IS_LOADED, _CACHED_SYNONYMS
     cache_enabled = get_synonym_cache_settings().enabled
-    redis_client = _get_redis_cache_client()
+    redis_client = _get_version_cache_client()
     if redis_client is not None:
         # Redis is only a small invalidation signal. When the local version-check
         # TTL is fresh, avoid Redis entirely and use the worker-local dictionary.
@@ -170,55 +183,10 @@ def _get_local_refresh_lock() -> asyncio.Lock:
     return _SYNONYMS_LOCAL_REFRESH_LOCK
 
 
-def _get_redis_cache_client() -> Any | None:
-    global _REDIS_CACHE_CLIENT, _REDIS_CACHE_IMPORT_FAILED, _REDIS_CACHE_CONNECT_FAILED
-
-    cache_settings = get_synonym_cache_settings()
-    if not cache_settings.enabled:
+def _get_version_cache_client() -> Any | None:
+    if not get_synonym_cache_settings().enabled:
         return None
-    if _REDIS_CACHE_CLIENT is not None:
-        return _REDIS_CACHE_CLIENT
-    if _REDIS_CACHE_IMPORT_FAILED or _REDIS_CACHE_CONNECT_FAILED:
-        return None
-
-    try:
-        from aiocache import Cache
-        from aiocache.serializers import StringSerializer
-    except ImportError:
-        _REDIS_CACHE_IMPORT_FAILED = True
-        logger.warning("aiocache[redis] is not available; falling back to process-local synonyms cache.")
-        return None
-
-    redis_url = get_redis_settings().url
-    parsed = urlparse(redis_url)
-    if parsed.scheme not in {"redis", "rediss"}:
-        _REDIS_CACHE_CONNECT_FAILED = True
-        logger.warning(f"Unsupported Redis URL scheme for synonym cache: {parsed.scheme!r}.")
-        return None
-
-    try:
-        redis_kwargs: dict[str, Any] = {
-            "endpoint": parsed.hostname or "localhost",
-            "port": parsed.port or 6379,
-            "db": int(parsed.path.lstrip("/") or "0"),
-            "namespace": cache_settings.namespace,
-            # Redis stores only a lightweight version token, not the synonym map.
-            # Keep it as a plain string so version checks are stable across workers.
-            "serializer": StringSerializer(),
-        }
-        if parsed.password is not None:
-            redis_kwargs["password"] = unquote(parsed.password)
-        if parsed.scheme == "rediss":
-            redis_kwargs["ssl"] = True
-
-        cache_factory: Any = Cache
-        _REDIS_CACHE_CLIENT = cache_factory(cache_factory.REDIS, **redis_kwargs)
-    except Exception as exc:
-        _REDIS_CACHE_CONNECT_FAILED = True
-        logger.warning(f"Failed to configure Redis synonym cache: {exc}")
-        return None
-
-    return _REDIS_CACHE_CLIENT
+    return _VERSION_CACHE_CLIENT
 
 
 async def _get_synonyms_version(redis_client: Any) -> str | None | object:

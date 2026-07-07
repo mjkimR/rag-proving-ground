@@ -1,6 +1,13 @@
 from typing import Annotated, Any
 from uuid import UUID
 
+from app_layer_base.base.usecases.base import BaseUseCase
+from app_layer_base.core.database.transaction import AsyncTransaction
+from fastapi import Depends, HTTPException, status
+from loguru import logger
+from rag_core.embeddings import RetrievalMode, resolve_knowledge_embedding_config
+from rag_core.retrieval import RetrievedChunk, retrieve_knowledge_chunks, retrieve_multi_knowledge_chunks
+
 from app.features.knowledge.knowledge_base_pages.repos import KnowledgeBasePageRepository
 from app.features.knowledge.knowledge_bases.schemas import (
     KnowledgeBaseSearchRequest,
@@ -9,12 +16,6 @@ from app.features.knowledge.knowledge_bases.schemas import (
     MultiKnowledgeBaseSearchRequest,
 )
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
-from app_layer_base.base.usecases.base import BaseUseCase
-from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import Depends, HTTPException, status
-from loguru import logger
-from rag_core.embeddings import RetrievalMode, resolve_knowledge_embedding_config
-from rag_core.retrieval import RetrievedChunk, retrieve_knowledge_chunks, retrieve_multi_knowledge_chunks
 
 
 class SearchKnowledgeBaseUseCase(BaseUseCase):

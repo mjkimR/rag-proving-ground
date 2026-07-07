@@ -1,5 +1,15 @@
 from typing import Annotated
 
+from app_layer_base.base.usecases.crud import (
+    BaseCreateUseCase,
+    BaseDeleteUseCase,
+    BaseGetMultiUseCase,
+    BaseGetUseCase,
+    BasePatchUseCase,
+    BasePutUseCase,
+)
+from fastapi import Depends
+
 from app.features.storage.file_attachments.models import FileAttachment
 from app.features.storage.file_attachments.schemas import (
     FileAttachmentCreate,
@@ -10,15 +20,6 @@ from app.features.storage.file_attachments.services import (
     FileAttachmentContextKwargs,
     FileAttachmentService,
 )
-from app_layer_base.base.usecases.crud import (
-    BaseCreateUseCase,
-    BaseDeleteUseCase,
-    BaseGetMultiUseCase,
-    BaseGetUseCase,
-    BasePatchUseCase,
-    BasePutUseCase,
-)
-from fastapi import Depends
 
 
 class GetFileAttachmentUseCase(BaseGetUseCase[FileAttachmentService, FileAttachment, FileAttachmentContextKwargs]):

@@ -2,6 +2,7 @@
 
 * **작성일 (Date)**: 2026-06-26
 * **상태 (Status)**: 승인됨 (Accepted)
+* **구현 노트**: 본문 2.1의 "단일 `kb_ingest` 큐 통합"은 이후 스테이지별 3개 큐(`kb_ingest_parse` / `kb_ingest_chunk` / `kb_ingest_embed`, 각 `x-max-priority` 적용)로 변경 구현됨 (`apps/backend/app/worker/broker.py`).
 
 ---
 

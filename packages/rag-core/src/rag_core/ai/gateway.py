@@ -24,7 +24,7 @@ def _gateway_base_url(base_url: str) -> str:
 
 
 @lru_cache(maxsize=1)
-def _fetch_raw_model_info_from_gateway() -> list[dict[str, Any]]:
+def fetch_raw_model_info_from_gateway() -> list[dict[str, Any]]:
     """Fetches the raw model list from the LiteLLM gateway.
 
     Retrieves model metadata from the LiteLLM gateway using settings.base_url and
@@ -67,7 +67,7 @@ def _get_model_metadata_map() -> dict[str, dict[str, Any]]:
     Returns:
         dict[str, dict[str, Any]]: A mapping of model name to its metadata.
     """
-    model_list = _fetch_raw_model_info_from_gateway()
+    model_list = fetch_raw_model_info_from_gateway()
     return {entry["model_name"]: entry.get("metadata") or {} for entry in model_list if "model_name" in entry}
 
 
@@ -95,7 +95,7 @@ def _fetch_model_options_from_gateway() -> dict[str, list[str]]:
     Returns:
         dict[str, list[str]]: A dictionary of categorized model name lists.
     """
-    model_list = _fetch_raw_model_info_from_gateway()
+    model_list = fetch_raw_model_info_from_gateway()
 
     embedding_models = []
     llm_models = []

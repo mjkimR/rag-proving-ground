@@ -1,6 +1,12 @@
 from typing import Annotated
 from uuid import UUID
 
+from app_layer_base.base.exceptions.basic import NotFoundException
+from app_layer_base.base.repos.query_options import ListQueryOptions
+from app_layer_base.base.schemas.delete_resp import DeleteResponse
+from app_layer_base.base.schemas.paginated import PaginatedList
+from fastapi import APIRouter, Depends, status
+
 from app.features.knowledge.knowledge_base_documents.query_options import get_knowledge_base_documents_query_options
 from app.features.knowledge.knowledge_base_documents.schemas import (
     DocumentChunksRead,
@@ -24,11 +30,6 @@ from app.features.knowledge.knowledge_base_documents.usecases.crud import (
     PutKnowledgeBaseDocumentUseCase,
 )
 from app.features.knowledge.knowledge_base_documents.usecases.reprocess import ReprocessKnowledgeBaseDocumentUseCase
-from app_layer_base.base.exceptions.basic import NotFoundException
-from app_layer_base.base.repos.query_options import ListQueryOptions
-from app_layer_base.base.schemas.delete_resp import DeleteResponse
-from app_layer_base.base.schemas.paginated import PaginatedList
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter(prefix="/knowledge_base_documents", tags=["KnowledgeBaseDocument"], dependencies=[])
 

@@ -1,11 +1,12 @@
 from typing import Annotated, Any
 from uuid import UUID
 
-from app.features.providers.document_parsers.services import DocumentParserService
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import Depends, HTTPException, status
 from rag_core.adapters.parser.instance import parse_file
+
+from app.features.providers.document_parsers.services import DocumentParserService
 
 
 class TestDocumentParserConnectionUseCase(BaseUseCase):

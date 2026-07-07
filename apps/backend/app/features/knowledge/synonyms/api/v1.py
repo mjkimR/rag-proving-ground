@@ -1,6 +1,12 @@
 from typing import Annotated
 from uuid import UUID
 
+from app_layer_base.base.exceptions.basic import NotFoundException
+from app_layer_base.base.repos.query_options import ListQueryOptions
+from app_layer_base.base.schemas.delete_resp import DeleteResponse
+from app_layer_base.base.schemas.paginated import PaginatedList
+from fastapi import APIRouter, Depends, status
+
 from app.features.knowledge.synonyms.query_options import get_synonyms_query_options
 from app.features.knowledge.synonyms.schemas import SynonymMapCreate, SynonymMapPatch, SynonymMapPut, SynonymMapRead
 from app.features.knowledge.synonyms.usecases.crud import (
@@ -11,11 +17,6 @@ from app.features.knowledge.synonyms.usecases.crud import (
     PatchSynonymMapUseCase,
     PutSynonymMapUseCase,
 )
-from app_layer_base.base.exceptions.basic import NotFoundException
-from app_layer_base.base.repos.query_options import ListQueryOptions
-from app_layer_base.base.schemas.delete_resp import DeleteResponse
-from app_layer_base.base.schemas.paginated import PaginatedList
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter(prefix="/synonyms", tags=["Synonyms"], dependencies=[])
 

@@ -1,10 +1,5 @@
 from typing import Annotated
 
-from app.features.history.job_process_histories.models import JobProcessHistory
-from app.features.history.job_process_histories.repos import JobProcessHistoryRepository
-from app.features.history.job_process_histories.schemas import (
-    JobProcessHistoryCreate,
-)
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,
@@ -13,6 +8,12 @@ from app_layer_base.base.services.base import (
 )
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.features.history.job_process_histories.models import JobProcessHistory
+from app.features.history.job_process_histories.repos import JobProcessHistoryRepository
+from app.features.history.job_process_histories.schemas import (
+    JobProcessHistoryCreate,
+)
 
 
 class JobProcessHistoryContextKwargs(BaseContextKwargs):

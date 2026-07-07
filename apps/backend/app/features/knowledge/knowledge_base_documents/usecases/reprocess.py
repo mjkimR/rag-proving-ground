@@ -1,6 +1,11 @@
 from typing import Annotated
 from uuid import UUID
 
+from app_layer_base.base.usecases.base import BaseUseCase
+from app_layer_base.core.database.transaction import AsyncTransaction
+from fastapi import Depends, HTTPException, status
+from loguru import logger
+
 from app.features.knowledge.knowledge_base_documents.schemas import (
     ChunkDocumentMessage,
     EmbedDocumentMessage,
@@ -11,10 +16,6 @@ from app.features.knowledge.knowledge_base_documents.schemas import (
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
-from app_layer_base.base.usecases.base import BaseUseCase
-from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import Depends, HTTPException, status
-from loguru import logger
 
 
 class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
@@ -74,36 +75,34 @@ class ReprocessKnowledgeBaseDocumentUseCase(BaseUseCase):
                     f"Document {document_id} marked as QUEUED for REPARSE. Will be picked up by DB-polling dispatcher."
                 )
             elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.RECHUNK:
+                from app.common.task_dispatch import CHUNK_DOCUMENT_TASK, kick_task
                 from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
-                from app.worker.handlers.ingest import handle_chunk
 
-                kicker = handle_chunk.kicker().with_labels(
-                    queue_name=get_queue_name(doc_priority, stage="chunk"),
-                    priority=map_priority_to_int(doc_priority),
-                )
-                await kicker.kiq(
+                await kick_task(
+                    CHUNK_DOCUMENT_TASK,
                     ChunkDocumentMessage(
                         document_id=document_id,
                         knowledge_base_id=knowledge_base_id,
                         filename=filename,
                         priority=doc_priority,
-                    )
-                )
-            elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.REEMBED:
-                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
-                from app.worker.handlers.ingest import handle_embed
-
-                kicker = handle_embed.kicker().with_labels(
-                    queue_name=get_queue_name(doc_priority, stage="embed"),
+                    ),
+                    queue_name=get_queue_name(doc_priority, stage="chunk"),
                     priority=map_priority_to_int(doc_priority),
                 )
-                await kicker.kiq(
+            elif reprocess_mode == KnowledgeBaseDocumentReprocessMode.REEMBED:
+                from app.common.task_dispatch import EMBED_DOCUMENT_TASK, kick_task
+                from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name, map_priority_to_int
+
+                await kick_task(
+                    EMBED_DOCUMENT_TASK,
                     EmbedDocumentMessage(
                         document_id=document_id,
                         knowledge_base_id=knowledge_base_id,
                         filename=filename,
                         priority=doc_priority,
-                    )
+                    ),
+                    queue_name=get_queue_name(doc_priority, stage="embed"),
+                    priority=map_priority_to_int(doc_priority),
                 )
         except Exception as exc:
             logger.warning(f"Failed to publish reprocess message for doc {document_id}: {exc}")

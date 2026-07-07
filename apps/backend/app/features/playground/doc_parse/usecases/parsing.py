@@ -1,12 +1,13 @@
 import os
 from typing import Annotated
 
-from app.features.playground.doc_parse.services import DocumentParseService
 from app_layer_base.base.usecases.base import BaseUseCase
 from fastapi import Depends, HTTPException, UploadFile, status
 from loguru import logger
 from rag_core.adapters.parser.instance import parse_file
 from rag_core.parsers.schemas import ParsedDocument
+
+from app.features.playground.doc_parse.services import DocumentParseService
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {".pdf", ".html", ".htm", ".md", ".docx", ".txt"}

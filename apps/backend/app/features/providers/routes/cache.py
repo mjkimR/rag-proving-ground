@@ -1,9 +1,10 @@
-from app.features.providers.ai_models.models import AIModel
-from app.features.providers.document_parsers.models import DocumentParser
 from rag_core.adapters.parser.instance import update_parser_registry
 from rag_core.ai.models import update_model_registry
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.features.providers.ai_models.models import AIModel
+from app.features.providers.document_parsers.models import DocumentParser
 
 
 async def refresh_ai_models_cache(session: AsyncSession) -> None:

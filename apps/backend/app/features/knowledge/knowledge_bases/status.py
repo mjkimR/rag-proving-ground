@@ -1,12 +1,13 @@
 from collections.abc import Iterable
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentStatus
 from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
 from app.features.knowledge.knowledge_bases.schemas import KnowledgeBaseStatus
 from app.features.knowledge.knowledge_bases.services import KnowledgeBaseService
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 RUNNING_DOCUMENT_STATUSES: set[str] = {
     KnowledgeBaseDocumentStatus.QUEUED.value,

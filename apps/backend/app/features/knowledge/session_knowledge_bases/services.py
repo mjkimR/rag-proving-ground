@@ -1,12 +1,5 @@
 from typing import Annotated
 
-from app.features.knowledge.session_knowledge_bases.models import SessionKnowledgeBase
-from app.features.knowledge.session_knowledge_bases.repos import SessionKnowledgeBaseRepository
-from app.features.knowledge.session_knowledge_bases.schemas import (
-    SessionKnowledgeBaseCreate,
-    SessionKnowledgeBasePatch,
-    SessionKnowledgeBasePut,
-)
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,
@@ -16,6 +9,14 @@ from app_layer_base.base.services.base import (
     BaseUpdateServiceMixin,
 )
 from fastapi import Depends
+
+from app.features.knowledge.session_knowledge_bases.models import SessionKnowledgeBase
+from app.features.knowledge.session_knowledge_bases.repos import SessionKnowledgeBaseRepository
+from app.features.knowledge.session_knowledge_bases.schemas import (
+    SessionKnowledgeBaseCreate,
+    SessionKnowledgeBasePatch,
+    SessionKnowledgeBasePut,
+)
 
 
 class SessionKnowledgeBaseContextKwargs(BaseContextKwargs):

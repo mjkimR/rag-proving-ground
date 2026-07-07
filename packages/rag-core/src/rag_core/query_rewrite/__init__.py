@@ -4,6 +4,7 @@ from rag_core.query_rewrite.synonym_expander import (
     clear_synonyms_cache,
     invalidate_synonyms_cache,
     register_synonym_loader,
+    register_synonym_version_cache,
 )
 
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     "clear_synonyms_cache",
     "invalidate_synonyms_cache",
     "register_synonym_loader",
+    "register_synonym_version_cache",
 ]

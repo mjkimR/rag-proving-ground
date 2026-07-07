@@ -1,4 +1,8 @@
-"""Factory functions to build service instances for the worker process."""
+"""Factory for the knowledge document pipeline service.
+
+Lives with the facade so both the worker handlers and other features build the
+pipeline from a single place without importing worker internals.
+"""
 
 from app.features.history.job_process_histories.repos import JobProcessHistoryRepository
 from app.features.history.job_process_histories.services import JobProcessHistoryService

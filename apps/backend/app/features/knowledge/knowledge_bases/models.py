@@ -1,12 +1,13 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from app.common.database import JSON_VARIANT
-from app.features.knowledge.session_knowledge_bases.models import SessionKnowledgeBase
 from app_layer_base.base.models.mixin import Base, TimestampMixin, UUIDMixin
 from rag_core.embeddings import KnowledgeLanguage
 from sqlalchemy import DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.common.database import JSON_VARIANT
+from app.features.knowledge.session_knowledge_bases.models import SessionKnowledgeBase
 
 if TYPE_CHECKING:
     from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument

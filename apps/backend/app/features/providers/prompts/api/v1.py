@@ -1,5 +1,7 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends
+
 from app.features.providers.prompts.schemas import (
     FallbackTemplateInfo,
     InvalidateCacheResponse,
@@ -8,7 +10,6 @@ from app.features.providers.prompts.schemas import (
 from app.features.providers.prompts.usecases.get_info import GetPromptProviderInfoUseCase
 from app.features.providers.prompts.usecases.invalidate import InvalidatePromptCacheUseCase
 from app.features.providers.prompts.usecases.list_templates import ListFallbackTemplatesUseCase
-from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/providers/prompts", tags=["Providers: Prompts"])
 

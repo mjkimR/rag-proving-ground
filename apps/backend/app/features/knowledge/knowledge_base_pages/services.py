@@ -1,12 +1,5 @@
 from typing import Annotated
 
-from app.features.knowledge.knowledge_base_pages.models import KnowledgeBasePage
-from app.features.knowledge.knowledge_base_pages.repos import KnowledgeBasePageRepository
-from app.features.knowledge.knowledge_base_pages.schemas import (
-    KnowledgeBasePageCreate,
-    KnowledgeBasePagePatch,
-    KnowledgeBasePagePut,
-)
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,
@@ -16,6 +9,14 @@ from app_layer_base.base.services.base import (
     BaseUpdateServiceMixin,
 )
 from fastapi import Depends
+
+from app.features.knowledge.knowledge_base_pages.models import KnowledgeBasePage
+from app.features.knowledge.knowledge_base_pages.repos import KnowledgeBasePageRepository
+from app.features.knowledge.knowledge_base_pages.schemas import (
+    KnowledgeBasePageCreate,
+    KnowledgeBasePagePatch,
+    KnowledgeBasePagePut,
+)
 
 
 class KnowledgeBasePageContextKwargs(BaseContextKwargs):

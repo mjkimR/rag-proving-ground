@@ -1,6 +1,13 @@
 from typing import Annotated
 from uuid import UUID
 
+from app_layer_base.base.deps.params.page import PaginationParam
+from app_layer_base.base.exceptions.basic import NotFoundException
+from app_layer_base.base.repos.query_options import ListQueryOptions
+from app_layer_base.base.schemas.delete_resp import DeleteResponse
+from app_layer_base.base.schemas.paginated import PaginatedList
+from fastapi import APIRouter, Depends, status
+
 from app.features.providers.document_parsers.schemas import (
     DocumentParserCreate,
     DocumentParserPatch,
@@ -17,12 +24,6 @@ from app.features.providers.document_parsers.usecases.crud import (
 )
 from app.features.providers.document_parsers.usecases.sync import SyncDocumentParsersUseCase
 from app.features.providers.document_parsers.usecases.test import TestDocumentParserConnectionUseCase
-from app_layer_base.base.deps.params.page import PaginationParam
-from app_layer_base.base.exceptions.basic import NotFoundException
-from app_layer_base.base.repos.query_options import ListQueryOptions
-from app_layer_base.base.schemas.delete_resp import DeleteResponse
-from app_layer_base.base.schemas.paginated import PaginatedList
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter(prefix="/document_parsers", tags=["DocumentParser"], dependencies=[])
 

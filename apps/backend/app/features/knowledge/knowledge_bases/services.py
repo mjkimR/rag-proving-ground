@@ -1,13 +1,6 @@
 from contextlib import asynccontextmanager
 from typing import Annotated, Any, NotRequired
 
-from app.features.knowledge.knowledge_bases.models import KnowledgeBase
-from app.features.knowledge.knowledge_bases.repos import KnowledgeBaseRepository
-from app.features.knowledge.knowledge_bases.schemas import (
-    KnowledgeBaseCreate,
-    KnowledgeBasePatch,
-    KnowledgeBasePut,
-)
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
@@ -26,6 +19,14 @@ from rag_core.embeddings import (
     resolve_knowledge_embedding_config,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.features.knowledge.knowledge_bases.models import KnowledgeBase
+from app.features.knowledge.knowledge_bases.repos import KnowledgeBaseRepository
+from app.features.knowledge.knowledge_bases.schemas import (
+    KnowledgeBaseCreate,
+    KnowledgeBasePatch,
+    KnowledgeBasePut,
+)
 
 
 class KnowledgeBaseContextKwargs(BaseContextKwargs):

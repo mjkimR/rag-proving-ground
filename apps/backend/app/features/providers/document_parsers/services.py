@@ -1,8 +1,5 @@
 from typing import Annotated
 
-from app.features.providers.document_parsers.models import DocumentParser
-from app.features.providers.document_parsers.repos import DocumentParserRepository
-from app.features.providers.document_parsers.schemas import DocumentParserCreate, DocumentParserPatch, DocumentParserPut
 from app_layer_base.base.services.base import (
     BaseContextKwargs,
     BaseCreateServiceMixin,
@@ -12,6 +9,10 @@ from app_layer_base.base.services.base import (
     BaseUpdateServiceMixin,
 )
 from fastapi import Depends
+
+from app.features.providers.document_parsers.models import DocumentParser
+from app.features.providers.document_parsers.repos import DocumentParserRepository
+from app.features.providers.document_parsers.schemas import DocumentParserCreate, DocumentParserPatch, DocumentParserPut
 
 
 class DocumentParserContextKwargs(BaseContextKwargs):

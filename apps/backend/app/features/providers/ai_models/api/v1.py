@@ -1,6 +1,13 @@
 from typing import Annotated
 from uuid import UUID
 
+from app_layer_base.base.deps.params.page import PaginationParam
+from app_layer_base.base.exceptions.basic import NotFoundException
+from app_layer_base.base.repos.query_options import ListQueryOptions
+from app_layer_base.base.schemas.delete_resp import DeleteResponse
+from app_layer_base.base.schemas.paginated import PaginatedList
+from fastapi import APIRouter, Depends, status
+
 from app.features.providers.ai_models.schemas import AIModelCreate, AIModelPatch, AIModelPut, AIModelRead
 from app.features.providers.ai_models.usecases.crud import (
     CreateAIModelUseCase,
@@ -12,12 +19,6 @@ from app.features.providers.ai_models.usecases.crud import (
 )
 from app.features.providers.ai_models.usecases.sync import SyncAIModelsUseCase
 from app.features.providers.ai_models.usecases.test import TestAIModelConnectionUseCase
-from app_layer_base.base.deps.params.page import PaginationParam
-from app_layer_base.base.exceptions.basic import NotFoundException
-from app_layer_base.base.repos.query_options import ListQueryOptions
-from app_layer_base.base.schemas.delete_resp import DeleteResponse
-from app_layer_base.base.schemas.paginated import PaginatedList
-from fastapi import APIRouter, Depends, status
 
 router = APIRouter(prefix="/ai_models", tags=["AIModel"], dependencies=[])
 

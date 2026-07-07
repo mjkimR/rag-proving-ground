@@ -1,4 +1,3 @@
-from app.features.knowledge.synonyms.models import SynonymMap
 from app_layer_base.base.deps.filters.combine import create_combined_filter_dependency
 from app_layer_base.base.deps.filters.decorators import filter_for
 from app_layer_base.base.deps.ordering.base import order_by_for
@@ -7,6 +6,8 @@ from app_layer_base.base.deps.query_options import create_list_query_options_dep
 from sqlalchemy import Boolean, bindparam, or_
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.elements import ColumnElement
+
+from app.features.knowledge.synonyms.models import SynonymMap
 
 
 class JsonStringArrayElementPhraseMatch(ColumnElement[bool]):

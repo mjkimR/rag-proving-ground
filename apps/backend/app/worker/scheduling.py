@@ -5,10 +5,11 @@ from typing import Any
 from uuid import uuid4
 
 import redis.asyncio as aioredis
-from app.common.utils.time_util import get_current_time
-from app.features.knowledge.knowledge_base_documents.schemas import ParseDocumentMessage
 from loguru import logger
 from rag_core.config import get_rabbitmq_settings, get_redis_settings
+
+from app.common.utils.time_util import get_current_time
+from app.features.knowledge.knowledge_base_documents.schemas import ParseDocumentMessage
 
 _redis_client: aioredis.Redis | None = None
 _dispatcher_task: asyncio.Task | None = None
@@ -84,13 +85,14 @@ async def dispatcher_loop(
     and dispatches them to Taskiq in a fair round-robin manner.
     """
     logger.info(f"Starting DB-polling scheduling dispatcher loop (ID: {dispatcher_id})...")
+    from app_layer_base.core.database.transaction import AsyncTransaction
+    from rag_core.parsers import resolve_knowledge_parsing_config
+    from sqlalchemy import func, select, update
+
     from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
     from app.features.knowledge.knowledge_base_documents.schemas import get_queue_name
     from app.features.knowledge.knowledge_bases.models import KnowledgeBase
     from app.worker.handlers.ingest import handle_parse
-    from app_layer_base.core.database.transaction import AsyncTransaction
-    from rag_core.parsers import resolve_knowledge_parsing_config
-    from sqlalchemy import func, select, update
 
     sleep_index = 0
     rabbitmq_connection = None
@@ -300,6 +302,10 @@ async def cleanup_loop(stop_event: asyncio.Event, dispatcher_id: str) -> None:
     from datetime import timedelta
 
     import sqlalchemy as sa
+    from app_file_storage import get_storage_client
+    from app_layer_base.core.database.transaction import AsyncTransaction
+    from sqlalchemy import select
+
     from app.features.knowledge.knowledge_base_documents.models import KnowledgeBaseDocument
     from app.features.knowledge.knowledge_base_documents.usecases.crud import (
         KnowledgeDocumentCleanupTarget,
@@ -310,9 +316,6 @@ async def cleanup_loop(stop_event: asyncio.Event, dispatcher_id: str) -> None:
     from app.features.knowledge.session_knowledge_bases.models import SessionKnowledgeBase
     from app.features.storage.file_attachments.models import FileAttachment
     from app.features.storage.session_file_attachments.models import SessionFileAttachment
-    from app_file_storage import get_storage_client
-    from app_layer_base.core.database.transaction import AsyncTransaction
-    from sqlalchemy import select
 
     while not stop_event.is_set():
         try:
@@ -379,6 +382,7 @@ async def cleanup_loop(stop_event: asyncio.Event, dispatcher_id: str) -> None:
                         target = KnowledgeDocumentCleanupTarget(
                             document_id=doc.id,
                             file_hash=doc.file_hash,
+                            knowledge_base_id=kb.id,
                             knowledge_base_name=kb.name,
                             embed_config_hash=kb.embed_config_hash,
                         )

@@ -1,9 +1,5 @@
 from typing import Annotated, Any
 
-from app.features.providers.ai_models.models import AIModel
-from app.features.providers.ai_models.schemas import AIModelCreate, AIModelPatch, AIModelPut
-from app.features.providers.ai_models.services import AIModelContextKwargs, AIModelService
-from app.features.providers.routes.cache import refresh_ai_models_cache
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.usecases.crud import (
     BaseCreateUseCase,
@@ -16,6 +12,11 @@ from app_layer_base.base.usecases.crud import (
 from fastapi import Depends
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.features.providers.ai_models.models import AIModel
+from app.features.providers.ai_models.schemas import AIModelCreate, AIModelPatch, AIModelPut
+from app.features.providers.ai_models.services import AIModelContextKwargs, AIModelService
+from app.features.providers.routes.cache import refresh_ai_models_cache
 
 
 class GetAIModelUseCase(BaseGetUseCase[AIModelService, AIModel, AIModelContextKwargs]):
