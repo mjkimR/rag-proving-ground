@@ -1,0 +1,203 @@
+{
+  "name": "corpus_eval",
+  "cases": [
+    {
+      "question": "What phone number can be used to report side effects of mefloquine to the FDA?",
+      "ground_truth": "You can report side effects to the FDA at 1‑800‑FDA‑1088.",
+      "metadata": {
+        "source_doc": "076523s007lbl_p2.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "You may report side effects to FDA at 1-800-FDA-1088. **TIONS** ). _Vaccines:_ When mefloquine is taken concurrently with oral live typhoid vaccines, at- **How "
+      }
+    },
+    {
+      "question": "What proportion of a 250 mg dose of mefloquine is excreted in human milk?",
+      "ground_truth": "Low concentrations of about 3% to 4% of the dose are excreted in human milk.",
+      "metadata": {
+        "source_doc": "076523s007lbl_p2.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": ". Based on a study in a few subjects, low concentrations (3% to 4%) of mefloquine **DOSAGE AND ADMINISTRATION** were excreted in human milk following a dose equ"
+      }
+    },
+    {
+      "question": "What is the value in the ninth column for the month of August?",
+      "ground_truth": "The ninth column value for August is 112.917.",
+      "metadata": {
+        "source_doc": "1212.1661v1_page7.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|August|_F_|4|-1.861|_ORPR_|2|1.018|6.898|112.917|2.914|\n|---|---|---|---|---|---|---|---|---|---|\n|July|_F_|4|-1.863|_ORPR_|2|1.024|6.873|112.112|2.912|\n|June|"
+      }
+    },
+    {
+      "question": "According to the table, what is the similarity value between SEFV and ORPR?",
+      "ground_truth": "The similarity value between SEFV and ORPR is 0.98702.",
+      "metadata": {
+        "source_doc": "1212.1661v1_page7.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "||**_F_**|**_FB_**|**_SEFV_**|**_ORPR_**|**_RSH_**|**_O_**|\n|---|---|---|---|---|---|---|\n|**_F_**|1||||||\n|**_FB_**|0.99998|1|||||\n|**_SEFV_**|0.99714|0.99671|"
+      }
+    },
+    {
+      "question": "According to Section 4.5 of the SPC for Vectra 3D, what precautions should a person take while handling this veterinary medicinal product?",
+      "ground_truth": "They should not eat, drink or smoke while handling the product, and anyone with known hypersensitivity to any of its ingredients should avoid contact.",
+      "metadata": {
+        "source_doc": "1634690602_page10.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|**Vectra 3D**<br>(pyriproxyfen/dinotefuran/permethrin)|**13-15 July 2021**|**Section 4.5 of SPC for Vectra 3D, under ‘Special precautions to be taken by**<br>*"
+      }
+    },
+    {
+      "question": "According to Section 4.6 of the SPC for Vepured, what is the maximum temperature rise reported as a very common adverse reaction?",
+      "ground_truth": "A temperature rise of up to 1.1 °C was observed.",
+      "metadata": {
+        "source_doc": "1634690602_page10.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|**Vepured**<br>(Recombinant verotoxin 2e of E. coli)|**7-9 September 2021**|**Section 4.6 of SPC for Vepured**:<br>Very common adverse reactions:<br>- Mild inf"
+      }
+    },
+    {
+      "question": "What action does the final withdrawal rule take concerning the SUNSET final rule?",
+      "ground_truth": "The final withdrawal rule will withdraw the SUNSET final rule.",
+      "metadata": {
+        "source_doc": "1653739079_page34.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "2. Summary of Costs and Benefits: The final withdrawal rule will withdraw the SUNSET final rule. This regulatory action will reduce the time spent by the Depart"
+      }
+    },
+    {
+      "question": "According to the passage, what specific Department activity related to Small Entity Compliance Guides (SECGs) will be reduced by the final withdrawal rule?",
+      "ground_truth": "The final withdrawal rule will reduce the time the Department spends developing Small Entity Compliance Guides (SECGs).",
+      "metadata": {
+        "source_doc": "1653739079_page34.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": ". The final withdrawal rule will also reduce the time spent by the Department on other activities that we have not monetized or quantified, such as the time dev"
+      }
+    },
+    {
+      "question": "What were the amounts of tax credit investments listed under \"Other\" for December 2023 and December 2024?",
+      "ground_truth": "$3.4 billion in December 2023 and $3.2 billion in December 2024.",
+      "metadata": {
+        "source_doc": "2010-k_page85.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "**Other.** Other investments include tax credit investments (accounted for under the proportional amortization method of accounting) of $3.2 billion as of Decem"
+      }
+    },
+    {
+      "question": "What percentage of the total is attributed to the 2018‑2020 vintage as of December 2024?",
+      "ground_truth": "37% of the total is attributed to the 2018‑2020 vintage as of December 2024.",
+      "metadata": {
+        "source_doc": "2010-k_page85.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "||Vintage|\n|---|---|\n|**As of December 2024**||\n|2017 or earlier|**29%**|\n|2018 - 2020|**37%**|\n|2021 - thereafter|**34%**|\n|**Total**|**100%**|\n|As of December"
+      }
+    },
+    {
+      "question": "Which authors in the listed author line are marked with an asterisk?",
+      "ground_truth": "Nikolaos Livathinos and Christoph Auer are the authors marked with an asterisk.",
+      "metadata": {
+        "source_doc": "2501.17887v1_p1-2.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "# **Nikolaos Livathinos**[*] **, Christoph Auer**[*] **Panagiotis Vagenas, Cesar Berrospi, Matteo Omenetti, Kasper Dinkla, Yusik Kim, Shubham Gupta, Rafael Teix"
+      }
+    },
+    {
+      "question": "On what date did Docling release version 2, marking a major milestone?",
+      "ground_truth": "Docling released version 2 on October 16, 2024.",
+      "metadata": {
+        "source_doc": "2501.17887v1_p1-2.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": ". On October 16, 2024, Docling reached a major milestone with version 2, introducing several new features and concepts, which we outline in this updated technic"
+      }
+    },
+    {
+      "question": "Which asset lists 'TableFormer (fast)*' under the Tables column?",
+      "ground_truth": "Docling.",
+      "metadata": {
+        "source_doc": "2501.17887v1_p4-5.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|**Asset**|**Version**|**OCR**|**Layout**||**Tables**|\n|---|---|---|---|---|---|\n|Docling|2.5.2|EasyOCR*|default||TableFormer (fast)*|\n|Marker|0.3.10|Surya*|def"
+      }
+    },
+    {
+      "question": "According to the benchmarking methodology, what are the average times to parse a PDF page with docling-parse on an x86 CPU and on an M3 Max SoC?",
+      "ground_truth": "Parsing a PDF page takes on average 81 ms on the x86 CPU and 44 ms on the M3 Max SoC.",
+      "metadata": {
+        "source_doc": "2501.17887v1_p4-5.pdf",
+        "source_pages": [
+          2
+        ],
+        "source_chunk_preview": "**5.3 Benchmarking Methodology**: The time spent in parsing a PDF page through our docling-parse backend is substantially lower in comparison to the AI models. "
+      }
+    },
+    {
+      "question": "What is the voltage rating of the AONR32314 MOSFET?",
+      "ground_truth": "The AONR32314 MOSFET is rated for 30 V.",
+      "metadata": {
+        "source_doc": "AONR32314_page1.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "_**AONR32314 30V N-Channel MOSFET**_: |**_AONR32314_**<br>**_30V N-Channel MOSFET_**|**_AONR32314_**<br>**_30V N-Channel MOSFET_**|**_AONR32314_**<br>**_30V N-C"
+      }
+    },
+    {
+      "question": "What is the minimum order quantity for the part AONR32314 in the DFN 3x3 package?",
+      "ground_truth": "The minimum order quantity is 3000 units.",
+      "metadata": {
+        "source_doc": "AONR32314_page1.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|G<br>D<br>S<br>**Top View**<br>S<br>S<br>S<br>G<br>D<br>D<br>D<br>D<br>1<br>2<br>3<br>4<br>8<br>7<br>6<br>5<br>**DFN 3x3_EP**<br>**Top View                    "
+      }
+    },
+    {
+      "question": "What is the function of pin 2 (exposed pad) on the DS5795A-06?",
+      "ground_truth": "Pin 2 is PGND (Power ground); the exposed pad must be soldered to a large PCB and connected to PGND for maximum power dissipation.",
+      "metadata": {
+        "source_doc": "DS5795A-06_page2.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "**Functional Pin Description**: |**Pin No.**|**Pin Name**|**Pin Function**|\n|---|---|---|\n|1|EN|Enable control input. Pull High to Enable.|\n|2,<br>9(Exposed Pad"
+      }
+    },
+    {
+      "question": "What does the LX pin represent on the DS5795A-06 device?",
+      "ground_truth": "The LX pin is the switch node, serving as the source of the internal high‑side power MOSFET and the drain of the internal low‑side (synchronous) rectifier MOSFET.",
+      "metadata": {
+        "source_doc": "DS5795A-06_page2.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|4|FB|Feedback voltage input.|\n|5|VOS|Output voltage sense pin for the internal control loop. Must be connected to<br>output.|\n|6|PGOOD|Power good open-drain ou"
+      }
+    }
+  ]
+}

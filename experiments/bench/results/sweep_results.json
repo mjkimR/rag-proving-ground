@@ -1,0 +1,772 @@
+{
+  "dataset": "corpus_eval.json",
+  "n_cases": 18,
+  "summary": {
+    "docling-hybrid": {
+      "config": {
+        "name": "docling-hybrid",
+        "parser": "docling",
+        "retrieval_mode": "hybrid",
+        "sparse_model": "en-bm25",
+        "rerank": false,
+        "contextual_retrieval": false,
+        "expand_query": false,
+        "embedding_model": "vllm-embedding",
+        "llm_model": "gpt-oss-20b",
+        "reranker_model": "vllm-reranker",
+        "limit": 5,
+        "chunk_size": 450,
+        "chunk_overlap": 50
+      },
+      "metrics": {
+        "hit@1": 0.9444444444444444,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "mrr": 0.9722222222222222,
+        "correctness": 0.7777777777777778,
+        "faithfulness": 0.8888888888888888,
+        "mean_latency_sec": 1.2562676298354443,
+        "ingest_sec": 43.599876084015705
+      }
+    },
+    "pymupdf4llm-hybrid": {
+      "config": {
+        "name": "pymupdf4llm-hybrid",
+        "parser": "pymupdf4llm",
+        "retrieval_mode": "hybrid",
+        "sparse_model": "en-bm25",
+        "rerank": false,
+        "contextual_retrieval": false,
+        "expand_query": false,
+        "embedding_model": "vllm-embedding",
+        "llm_model": "gpt-oss-20b",
+        "reranker_model": "vllm-reranker",
+        "limit": 5,
+        "chunk_size": 450,
+        "chunk_overlap": 50
+      },
+      "metrics": {
+        "hit@1": 0.8888888888888888,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "mrr": 0.9444444444444444,
+        "correctness": 0.8333333333333334,
+        "faithfulness": 0.8333333333333334,
+        "mean_latency_sec": 1.2193344121074512,
+        "ingest_sec": 13.310216416983167
+      }
+    },
+    "pdf_oxide-hybrid": {
+      "config": {
+        "name": "pdf_oxide-hybrid",
+        "parser": "pdf_oxide",
+        "retrieval_mode": "hybrid",
+        "sparse_model": "en-bm25",
+        "rerank": false,
+        "contextual_retrieval": false,
+        "expand_query": false,
+        "embedding_model": "vllm-embedding",
+        "llm_model": "gpt-oss-20b",
+        "reranker_model": "vllm-reranker",
+        "limit": 5,
+        "chunk_size": 450,
+        "chunk_overlap": 50
+      },
+      "metrics": {
+        "hit@1": 1.0,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "mrr": 1.0,
+        "correctness": 0.5833333333333334,
+        "faithfulness": 0.8111111111111111,
+        "mean_latency_sec": 1.8712351572224482,
+        "ingest_sec": 3.132920959003968
+      }
+    },
+    "docling-dense": {
+      "config": {
+        "name": "docling-dense",
+        "parser": "docling",
+        "retrieval_mode": "dense",
+        "sparse_model": "en-bm25",
+        "rerank": false,
+        "contextual_retrieval": false,
+        "expand_query": false,
+        "embedding_model": "vllm-embedding",
+        "llm_model": "gpt-oss-20b",
+        "reranker_model": "vllm-reranker",
+        "limit": 5,
+        "chunk_size": 450,
+        "chunk_overlap": 50
+      },
+      "metrics": {
+        "hit@1": 0.9444444444444444,
+        "hit@3": 1.0,
+        "hit@5": 1.0,
+        "mrr": 0.9629629629629629,
+        "correctness": 0.7222222222222222,
+        "faithfulness": 0.9277777777777777,
+        "mean_latency_sec": 1.1619338310022915,
+        "ingest_sec": 3.1892884589906316
+      }
+    }
+  },
+  "cases": {
+    "docling-hybrid": [
+      {
+        "question": "What phone number can be used to report side effects of mefloquine to the FDA?",
+        "gold_doc": "076523s007lbl_p2.pdf",
+        "rank": 1,
+        "latency_sec": 1.081790500000352,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "You can report side effects of mefloquine to the FDA by calling **1‑800‑FDA‑1088**【1】."
+      },
+      {
+        "question": "What proportion of a 250 mg dose of mefloquine is excreted in human milk?",
+        "gold_doc": "076523s007lbl_p2.pdf",
+        "rank": 1,
+        "latency_sec": 1.232286042009946,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "Low concentrations—about **3 % to 4 %** of a 250 mg dose of mefloquine—are excreted in human milk. [1]"
+      },
+      {
+        "question": "What is the value in the ninth column for the month of August?",
+        "gold_doc": "1212.1661v1_page7.pdf",
+        "rank": 1,
+        "latency_sec": 1.6662143749999814,
+        "correctness": 0.0,
+        "faithfulness": 0.2,
+        "answer": "I don't have enough information."
+      },
+      {
+        "question": "According to the table, what is the similarity value between SEFV and ORPR?",
+        "gold_doc": "1212.1661v1_page7.pdf",
+        "rank": 1,
+        "latency_sec": 1.4947603339969646,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "I don’t have enough information. The table in the context does not list a similarity value for the pair SEFV–ORPR. [1]"
+      },
+      {
+        "question": "According to Section 4.5 of the SPC for Vectra 3D, what precautions should a person take while handling this veterinary medicinal product?",
+        "gold_doc": "1634690602_page10.pdf",
+        "rank": 1,
+        "latency_sec": 1.698358667024877,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "According to Section 4.5 of the SPC for Vectra 3D, a person should:\n\n- **Do not eat, drink or smoke while handling the veterinary medicinal product**.  \n- **Avoid contact with the product if they have a known hypersensitivity to any of its ingredients**.  \n\n[1]"
+      },
+      {
+        "question": "According to Section 4.6 of the SPC for Vepured, what is the maximum temperature rise reported as a very common adverse reaction?",
+        "gold_doc": "1634690602_page10.pdf",
+        "rank": 1,
+        "latency_sec": 0.9056640000198968,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The maximum temperature rise reported as a very common adverse reaction in Section 4.6 of the SPC for Vepured is **1.1 °C**【1】."
+      },
+      {
+        "question": "What action does the final withdrawal rule take concerning the SUNSET final rule?",
+        "gold_doc": "1653739079_page34.pdf",
+        "rank": 1,
+        "latency_sec": 0.6411043749831151,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The final withdrawal rule will withdraw the SUNSET final rule. [1]"
+      },
+      {
+        "question": "According to the passage, what specific Department activity related to Small Entity Compliance Guides (SECGs) will be reduced by the final withdrawal rule?",
+        "gold_doc": "1653739079_page34.pdf",
+        "rank": 1,
+        "latency_sec": 1.2296834169828799,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The final withdrawal rule will reduce the Department’s time spent on developing Small Entity Compliance Guides (SECGs)【1】."
+      },
+      {
+        "question": "What were the amounts of tax credit investments listed under \"Other\" for December 2023 and December 2024?",
+        "gold_doc": "2010-k_page85.pdf",
+        "rank": 1,
+        "latency_sec": 1.135003917006543,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The tax credit investments listed under “Other” were $3.2 billion as of December 2024 and $3.4 billion as of December 2023【1】."
+      },
+      {
+        "question": "What percentage of the total is attributed to the 2018‑2020 vintage as of December 2024?",
+        "gold_doc": "2010-k_page85.pdf",
+        "rank": 1,
+        "latency_sec": 0.7796767090039793,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The 2018‑2020 vintage accounts for **37%** of the total as of December 2024. [1]"
+      },
+      {
+        "question": "Which authors in the listed author line are marked with an asterisk?",
+        "gold_doc": "2501.17887v1_p1-2.pdf",
+        "rank": 1,
+        "latency_sec": 1.161551666999003,
+        "correctness": 0.0,
+        "faithfulness": 0.0,
+        "answer": "I don’t have enough information."
+      },
+      {
+        "question": "On what date did Docling release version 2, marking a major milestone?",
+        "gold_doc": "2501.17887v1_p1-2.pdf",
+        "rank": 1,
+        "latency_sec": 0.9594307500228751,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "Docling released version 2 on **October 16, 2024**【1】."
+      },
+      {
+        "question": "Which asset lists 'TableFormer (fast)*' under the Tables column?",
+        "gold_doc": "2501.17887v1_p4-5.pdf",
+        "rank": 1,
+        "latency_sec": 1.0520682079950348,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The asset that lists **“TableFormer (fast)*”** under the Tables column is **Docling**【1】."
+      },
+      {
+        "question": "According to the benchmarking methodology, what are the average times to parse a PDF page with docling-parse on an x86 CPU and on an M3 Max SoC?",
+        "gold_doc": "2501.17887v1_p4-5.pdf",
+        "rank": 1,
+        "latency_sec": 1.100670124986209,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The benchmarking methodology reports that parsing a PDF page with docling‑parse takes on average **81 ms on an x86 CPU** and **44 ms on an M3 Max SoC**【1】."
+      },
+      {
+        "question": "What is the voltage rating of the AONR32314 MOSFET?",
+        "gold_doc": "AONR32314_page1.pdf",
+        "rank": 2,
+        "latency_sec": 2.5991682919848245,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "The AONR32314 MOSFET is designed for a power input supply voltage of **2.5 V to 5.5 V**【1】."
+      },
+      {
+        "question": "What is the minimum order quantity for the part AONR32314 in the DFN 3x3 package?",
+        "gold_doc": "AONR32314_page1.pdf",
+        "rank": 1,
+        "latency_sec": 1.1349369170202408,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The minimum order quantity for part **AONR32314** in the **DFN 3 **3,000 units**【1】."
+      },
+      {
+        "question": "What is the function of pin 2 (exposed pad) on the DS5795A-06?",
+        "gold_doc": "DS5795A-06_page2.pdf",
+        "rank": 1,
+        "latency_sec": 1.5470724170154426,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "Pin 2 is an exposed pad that serves as a power‑ground (PGND) connection. It must be soldered to a large PCB and tied to the device’s PGND to provide a low‑impedance ground path and maximize power‑dissipation capability.【1】"
+      },
+      {
+        "question": "What does the LX pin represent on the DS5795A-06 device?",
+        "gold_doc": "DS5795A-06_page2.pdf",
+        "rank": 1,
+        "latency_sec": 1.1933766249858309,
+        "correctness": 1.0,
+        "faithfulness": 0.8,
+        "answer": "The LX pin is the **switch node** of the DS5795A‑06. It serves as the source of the internal high‑side power MOSFET and the drain of the internal low‑side (synchronous) rectifier MOSFET. [1]"
+      }
+    ],
+    "pymupdf4llm-hybrid": [
+      {
+        "question": "What phone number can be used to report side effects of mefloquine to the FDA?",
+        "gold_doc": "076523s007lbl_p2.pdf",
+        "rank": 1,
+        "latency_sec": 0.9396529590012506,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The FDA’s reporting number for side effects of mefloquine is **1‑800‑FDA‑1088**【1】."
+      },
+      {
+        "question": "What proportion of a 250 mg dose of mefloquine is excreted in human milk?",
+        "gold_doc": "076523s007lbl_p2.pdf",
+        "rank": 1,
+        "latency_sec": 1.4930910840048455,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "Low concentrations—about **3 % to 4 %** of a 250 mg dose—of mefloquine are excreted in human milk. [1]"
+      },
+      {
+        "question": "What is the value in the ninth column for the month of August?",
+        "gold_doc": "1212.1661v1_page7.pdf",
+        "rank": 1,
+        "latency_sec": 1.7676536249928176,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The value in the ninth column for August is **112.917**【1】."
+      },
+      {
+        "question": "According to the table, what is the similarity value between SEFV and ORPR?",
+        "gold_doc": "1212.1661v1_page7.pdf",
+        "rank": 2,
+        "latency_sec": 2.7623995000030845,
+        "correctness": 0.0,
+        "faithfulness": 0.0,
+        "answer": "The similarity value between **SEFV** and **ORPR** is **0.48 [0.49]**【2】."
+      },
+      {
+        "question": "According to Section 4.5 of the SPC for Vectra 3D, what precautions should a person take while handling this veterinary medicinal product?",
+        "gold_doc": "1634690602_page10.pdf",
+        "rank": 1,
+        "latency_sec": 2.051519082975574,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "According to Section 4.5 of the SPC for Vectra 3D, a person should:\n\n- **Do not eat, drink or smoke while handling the veterinary medicinal product**.  \n- **Avoid contact with the product if they have a known hypersensitivity to any of its ingredients**.  \n\nThese precautions are listed in the SPC’s “Special precautions to be taken by the person administering the veterinary medicinal product to animals” section. [1]"
+      },
+      {
+        "question": "According to Section 4.6 of the SPC for Vepured, what is the maximum temperature rise reported as a very common adverse reaction?",
+        "gold_doc": "1634690602_page10.pdf",
+        "rank": 1,
+        "latency_sec": 0.9205882090027444,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The maximum temperature rise reported as a very common adverse reaction is **1.1 °C**【1】."
+      },
+      {
+        "question": "What action does the final withdrawal rule take concerning the SUNSET final rule?",
+        "gold_doc": "1653739079_page34.pdf",
+        "rank": 1,
+        "latency_sec": 0.6014408330083825,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The final withdrawal rule removes the SUNSET final rule from effect. [1]"
+      },
+      {
+        "question": "According to the passage, what specific Department activity related to Small Entity Compliance Guides (SECGs) will be reduced by the final withdrawal rule?",
+        "gold_doc": "1653739079_page34.pdf",
+        "rank": 1,
+        "latency_sec": 1.0729336249933112,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The final withdrawal rule will reduce the Department’s time spent developing Small Entity Compliance Guides (SECGs)【1】."
+      },
+      {
+        "question": "What were the amounts of tax credit investments listed under \"Other\" for December 2023 and December 2024?",
+        "gold_doc": "2010-k_page85.pdf",
+        "rank": 1,
+        "latency_sec": 1.0136635410017334,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The tax credit investments listed under “Other” were:\n\n- **$3.2 billion** as of December 2024  \n- **$3.4 billion** as of December 2023  \n\n[1]"
+      },
+      {
+        "question": "What percentage of the total is attributed to the 2018‑2020 vintage as of December 2024?",
+        "gold_doc": "2010-k_page85.pdf",
+        "rank": 1,
+        "latency_sec": 0.7679344170028344,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The 2018‑2020 vintage accounts for **37%** of the total as of December 2024. [1]"
+      },
+      {
+        "question": "Which authors in the listed author line are marked with an asterisk?",
+        "gold_doc": "2501.17887v1_p1-2.pdf",
+        "rank": 1,
+        "latency_sec": 0.9434829999809153,
+        "correctness": 0.0,
+        "faithfulness": 0.0,
+        "answer": "I don’t have enough information."
+      },
+      {
+        "question": "On what date did Docling release version 2, marking a major milestone?",
+        "gold_doc": "2501.17887v1_p1-2.pdf",
+        "rank": 1,
+        "latency_sec": 0.9725676660018507,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "Docling released version 2 on **October 16, 2024**【1】."
+      },
+      {
+        "question": "Which asset lists 'TableFormer (fast)*' under the Tables column?",
+        "gold_doc": "2501.17887v1_p4-5.pdf",
+        "rank": 1,
+        "latency_sec": 0.8413014590041712,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The asset that lists **“TableFormer (fast)*”** under the Tables column is **Docling**【1】."
+      },
+      {
+        "question": "According to the benchmarking methodology, what are the average times to parse a PDF page with docling-parse on an x86 CPU and on an M3 Max SoC?",
+        "gold_doc": "2501.17887v1_p4-5.pdf",
+        "rank": 1,
+        "latency_sec": 1.0543830419774167,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The benchmarking methodology reports that parsing a PDF page with **docling‑parse** takes on average **81 ms on an x86 CPU** and **44 ms on an M3 Max SoC**【1】."
+      },
+      {
+        "question": "What is the voltage rating of the AONR32314 MOSFET?",
+        "gold_doc": "AONR32314_page1.pdf",
+        "rank": 2,
+        "latency_sec": 1.1092608339968137,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The AONR32314 is a 30 V N‑channel MOSFET.【2】"
+      },
+      {
+        "question": "What is the minimum order quantity for the part AONR32314 in the DFN 3x3 package?",
+        "gold_doc": "AONR32314_page1.pdf",
+        "rank": 1,
+        "latency_sec": 0.8317531250067987,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The minimum order quantity for part **AONR32314** in the DFN 3×3 package is **3,000 units**【1】."
+      },
+      {
+        "question": "What is the function of pin 2 (exposed pad) on the DS5795A-06?",
+        "gold_doc": "DS5795A-06_page2.pdf",
+        "rank": 1,
+        "latency_sec": 1.6602282499952707,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "Pin 2 is the exposed pad that serves as the device’s power‑ground (PGND) connection. It must be soldered to a large PCB area and tied to PGND to provide maximum power dissipation【1】."
+      },
+      {
+        "question": "What does the LX pin represent on the DS5795A-06 device?",
+        "gold_doc": "DS5795A-06_page2.pdf",
+        "rank": 1,
+        "latency_sec": 1.1441651659843046,
+        "correctness": 0.0,
+        "faithfulness": 0.0,
+        "answer": "I don’t have enough information."
+      }
+    ],
+    "pdf_oxide-hybrid": [
+      {
+        "question": "What phone number can be used to report side effects of mefloquine to the FDA?",
+        "gold_doc": "076523s007lbl_p2.pdf",
+        "rank": 1,
+        "latency_sec": 0.9499256660055835,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The FDA’s reporting number for side effects of mefloquine is **1‑800‑FDA‑1088**【1】."
+      },
+      {
+        "question": "What proportion of a 250 mg dose of mefloquine is excreted in human milk?",
+        "gold_doc": "076523s007lbl_p2.pdf",
+        "rank": 1,
+        "latency_sec": 1.3092243749997579,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The study found that only a small fraction—about **3 % to 4 %** of a 250 mg dose of mefloquine was excreted in human milk. [1]"
+      },
+      {
+        "question": "What is the value in the ninth column for the month of August?",
+        "gold_doc": "1212.1661v1_page7.pdf",
+        "rank": 1,
+        "latency_sec": 1.8557169580017217,
+        "correctness": 0.0,
+        "faithfulness": 0.2,
+        "answer": "I don’t have enough information."
+      },
+      {
+        "question": "According to the table, what is the similarity value between SEFV and ORPR?",
+        "gold_doc": "1212.1661v1_page7.pdf",
+        "rank": 1,
+        "latency_sec": 2.0043860000150744,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "According to the table, the similarity value between SEFV and ORPR is **0.98356**【1】."
+      },
+      {
+        "question": "According to Section 4.5 of the SPC for Vectra 3D, what precautions should a person take while handling this veterinary medicinal product?",
+        "gold_doc": "1634690602_page10.pdf",
+        "rank": 1,
+        "latency_sec": 1.4328884580172598,
+        "correctness": 0.5,
+        "faithfulness": 1.0,
+        "answer": "According to Section 4.5 of the SPC for Vectra 3D, a person handling the product should **not eat, drink or smoke** while administering it to animals. [1]"
+      },
+      {
+        "question": "According to Section 4.6 of the SPC for Vepured, what is the maximum temperature rise reported as a very common adverse reaction?",
+        "gold_doc": "1634690602_page10.pdf",
+        "rank": 1,
+        "latency_sec": 0.7777514999906998,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The maximum temperature rise reported as a very common adverse reaction is **1.1 °C**【1】."
+      },
+      {
+        "question": "What action does the final withdrawal rule take concerning the SUNSET final rule?",
+        "gold_doc": "1653739079_page34.pdf",
+        "rank": 1,
+        "latency_sec": 2.1588127079885453,
+        "correctness": 1.0,
+        "faithfulness": 0.9,
+        "answer": "The final withdrawal rule removes the SUNSET final rule, thereby reducing the regulatory uncertainty and confusion that the SUNSET rule had created. [1]"
+      },
+      {
+        "question": "According to the passage, what specific Department activity related to Small Entity Compliance Guides (SECGs) will be reduced by the final withdrawal rule?",
+        "gold_doc": "1653739079_page34.pdf",
+        "rank": 1,
+        "latency_sec": 3.5129535000014585,
+        "correctness": 1.0,
+        "faithfulness": 0.7,
+        "answer": "The final withdrawal rule will reduce the **time the Department spends developing Small Entity Compliance Guides (SECGs)**. [1]"
+      },
+      {
+        "question": "What were the amounts of tax credit investments listed under \"Other\" for December 2023 and December 2024?",
+        "gold_doc": "2010-k_page85.pdf",
+        "rank": 1,
+        "latency_sec": 1.2471168329939246,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The tax credit investments listed under “Other” were $3.2 billion as of December 2024 and $3.4 billion as of December 2023【1】."
+      },
+      {
+        "question": "What percentage of the total is attributed to the 2018‑2020 vintage as of December 2024?",
+        "gold_doc": "2010-k_page85.pdf",
+        "rank": 1,
+        "latency_sec": 1.0633311249839608,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The 2018‑2020 vintage accounts for **37%** of the total as of December 2024. [1]"
+      },
+      {
+        "question": "Which authors in the listed author line are marked with an asterisk?",
+        "gold_doc": "2501.17887v1_p1-2.pdf",
+        "rank": 1,
+        "latency_sec": 1.4429913329950068,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The authors marked with an asterisk are **Nikolaos Livathinos** and **Christoph Auer**【1】."
+      },
+      {
+        "question": "On what date did Docling release version 2, marking a major milestone?",
+        "gold_doc": "2501.17887v1_p1-2.pdf",
+        "rank": 1,
+        "latency_sec": 1.560547958011739,
+        "correctness": 0.0,
+        "faithfulness": 0.0,
+        "answer": "I don’t have enough information."
+      },
+      {
+        "question": "Which asset lists 'TableFormer (fast)*' under the Tables column?",
+        "gold_doc": "2501.17887v1_p4-5.pdf",
+        "rank": 1,
+        "latency_sec": 5.204522874992108,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "The asset that lists “TableFormer (fast)*” under the Tables column is **Asset Version OCR Layout Tables**【1】."
+      },
+      {
+        "question": "According to the benchmarking methodology, what are the average times to parse a PDF page with docling-parse on an x86 CPU and on an M3 Max SoC?",
+        "gold_doc": "2501.17887v1_p4-5.pdf",
+        "rank": 1,
+        "latency_sec": 1.099413124989951,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The benchmark reports that parsing a PDF page with docling‑parse takes on average **81 ms on an x86 CPU** and **44 ms on an M3 Max SoC**【1】."
+      },
+      {
+        "question": "What is the voltage rating of the AONR32314 MOSFET?",
+        "gold_doc": "AONR32314_page1.pdf",
+        "rank": 1,
+        "latency_sec": 0.911587167007383,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The AONR32314 MOSFET has a voltage rating of **30 V**【1】."
+      },
+      {
+        "question": "What is the minimum order quantity for the part AONR32314 in the DFN 3x3 package?",
+        "gold_doc": "AONR32314_page1.pdf",
+        "rank": 1,
+        "latency_sec": 2.5739196659997106,
+        "correctness": 0.0,
+        "faithfulness": 0.8,
+        "answer": "The minimum order quantity for part **AONR32314** in the **DFN 3×3** package is **3** units. [1][4]"
+      },
+      {
+        "question": "What is the function of pin 2 (exposed pad) on the DS5795A-06?",
+        "gold_doc": "DS5795A-06_page2.pdf",
+        "rank": 1,
+        "latency_sec": 1.9385685420129448,
+        "correctness": 0.0,
+        "faithfulness": 0.0,
+        "answer": "I don't have enough information."
+      },
+      {
+        "question": "What does the LX pin represent on the DS5795A-06 device?",
+        "gold_doc": "DS5795A-06_page2.pdf",
+        "rank": 1,
+        "latency_sec": 2.638575040997239,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "I don't have enough information."
+      }
+    ],
+    "docling-dense": [
+      {
+        "question": "What phone number can be used to report side effects of mefloquine to the FDA?",
+        "gold_doc": "076523s007lbl_p2.pdf",
+        "rank": 1,
+        "latency_sec": 0.9220491249870975,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "You can report side effects of mefloquine to the FDA by calling **1‑800‑FDA‑1088**【1】."
+      },
+      {
+        "question": "What proportion of a 250 mg dose of mefloquine is excreted in human milk?",
+        "gold_doc": "076523s007lbl_p2.pdf",
+        "rank": 1,
+        "latency_sec": 1.0264323749870528,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "Low concentrations—about **3 % to 4 %** of a 250 mg dose of mefloquine—are excreted in human milk. [1]"
+      },
+      {
+        "question": "What is the value in the ninth column for the month of August?",
+        "gold_doc": "1212.1661v1_page7.pdf",
+        "rank": 1,
+        "latency_sec": 2.0758995409996714,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "The value in the ninth column for August is **1529.960**【1】."
+      },
+      {
+        "question": "According to the table, what is the similarity value between SEFV and ORPR?",
+        "gold_doc": "1212.1661v1_page7.pdf",
+        "rank": 1,
+        "latency_sec": 1.7318369589920621,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "I don’t have enough information. The table in the provided context does not include a similarity value for SEFV and ORPR. [1]"
+      },
+      {
+        "question": "According to Section 4.5 of the SPC for Vectra 3D, what precautions should a person take while handling this veterinary medicinal product?",
+        "gold_doc": "1634690602_page10.pdf",
+        "rank": 1,
+        "latency_sec": 1.568867499998305,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "According to Section 4.5 of the SPC for Vectra 3D, a person should:\n\n- **Not eat, drink or smoke while handling the product**.  \n- **Avoid contact with the product if they have a known hypersensitivity to any of its ingredients**.  \n\n[1]"
+      },
+      {
+        "question": "According to Section 4.6 of the SPC for Vepured, what is the maximum temperature rise reported as a very common adverse reaction?",
+        "gold_doc": "1634690602_page10.pdf",
+        "rank": 1,
+        "latency_sec": 0.8109981250017881,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The maximum temperature rise reported as a very common adverse reaction in Section 4.6 of the SPC for Vepured is **1.1 °C**【1】."
+      },
+      {
+        "question": "What action does the final withdrawal rule take concerning the SUNSET final rule?",
+        "gold_doc": "1653739079_page34.pdf",
+        "rank": 1,
+        "latency_sec": 1.2141190830152482,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "I don’t have enough information to answer that."
+      },
+      {
+        "question": "According to the passage, what specific Department activity related to Small Entity Compliance Guides (SECGs) will be reduced by the final withdrawal rule?",
+        "gold_doc": "1653739079_page34.pdf",
+        "rank": 1,
+        "latency_sec": 1.1898416670155711,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The final withdrawal rule will reduce the Department’s time spent developing Small Entity Compliance Guides (SECGs)【1】."
+      },
+      {
+        "question": "What were the amounts of tax credit investments listed under \"Other\" for December 2023 and December 2024?",
+        "gold_doc": "2010-k_page85.pdf",
+        "rank": 1,
+        "latency_sec": 1.0263584170024842,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The tax credit investments listed under “Other” were:\n\n- **$3.2 billion** as of December 2024  \n- **$3.4 billion** as of December 2023  \n\n[1]"
+      },
+      {
+        "question": "What percentage of the total is attributed to the 2018‑2020 vintage as of December 2024?",
+        "gold_doc": "2010-k_page85.pdf",
+        "rank": 1,
+        "latency_sec": 0.7442599160131067,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The 2018‑2020 vintage accounts for **37%** of the total as of December 2024. [1]"
+      },
+      {
+        "question": "Which authors in the listed author line are marked with an asterisk?",
+        "gold_doc": "2501.17887v1_p1-2.pdf",
+        "rank": 1,
+        "latency_sec": 1.3229787080199458,
+        "correctness": 0.0,
+        "faithfulness": 1.0,
+        "answer": "I don’t have enough information to identify the specific authors marked with an asterisk. The context only indicates that an asterisk denotes authors who contributed equally, but it does not list the authors’ names. [1]"
+      },
+      {
+        "question": "On what date did Docling release version 2, marking a major milestone?",
+        "gold_doc": "2501.17887v1_p1-2.pdf",
+        "rank": 1,
+        "latency_sec": 0.9024779589963146,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "Docling released version 2 on **October 16, 2024**【1】."
+      },
+      {
+        "question": "Which asset lists 'TableFormer (fast)*' under the Tables column?",
+        "gold_doc": "2501.17887v1_p4-5.pdf",
+        "rank": 3,
+        "latency_sec": 0.9002401659963652,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The asset that lists “TableFormer (fast)*” under the Tables column is **Docling**【3】."
+      },
+      {
+        "question": "According to the benchmarking methodology, what are the average times to parse a PDF page with docling-parse on an x86 CPU and on an M3 Max SoC?",
+        "gold_doc": "2501.17887v1_p4-5.pdf",
+        "rank": 1,
+        "latency_sec": 0.9914032090164255,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The benchmarking methodology reports that parsing a PDF page with docling‑parse takes on average **81 ms on an x86 CPU** and **44 ms on an M3 Max SoC**【1】."
+      },
+      {
+        "question": "What is the voltage rating of the AONR32314 MOSFET?",
+        "gold_doc": "AONR32314_page1.pdf",
+        "rank": 1,
+        "latency_sec": 1.093372500006808,
+        "correctness": 0.0,
+        "faithfulness": 0.0,
+        "answer": "I don’t have enough information to answer that."
+      },
+      {
+        "question": "What is the minimum order quantity for the part AONR32314 in the DFN 3x3 package?",
+        "gold_doc": "AONR32314_page1.pdf",
+        "rank": 1,
+        "latency_sec": 1.0246071250003297,
+        "correctness": 1.0,
+        "faithfulness": 1.0,
+        "answer": "The minimum order quantity for part AONR32314 in the DFN 3×3 package is **3,000 units**【1】."
+      },
+      {
+        "question": "What is the function of pin 2 (exposed pad) on the DS5795A-06?",
+        "gold_doc": "DS5795A-06_page2.pdf",
+        "rank": 1,
+        "latency_sec": 1.091612707998138,
+        "correctness": 1.0,
+        "faithfulness": 0.9,
+        "answer": "Pin 2 (the exposed pad) is a power‑ground pin (PGND). It should be soldered to a large PCB area and connected to the device’s PGND to provide a low‑impedance ground path and allow maximum power dissipation. [1]"
+      },
+      {
+        "question": "What does the LX pin represent on the DS5795A-06 device?",
+        "gold_doc": "DS5795A-06_page2.pdf",
+        "rank": 1,
+        "latency_sec": 1.277453874994535,
+        "correctness": 1.0,
+        "faithfulness": 0.8,
+        "answer": "The LX pin is the **switch node** of the DS5795A‑06. It serves as the source of the internal high‑side power MOSFET and the drain of the internal low‑side (synchronous) rectifier MOSFET. [1]"
+      }
+    ]
+  }
+}

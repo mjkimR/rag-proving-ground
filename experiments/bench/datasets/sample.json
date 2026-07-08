@@ -1,0 +1,71 @@
+{
+  "name": "sample",
+  "cases": [
+    {
+      "question": "What phone number can be used to report side effects of mefloquine to the FDA?",
+      "ground_truth": "You may report side effects to the FDA at 1-800-FDA-1088.",
+      "metadata": {
+        "source_doc": "076523s007lbl_p2.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "You may report side effects to FDA at 1-800-FDA-1088. **TIONS** ). _Vaccines:_ When mefloquine is taken concurrently with oral live typhoid vaccines, at- **How "
+      }
+    },
+    {
+      "question": "What proportion of a 250 mg dose of mefloquine is excreted in human milk?",
+      "ground_truth": "Low concentrations of about 3% to 4% of the dose are excreted in human milk.",
+      "metadata": {
+        "source_doc": "076523s007lbl_p2.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": ". Based on a study in a few subjects, low concentrations (3% to 4%) of mefloquine **DOSAGE AND ADMINISTRATION** were excreted in human milk following a dose equ"
+      }
+    },
+    {
+      "question": "What is the value in the ninth column for August?",
+      "ground_truth": "112.917",
+      "metadata": {
+        "source_doc": "1212.1661v1_page7.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|August|_F_|4|-1.861|_ORPR_|2|1.018|6.898|112.917|2.914|\n|---|---|---|---|---|---|---|---|---|---|\n|July|_F_|4|-1.863|_ORPR_|2|1.024|6.873|112.112|2.912|\n|June|"
+      }
+    },
+    {
+      "question": "According to the table, what is the similarity value between SEFV and ORPR?",
+      "ground_truth": "The similarity value between SEFV and ORPR is 0.98702.",
+      "metadata": {
+        "source_doc": "1212.1661v1_page7.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "||**_F_**|**_FB_**|**_SEFV_**|**_ORPR_**|**_RSH_**|**_O_**|\n|---|---|---|---|---|---|---|\n|**_F_**|1||||||\n|**_FB_**|0.99998|1|||||\n|**_SEFV_**|0.99714|0.99671|"
+      }
+    },
+    {
+      "question": "According to Section 4.5 of the SPC for Vectra 3D, what precautions should a person take while handling this veterinary medicinal product?",
+      "ground_truth": "They should not eat, drink or smoke while handling the product, and anyone with known hypersensitivity to any of its ingredients should avoid contact.",
+      "metadata": {
+        "source_doc": "1634690602_page10.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|**Vectra 3D**<br>(pyriproxyfen/dinotefuran/permethrin)|**13-15 July 2021**|**Section 4.5 of SPC for Vectra 3D, under ‘Special precautions to be taken by**<br>*"
+      }
+    },
+    {
+      "question": "What is the maximum temperature increase reported as a very common adverse reaction for Vepured?",
+      "ground_truth": "A temperature rise of up to 1.1 °C was observed.",
+      "metadata": {
+        "source_doc": "1634690602_page10.pdf",
+        "source_pages": [
+          1
+        ],
+        "source_chunk_preview": "|**Vepured**<br>(Recombinant verotoxin 2e of E. coli)|**7-9 September 2021**|**Section 4.6 of SPC for Vepured**:<br>Very common adverse reactions:<br>- Mild inf"
+      }
+    }
+  ]
+}
