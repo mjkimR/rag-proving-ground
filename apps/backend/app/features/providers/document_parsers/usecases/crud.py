@@ -1,6 +1,6 @@
-from typing import Annotated, Any
+from typing import Annotated
 
-from app_layer_base.base.repos.base import PrimaryKeyType
+from app_layer_base.base.schemas.delete_resp import DeleteResponse
 from app_layer_base.base.usecases.crud import (
     BaseCreateUseCase,
     BaseDeleteUseCase,
@@ -10,7 +10,6 @@ from app_layer_base.base.usecases.crud import (
     BasePutUseCase,
 )
 from fastapi import Depends
-from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.providers.document_parsers.models import DocumentParser
@@ -44,17 +43,15 @@ class CreateDocumentParserUseCase(
     def __init__(self, service: Annotated[DocumentParserService, Depends()]) -> None:
         super().__init__(service)
 
-    async def _execute(
+    async def _post_execute(
         self,
         session: AsyncSession,
+        obj: DocumentParser,
         obj_data: DocumentParserCreate,
         context: DocumentParserContextKwargs | None,
     ) -> DocumentParser:
-        if obj_data.is_default:
-            await session.execute(update(DocumentParser).values(is_default=False))
-        created = await super()._execute(session, obj_data, context)
         await refresh_document_parsers_cache(session)
-        return created
+        return obj
 
 
 class PatchDocumentParserUseCase(
@@ -65,18 +62,15 @@ class PatchDocumentParserUseCase(
     def __init__(self, service: Annotated[DocumentParserService, Depends()]) -> None:
         super().__init__(service)
 
-    async def _execute(
+    async def _post_execute(
         self,
         session: AsyncSession,
-        obj_pk: PrimaryKeyType,
-        obj_data: DocumentParserPatch,
+        obj: DocumentParser | None,
+        obj_data: DocumentParserPut | DocumentParserPatch,
         context: DocumentParserContextKwargs | None,
     ) -> DocumentParser | None:
-        if obj_data.is_default:
-            await session.execute(update(DocumentParser).values(is_default=False))
-        updated = await super()._execute(session, obj_pk, obj_data, context)
         await refresh_document_parsers_cache(session)
-        return updated
+        return obj
 
 
 class PutDocumentParserUseCase(
@@ -87,18 +81,15 @@ class PutDocumentParserUseCase(
     def __init__(self, service: Annotated[DocumentParserService, Depends()]) -> None:
         super().__init__(service)
 
-    async def _execute(
+    async def _post_execute(
         self,
         session: AsyncSession,
-        obj_pk: PrimaryKeyType,
-        obj_data: DocumentParserPut,
+        obj: DocumentParser | None,
+        obj_data: DocumentParserPut | DocumentParserPatch,
         context: DocumentParserContextKwargs | None,
     ) -> DocumentParser | None:
-        if obj_data.is_default:
-            await session.execute(update(DocumentParser).values(is_default=False))
-        updated = await super()._execute(session, obj_pk, obj_data, context)
         await refresh_document_parsers_cache(session)
-        return updated
+        return obj
 
 
 class DeleteDocumentParserUseCase(
@@ -107,12 +98,11 @@ class DeleteDocumentParserUseCase(
     def __init__(self, service: Annotated[DocumentParserService, Depends()]) -> None:
         super().__init__(service)
 
-    async def _execute(
+    async def _post_execute(
         self,
         session: AsyncSession,
-        obj_pk: PrimaryKeyType,
+        obj: DeleteResponse,
         context: DocumentParserContextKwargs | None,
-    ) -> Any:
-        deleted = await super()._execute(session, obj_pk, context)
+    ) -> DeleteResponse:
         await refresh_document_parsers_cache(session)
-        return deleted
+        return obj

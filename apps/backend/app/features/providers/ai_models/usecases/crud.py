@@ -1,6 +1,6 @@
-from typing import Annotated, Any
+from typing import Annotated
 
-from app_layer_base.base.repos.base import PrimaryKeyType
+from app_layer_base.base.schemas.delete_resp import DeleteResponse
 from app_layer_base.base.usecases.crud import (
     BaseCreateUseCase,
     BaseDeleteUseCase,
@@ -10,7 +10,6 @@ from app_layer_base.base.usecases.crud import (
     BasePutUseCase,
 )
 from fastapi import Depends
-from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.providers.ai_models.models import AIModel
@@ -33,72 +32,56 @@ class CreateAIModelUseCase(BaseCreateUseCase[AIModelService, AIModel, AIModelCre
     def __init__(self, service: Annotated[AIModelService, Depends()]) -> None:
         super().__init__(service)
 
-    async def _execute(
+    async def _post_execute(
         self,
         session: AsyncSession,
+        obj: AIModel,
         obj_data: AIModelCreate,
         context: AIModelContextKwargs | None,
     ) -> AIModel:
-        if obj_data.is_default:
-            await session.execute(
-                update(AIModel).where(AIModel.model_type == obj_data.model_type).values(is_default=False)
-            )
-        created = await super()._execute(session, obj_data, context)
         await refresh_ai_models_cache(session)
-        return created
+        return obj
 
 
 class PatchAIModelUseCase(BasePatchUseCase[AIModelService, AIModel, AIModelPut, AIModelPatch, AIModelContextKwargs]):
     def __init__(self, service: Annotated[AIModelService, Depends()]) -> None:
         super().__init__(service)
 
-    async def _execute(
+    async def _post_execute(
         self,
         session: AsyncSession,
-        obj_pk: PrimaryKeyType,
-        obj_data: AIModelPatch,
+        obj: AIModel | None,
+        obj_data: AIModelPut | AIModelPatch,
         context: AIModelContextKwargs | None,
     ) -> AIModel | None:
-        if obj_data.is_default:
-            model = await self.service.repo.get_by_pk(session, obj_pk)
-            if model:
-                model_type = obj_data.model_type or model.model_type
-                await session.execute(update(AIModel).where(AIModel.model_type == model_type).values(is_default=False))
-        updated = await super()._execute(session, obj_pk, obj_data, context)
         await refresh_ai_models_cache(session)
-        return updated
+        return obj
 
 
 class PutAIModelUseCase(BasePutUseCase[AIModelService, AIModel, AIModelPut, AIModelPatch, AIModelContextKwargs]):
     def __init__(self, service: Annotated[AIModelService, Depends()]) -> None:
         super().__init__(service)
 
-    async def _execute(
+    async def _post_execute(
         self,
         session: AsyncSession,
-        obj_pk: PrimaryKeyType,
-        obj_data: AIModelPut,
+        obj: AIModel | None,
+        obj_data: AIModelPut | AIModelPatch,
         context: AIModelContextKwargs | None,
     ) -> AIModel | None:
-        if obj_data.is_default:
-            await session.execute(
-                update(AIModel).where(AIModel.model_type == obj_data.model_type).values(is_default=False)
-            )
-        updated = await super()._execute(session, obj_pk, obj_data, context)
         await refresh_ai_models_cache(session)
-        return updated
+        return obj
 
 
 class DeleteAIModelUseCase(BaseDeleteUseCase[AIModelService, AIModel, AIModelContextKwargs]):
     def __init__(self, service: Annotated[AIModelService, Depends()]) -> None:
         super().__init__(service)
 
-    async def _execute(
+    async def _post_execute(
         self,
         session: AsyncSession,
-        obj_pk: PrimaryKeyType,
+        obj: DeleteResponse,
         context: AIModelContextKwargs | None,
-    ) -> Any:
-        deleted = await super()._execute(session, obj_pk, context)
+    ) -> DeleteResponse:
         await refresh_ai_models_cache(session)
-        return deleted
+        return obj
