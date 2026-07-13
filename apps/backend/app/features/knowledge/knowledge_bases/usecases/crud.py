@@ -3,16 +3,19 @@ from dataclasses import dataclass
 from typing import Annotated, Any, cast
 from uuid import UUID
 
+from app_layer_base.base.exceptions.base import CustomException
+from app_layer_base.base.exceptions.basic import BadRequestException, NotFoundException
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.base.usecases.crud import (
     BaseCreateUseCase,
     BaseGetMultiUseCase,
+    BaseGetUseCase,
     BasePatchUseCase,
     BasePutUseCase,
 )
 from app_layer_base.core.database.transaction import AsyncTransaction
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from loguru import logger
 from pydantic import BaseModel
 from rag_core.chunkers import resolve_chunking_config
@@ -48,13 +51,9 @@ from app.features.knowledge.knowledge_bases.services import KnowledgeBaseContext
 from app.features.knowledge.knowledge_bases.status import refresh_knowledge_base_status
 
 
-class GetKnowledgeBaseUseCase(BaseUseCase):
+class GetKnowledgeBaseUseCase(BaseGetUseCase[KnowledgeBaseService, KnowledgeBase, KnowledgeBaseContextKwargs]):
     def __init__(self, service: Annotated[KnowledgeBaseService, Depends()]) -> None:
-        self.service = service
-
-    async def execute(self, knowledge_base_id: UUID) -> KnowledgeBase | None:
-        async with AsyncTransaction() as session:
-            return await self.service.repo.get_by_pk(session, knowledge_base_id)
+        super().__init__(service)
 
 
 class GetMultiKnowledgeBaseUseCase(
@@ -170,18 +169,12 @@ class DeleteKnowledgeBaseUseCase(BaseUseCase):
 
     async def execute(self, knowledge_base_id: UUID) -> dict:
         async with AsyncTransaction() as session:
-            kb = await self.service.repo.get_by_pk(session, knowledge_base_id)
+            kb = await self.service.get(session, knowledge_base_id)
             if not kb:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Knowledge base with ID '{knowledge_base_id}' not found.",
-                )
+                raise NotFoundException(f"Knowledge base with ID '{knowledge_base_id}' not found.")
 
             # Retrieve all documents belonging to this KB
-            docs = await self.doc_service.repo.get_all(
-                session,
-                where=(self.doc_service.repo.model.knowledge_base_id == knowledge_base_id,),
-            )
+            docs = await self.doc_service.repo.get_all_by_knowledge_base(session, knowledge_base_id)
             cleanup_targets = [
                 KnowledgeDocumentCleanupTarget(
                     document_id=doc.id,
@@ -211,21 +204,20 @@ class DeleteKnowledgeBaseUseCase(BaseUseCase):
             else:
                 cleanup_errors.extend(cleanup_result)
         if cleanup_errors:
+            # Saga status stamping: a system transition the public patch schemas
+            # cannot express, so it goes to the repository directly.
             async with AsyncTransaction() as session:
                 await self.service.repo.update_by_pk(session, knowledge_base_id, {"status": KnowledgeBaseStatus.FAILED})
                 for target in cleanup_targets:
                     await self.doc_service.repo.update_by_pk(
                         session, target.document_id, {"status": KnowledgeBaseDocumentStatus.FAILED}
                     )
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to clean up knowledge base assets: {'; '.join(cleanup_errors)}",
-            )
+            raise CustomException(f"Failed to clean up knowledge base assets: {'; '.join(cleanup_errors)}")
 
         async with AsyncTransaction() as session:
-            success = await self.service.repo.delete_by_pk(session, knowledge_base_id)
+            result = await self.service.delete(session, knowledge_base_id)
             return {
-                "status": "success" if success else "failed",
+                "status": "success" if result.success else "failed",
                 "message": "Successfully deleted knowledge base and all associated child assets.",
             }
 
@@ -276,29 +268,20 @@ async def _update_knowledge_base_with_document_transitions(
     partial: bool,
     context: KnowledgeBaseContextKwargs | None,
 ) -> tuple[KnowledgeBase | None, list[ReprocessDocumentInfo], KnowledgeBaseDocumentStatus | None]:
-    kb = await kb_service.repo.get_by_pk(session, obj_pk)
+    kb = await kb_service.get(session, obj_pk)
     if not kb:
         return None, [], None
-
-    if context is None:
-        context = {}
-    context.setdefault("_current_language", KnowledgeLanguage(kb.language))
-    context.setdefault("_current_embedding_config", kb.embedding_config)
 
     change_set = _detect_config_changes(kb, obj_data, partial=partial)
     apply_mode = getattr(obj_data, "apply_mode", KnowledgeBaseConfigApplyMode.INHERITED_ONLY)
     if change_set.embedding_changed and apply_mode == KnowledgeBaseConfigApplyMode.NEW_ONLY:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Embedding config changes cannot use NEW_ONLY because existing documents cannot freeze a KB-level vector collection.",
+        raise BadRequestException(
+            "Embedding config changes cannot use NEW_ONLY because existing documents cannot freeze a KB-level vector collection."
         )
 
     updated_docs = []
     if change_set.has_changes:
-        docs = await doc_service.repo.get_all(
-            session,
-            where=(doc_service.repo.model.knowledge_base_id == kb.id,),
-        )
+        docs = await doc_service.repo.get_all_by_knowledge_base(session, kb.id)
         updated_docs = _prepare_existing_documents_for_config_update(
             docs=docs,
             kb=kb,

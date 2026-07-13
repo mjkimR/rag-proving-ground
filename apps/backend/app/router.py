@@ -1,3 +1,6 @@
+from fastapi import APIRouter, status
+from rag_core.adapters.vector_store import check_vector_store_health
+
 from app.features.history.job_process_histories.api.v1 import router as v1_job_process_histories_router
 from app.features.knowledge.knowledge_base_documents.api.v1 import router as v1_knowledge_base_documents_router
 from app.features.knowledge.knowledge_base_pages.api.v1 import router as v1_knowledge_base_pages_router
@@ -9,8 +12,6 @@ from app.features.providers.document_parsers.api.v1 import router as v1_document
 from app.features.providers.prompts.api.v1 import router as v1_prompts_router
 from app.features.providers.routes.api.v1 import router as v1_providers_router
 from app.features.storage.file_attachments.api.v1 import router as v1_file_attachments_router
-from fastapi import APIRouter, status
-from rag_core.adapters.vector_store import check_vector_store_health
 
 router = APIRouter(prefix="/api")
 v1_router = APIRouter(prefix="/v1", dependencies=[])

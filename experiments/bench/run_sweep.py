@@ -25,13 +25,11 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from loguru import logger
-
 from rag_core.ai.models import get_llm_model
 from rag_core.retrieval.schemas import RetrievedChunk
 
 from experiments.bench.gen_dataset import _parse_json
 from experiments.bench.pipeline import (
-    DEFAULT_LLM_MODEL,
     PipelineConfig,
     _extract_text,
     ingest_corpus,
@@ -164,9 +162,7 @@ async def run(dataset_name: str, concurrency: int) -> None:
             ingest_sec = time.perf_counter() - ingest_start
 
             pipeline = make_pipeline(config)
-            case_results = await asyncio.gather(
-                *[_score_case(c, pipeline, judge_llm, semaphore) for c in cases]
-            )
+            case_results = await asyncio.gather(*[_score_case(c, pipeline, judge_llm, semaphore) for c in cases])
             agg = _aggregate(case_results)
             agg["ingest_sec"] = ingest_sec
             summary[config.name] = {"config": asdict(config), "metrics": agg}

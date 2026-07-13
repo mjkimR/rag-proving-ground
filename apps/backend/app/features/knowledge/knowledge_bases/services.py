@@ -1,5 +1,6 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Any, NotRequired
+from typing import Annotated, Any
 
 from app_layer_base.base.repos.base import PrimaryKeyType
 from app_layer_base.base.services.base import (
@@ -10,6 +11,7 @@ from app_layer_base.base.services.base import (
     BaseGetServiceMixin,
     BaseUpdateServiceMixin,
 )
+from app_layer_base.base.services.hooks import CreateHook, Operation, UpdateHook
 from fastapi import Depends
 from pydantic import BaseModel
 from rag_core.embeddings import (
@@ -18,7 +20,6 @@ from rag_core.embeddings import (
     knowledge_embedding_config_payload,
     resolve_knowledge_embedding_config,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.knowledge.knowledge_bases.models import KnowledgeBase
 from app.features.knowledge.knowledge_bases.repos import KnowledgeBaseRepository
@@ -30,8 +31,70 @@ from app.features.knowledge.knowledge_bases.schemas import (
 
 
 class KnowledgeBaseContextKwargs(BaseContextKwargs):
-    _current_language: NotRequired[KnowledgeLanguage]
-    _current_embedding_config: NotRequired[dict[str, Any] | None]
+    pass
+
+
+class EmbeddingConfigHook(
+    CreateHook[KnowledgeBase, KnowledgeBaseContextKwargs],
+    UpdateHook[KnowledgeBase, KnowledgeBaseContextKwargs],
+):
+    """
+    Derives ``embedding_config`` / ``embed_config_hash`` from the request.
+
+    A partial update may name only one of language / embedding_config, so the
+    other is read from the stored row in ``update_context`` and stashed on
+    ``op.state`` (per-call scratch space; a caller that already loaded the row
+    in the same session makes this fetch an identity-map hit).
+    """
+
+    _STATE_LANGUAGE = "embedding_config_current_language"
+    _STATE_EMBED_CONFIG = "embedding_config_current_embedding_config"
+
+    @asynccontextmanager
+    async def update_context(
+        self,
+        op: Operation[KnowledgeBaseContextKwargs],
+        pk: PrimaryKeyType,
+        data: BaseModel,
+        partial: bool = True,
+    ) -> AsyncIterator[None]:
+        db_obj = await op.repo.get_by_pk(op.session, pk)
+        if db_obj:
+            op.state[self._STATE_LANGUAGE] = KnowledgeLanguage(db_obj.language)
+            op.state[self._STATE_EMBED_CONFIG] = db_obj.embedding_config
+        yield
+
+    def create_prepare_fields(
+        self,
+        op: Operation[KnowledgeBaseContextKwargs],
+        data: BaseModel,
+        fields: dict[str, Any],
+    ) -> dict[str, Any]:
+        assert isinstance(data, KnowledgeBaseCreate)
+        return _prepare_embedding_config_fields(data.embedding_config, language=data.language, update_fields=fields)
+
+    def update_prepare_fields(
+        self,
+        op: Operation[KnowledgeBaseContextKwargs],
+        data: BaseModel,
+        fields: dict[str, Any],
+        partial: bool = True,
+    ) -> dict[str, Any]:
+        assert isinstance(data, KnowledgeBasePut | KnowledgeBasePatch)
+        has_embed_config = "embedding_config" in data.model_fields_set
+        has_language = "language" in data.model_fields_set
+
+        if partial and not has_embed_config and not has_language:
+            return fields
+
+        if has_language:
+            language = data.language if data.language is not None else KnowledgeLanguage.EN
+        else:
+            language = op.state.get(self._STATE_LANGUAGE, KnowledgeLanguage.EN)
+
+        embedding_config_value = data.embedding_config if has_embed_config else op.state.get(self._STATE_EMBED_CONFIG)
+
+        return _prepare_embedding_config_fields(embedding_config_value, language=language, update_fields=fields)
 
 
 class KnowledgeBaseService(
@@ -45,6 +108,7 @@ class KnowledgeBaseService(
 ):
     def __init__(self, repo: Annotated[KnowledgeBaseRepository, Depends()]):
         self._repo = repo
+        self.hooks = (EmbeddingConfigHook(),)
 
     @property
     def repo(self) -> KnowledgeBaseRepository:
@@ -53,61 +117,6 @@ class KnowledgeBaseService(
     @property
     def context_model(self):
         return KnowledgeBaseContextKwargs
-
-    @asynccontextmanager
-    async def _context_update(
-        self,
-        session: AsyncSession,
-        obj_pk: PrimaryKeyType,
-        obj_data: BaseModel,
-        context: KnowledgeBaseContextKwargs,
-        partial: bool = True,
-    ):
-        async with super()._context_update(session, obj_pk, obj_data, context, partial=partial):
-            missing_lang = "_current_language" not in context
-            missing_embed = "_current_embedding_config" not in context
-            if missing_lang or missing_embed:
-                db_obj = await self.repo.get_by_pk(session, obj_pk)
-                if db_obj:
-                    if missing_lang:
-                        context["_current_language"] = KnowledgeLanguage(db_obj.language)
-                    if missing_embed:
-                        context["_current_embedding_config"] = db_obj.embedding_config
-            yield
-
-    def _prepare_create_fields(
-        self, obj_data: KnowledgeBaseCreate, context: KnowledgeBaseContextKwargs, **update_fields: Any
-    ) -> dict[str, Any]:
-        update_fields = super()._prepare_create_fields(obj_data, context, **update_fields)
-        language = obj_data.language
-        embedding_config_value = obj_data.embedding_config
-        return _prepare_embedding_config_fields(embedding_config_value, language=language, update_fields=update_fields)
-
-    def _prepare_update_fields(
-        self,
-        obj_data: KnowledgeBasePut | KnowledgeBasePatch,
-        context: KnowledgeBaseContextKwargs,
-        partial: bool = True,
-        **update_fields: Any,
-    ) -> dict[str, Any]:
-        update_fields = super()._prepare_update_fields(obj_data, context, partial=partial, **update_fields)
-        has_embed_config = "embedding_config" in obj_data.model_fields_set
-        has_language = "language" in obj_data.model_fields_set
-
-        if partial and not has_embed_config and not has_language:
-            return update_fields
-
-        if has_language:
-            language = obj_data.language if obj_data.language is not None else KnowledgeLanguage.EN
-        else:
-            language = context.get("_current_language", KnowledgeLanguage.EN)
-
-        if has_embed_config:
-            embedding_config_value = obj_data.embedding_config
-        else:
-            embedding_config_value = context.get("_current_embedding_config")
-
-        return _prepare_embedding_config_fields(embedding_config_value, language=language, update_fields=update_fields)
 
 
 def _prepare_embedding_config_fields(

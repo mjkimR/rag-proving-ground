@@ -22,7 +22,6 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from loguru import logger
-
 from rag_core.adapters.parser.instance import parse_file
 from rag_core.ai.models import get_llm_model
 from rag_core.chunkers.schemas import ChunkedDocument
@@ -145,7 +144,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Generate a project-native RAG eval dataset from the PDF corpus.")
     ap.add_argument("--limit-docs", type=int, default=None, help="Only use the first N PDFs (for a quick sample).")
     ap.add_argument("--per-doc", type=int, default=2, help="Questions to attempt per document.")
-    ap.add_argument("--out", type=str, default="corpus_eval.json", help="Output filename under experiments/bench/datasets/.")
+    ap.add_argument(
+        "--out", type=str, default="corpus_eval.json", help="Output filename under experiments/bench/datasets/."
+    )
     args = ap.parse_args()
     asyncio.run(generate(args.limit_docs, args.per_doc, args.out))
 

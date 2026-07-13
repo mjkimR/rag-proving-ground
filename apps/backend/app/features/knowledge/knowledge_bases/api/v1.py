@@ -1,4 +1,3 @@
-import dataclasses
 from typing import Annotated
 from uuid import UUID
 
@@ -6,12 +5,11 @@ from app_layer_base.base.exceptions.basic import NotFoundException
 from app_layer_base.base.repos.query_options import ListQueryOptions
 from app_layer_base.base.schemas.delete_resp import DeleteResponse
 from app_layer_base.base.schemas.paginated import PaginatedList
-from app_layer_base.core.database.transaction import AsyncTransaction
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile, status
 
 from app.features.knowledge.knowledge_base_documents.query_options import get_knowledge_base_documents_query_options
 from app.features.knowledge.knowledge_base_documents.schemas import KnowledgeBaseDocumentRead
-from app.features.knowledge.knowledge_base_documents.services import KnowledgeBaseDocumentService
+from app.features.knowledge.knowledge_base_documents.usecases.crud import GetKnowledgeBaseDocumentsUseCase
 from app.features.knowledge.knowledge_base_documents.usecases.ingest import IngestKnowledgeDocumentUseCase
 from app.features.knowledge.knowledge_bases.query_options import get_knowledge_bases_query_options
 from app.features.knowledge.knowledge_bases.schemas import (
@@ -127,25 +125,11 @@ async def upload_knowledge_base_document(
 @router.get("/{knowledge_base_id}/documents", response_model=PaginatedList[KnowledgeBaseDocumentRead])
 async def get_knowledge_base_documents(
     knowledge_base_id: UUID,
-    doc_service: Annotated[KnowledgeBaseDocumentService, Depends()],
+    use_case: Annotated[GetKnowledgeBaseDocumentsUseCase, Depends()],
     query_options: Annotated[ListQueryOptions, Depends(get_knowledge_base_documents_query_options)],
 ):
     """List all documents and their processing status inside a specific knowledge base."""
-    # Enforce knowledge_base_id constraint by replacing query_options (since it's frozen)
-    model = doc_service.repo.model
-    where_seq = ()
-    if query_options.where is not None:
-        if isinstance(query_options.where, (list, tuple)):
-            where_seq = tuple(w for w in query_options.where if w is not None)
-        else:
-            where_seq = (query_options.where,)
-
-    query_options = dataclasses.replace(
-        query_options,
-        where=(*where_seq, model.knowledge_base_id == knowledge_base_id),
-    )
-    async with AsyncTransaction() as session:
-        return await doc_service.repo.get_multi(session, query_options=query_options)
+    return await use_case.execute(knowledge_base_id, query_options)
 
 
 @router.post("/{knowledge_base_id}/search", response_model=KnowledgeBaseSearchResponse)

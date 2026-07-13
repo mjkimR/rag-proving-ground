@@ -6,6 +6,8 @@ from uuid import UUID
 
 from app_file_storage import get_storage_client
 from app_layer_base.base.repos.base import PrimaryKeyType
+from app_layer_base.base.repos.query_options import ListQueryOptions
+from app_layer_base.base.schemas.paginated import PaginatedList
 from app_layer_base.base.usecases.base import BaseUseCase
 from app_layer_base.base.usecases.crud import (
     BaseCreateUseCase,
@@ -47,6 +49,24 @@ class GetMultiKnowledgeBaseDocumentUseCase(
 ):
     def __init__(self, service: Annotated[KnowledgeBaseDocumentService, Depends()]) -> None:
         super().__init__(service)
+
+
+class GetKnowledgeBaseDocumentsUseCase(BaseUseCase):
+    """Lists the documents of one knowledge base, scoping the query at the repository."""
+
+    def __init__(self, service: Annotated[KnowledgeBaseDocumentService, Depends()]) -> None:
+        self.service = service
+
+    async def execute(
+        self,
+        knowledge_base_id: UUID,
+        query_options: ListQueryOptions | None = None,
+    ) -> "PaginatedList[KnowledgeBaseDocument]":
+        query_options = self.service.repo.scoped_to_knowledge_base(
+            query_options or ListQueryOptions(), knowledge_base_id
+        )
+        async with AsyncTransaction() as session:
+            return await self.service.get_multi(session, query_options=query_options)
 
 
 class CreateKnowledgeBaseDocumentUseCase(

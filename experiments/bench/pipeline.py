@@ -27,9 +27,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from loguru import logger
-
 from qdrant_client.http import models as qmodels
-
 from rag_core.adapters.parser.instance import parse_file
 from rag_core.adapters.vector_store.config import get_vector_db_settings
 from rag_core.adapters.vector_store.instance import get_vector_store_provider, setup_vector_store_provider
@@ -237,7 +235,7 @@ async def _smoke() -> None:
     print(f"contexts retrieved: {len(result['contexts'])}")
     print(f"\nANSWER:\n{result['answer'][:800]}")
     print("\nFIRST CONTEXT (200 chars):")
-    print((result["contexts"][0][:200] if result["contexts"] else "<none>"))
+    print(result["contexts"][0][:200] if result["contexts"] else "<none>")
     print("=" * 60)
 
 
