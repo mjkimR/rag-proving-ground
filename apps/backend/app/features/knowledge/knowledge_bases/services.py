@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
@@ -57,7 +57,7 @@ class EmbeddingConfigHook(
         pk: PrimaryKeyType,
         data: BaseModel,
         partial: bool = True,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None]:
         db_obj = await op.repo.get_by_pk(op.session, pk)
         if db_obj:
             op.state[self._STATE_LANGUAGE] = KnowledgeLanguage(db_obj.language)

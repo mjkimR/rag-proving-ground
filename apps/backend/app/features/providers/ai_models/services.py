@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -38,7 +38,7 @@ class AIModelDefaultFlagHook(
         self.repo = repo
 
     @asynccontextmanager
-    async def create_context(self, op: Operation[AIModelContextKwargs], data: BaseModel) -> AsyncIterator[None]:
+    async def create_context(self, op: Operation[AIModelContextKwargs], data: BaseModel) -> AsyncGenerator[None]:
         if getattr(data, "is_default", False):
             model_type = getattr(data, "model_type", None)
             if model_type:
@@ -52,7 +52,7 @@ class AIModelDefaultFlagHook(
         pk: PrimaryKeyType,
         data: BaseModel,
         partial: bool = True,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncGenerator[None]:
         if getattr(data, "is_default", None):
             model_type = getattr(data, "model_type", None)
             if not model_type:
